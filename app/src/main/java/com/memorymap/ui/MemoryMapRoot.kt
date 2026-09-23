@@ -47,7 +47,7 @@ import com.memorymap.ui.auth.AuthViewModel
 fun MemoryMapRoot(authViewModel: AuthViewModel = hiltViewModel()) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
 
-    when (val state = authState) {
+    when (authState) {
         AuthState.Unknown -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }

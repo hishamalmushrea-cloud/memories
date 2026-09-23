@@ -10,6 +10,14 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+# The default workflow token in this repository is read-only, which is why the
+# report could not be published before. These are the minimum scopes needed to
+# commit the generated schema and to open the report issue.
+permissions:
+  contents: write
+  issues: write
+  checks: write
+
 jobs:
   build:
     name: Assemble and test (Phase 1)
@@ -156,7 +164,8 @@ jobs:
           echo "actor=${GITHUB_ACTOR} trigger=${GITHUB_TRIGGERING_ACTOR} token_len=${#GH_TOKEN}"
           gh auth status 2>&1 || true
 
-          # `|| true` so a reporting problem cannot mask the real build verdict.
+          # Two independent channels, each guarded, so a problem with one cannot
+          # hide the report or change the real build verdict.
           if gh issue create \
               --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
               --body-file /tmp/report-cut.md > /tmp/issue.out 2> /tmp/issue.err; then
@@ -167,6 +176,16 @@ jobs:
             cat /tmp/issue.err
             cat /tmp/issue.out
           fi
+
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/check-runs" \
+            --field "name=build-report" \
+            --field "head_sha=${GITHUB_SHA}" \
+            --field "status=completed" \
+            --field "conclusion=neutral" \
+            --field "output[title]=Build report" \
+            --raw-field "output[summary]=$(cat /tmp/report-cut.md)" > /dev/null 2>&1 \
+            && echo "check-run annotation created" \
+            || echo "check-run annotation failed"
           true
 
       - name: Fail the job if any stage failed
