@@ -88,10 +88,10 @@ jobs:
           fi
 
       # The job log lives on blob storage, which a restricted network cannot
-      # reach. The summary is therefore published twice: as a check-run
-      # annotation and as an issue, both readable through the GitHub REST API.
-      # Errors from either path are printed instead of swallowed.
-      - name: Publish the build summary
+      # reach, so the summary is published as an issue that the GitHub REST API
+      # can read back. Errors are printed instead of swallowed, and the step
+      # never changes the job verdict - the gate below owns that.
+      - name: Publish the build summary as an issue
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -140,28 +140,21 @@ jobs:
             echo
             echo "### Raw tail of the unit test log"
             echo '```'
-            tail -n 120 /tmp/unit.log 2>/dev/null || true
+            tail -n 150 /tmp/unit.log 2>/dev/null || true
             echo '```'
           } > /tmp/report.md
 
           head -c 40000 /tmp/report.md > /tmp/report-cut.md
-          echo "--- report preview ---"
-          head -n 40 /tmp/report-cut.md
+          echo "--- report preview (first 30 lines) ---"
+          head -n 30 /tmp/report-cut.md
           echo "--- end preview ---"
 
-          echo "--- check-run annotation ---"
-          gh api --method POST \
-            "/repos/${GITHUB_REPOSITORY}/check-runs" \
-            --field "name=build-summary" \
-            --field "head_sha=${GITHUB_SHA}" \
-            --field "status=completed" \
-            --field "conclusion=neutral" \
-            --field "output[title]=Build summary" \
-            --raw-field "output[summary]=$(cat /tmp/report-cut.md)" 2>&1 | tail -5
-
-          echo "--- issue ---"
-          gh issue create --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
-            --body-file /tmp/report-cut.md 2>&1 | tail -5
+          # `|| true` so a reporting problem cannot mask the real build verdict.
+          gh issue create \
+            --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
+            --body-file /tmp/report-cut.md > /tmp/issue.out 2> /tmp/issue.err \
+            || { echo "issue create failed:"; cat /tmp/issue.err; cat /tmp/issue.out; true; }
+          cat /tmp/issue.out 2>/dev/null || true
 
       - name: Fail the job if any stage failed
         run: |
