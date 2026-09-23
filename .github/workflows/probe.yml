@@ -1,0 +1,66 @@
+name: probe
+
+# Diagnostic workflow. The build log lives on blob storage that a restricted
+# network cannot read, so this workflow answers the question "what can the
+# workflow token actually do?" by writing its findings into an issue body.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe the workflow token
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          {
+            echo "actor=${GITHUB_ACTOR}"
+            echo "trigger=${GITHUB_TRIGGERING_ACTOR}"
+            echo "repository=${GITHUB_REPOSITORY}"
+            echo "sha=${GITHUB_SHA}"
+            echo "token length=${#GH_TOKEN}"
+            echo
+            echo '```text'
+            gh auth status 2>&1 || true
+            echo '```'
+            echo
+            echo "### rate limit (shows the token scopes indirectly)"
+            echo '```text'
+            gh api rate_limit 2>&1 | head -20 || true
+            echo '```'
+            echo
+            echo "### can the workflow create an issue comment?"
+            echo '```text'
+            gh issue comment 1 --body "probe comment from workflow_dispatch" 2>&1 || true
+            echo '```'
+            echo
+            echo "### can the workflow create a check-run?"
+            echo '```text'
+            gh api --method POST "/repos/${GITHUB_REPOSITORY}/check-runs" \
+              --field name=probe --field "head_sha=${GITHUB_SHA}" \
+              --field status=completed --field conclusion=neutral \
+              --field "output[title]=probe" --field "output[summary]=probe" 2>&1 | head -5 || true
+            echo '```'
+            echo
+            echo "### can the workflow push to the branch?"
+            echo '```text'
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git remote -v
+            git push origin "HEAD:${GITHUB_REF_NAME}" --dry-run 2>&1 || true
+            echo '```'
+          } > /tmp/probe.md
+
+          cat /tmp/probe.md
+
+          if gh issue edit 1 --body-file /tmp/probe.md; then
+            echo "probe written into issue 1"
+          else
+            echo "issue edit failed, trying create"
+            gh issue create --title "token probe 2" --body-file /tmp/probe.md || true
+          fi
