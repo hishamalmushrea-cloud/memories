@@ -88,9 +88,10 @@ jobs:
           fi
 
       # The job log lives on blob storage, which a restricted network cannot
-      # reach, so the summary is also published as check-run annotations that
-      # the GitHub REST API can read back.
-      - name: Publish the build summary as check annotations
+      # reach. The summary is therefore published twice: as a check-run
+      # annotation and as an issue, both readable through the GitHub REST API.
+      # Errors from either path are printed instead of swallowed.
+      - name: Publish the build summary
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -112,17 +113,11 @@ jobs:
             python3 - <<'PY' || echo "(no test XML found)"
           import glob, xml.etree.ElementTree as ET
           total = failures = errors = skipped = 0
-          rows = []
           for path in sorted(glob.glob("app/build/test-results/**/*.xml", recursive=True)):
               root = ET.parse(path).getroot()
-              total += int(root.get("tests", 0))
-              failures += int(root.get("failures", 0))
-              errors += int(root.get("errors", 0))
-              skipped += int(root.get("skipped", 0))
-              rows.append((root.get("name", path), root.get("tests", "0"),
-                           root.get("failures", "0"), root.get("errors", "0")))
-          for name, t, f, e in rows:
-              print(f"- {name}: tests={t} failures={f} errors={e}")
+              t = int(root.get("tests", 0)); f = int(root.get("failures", 0)); e = int(root.get("errors", 0))
+              total += t; failures += f; errors += e; skipped += int(root.get("skipped", 0))
+              print(f"- {root.get('name', path)}: tests={t} failures={f} errors={e}")
           print()
           print(f"TOTAL tests={total} failures={failures} errors={errors} skipped={skipped}")
           PY
@@ -136,39 +131,37 @@ jobs:
             find app/schemas -type f 2>/dev/null || echo "(none)"
 
             echo
-            echo "### Compiler and lint diagnostics"
+            echo "### Diagnostics from the Gradle output"
             for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
               [ -f "$f" ] || continue
-              grep -E "^e: |^w: .*error|error:|What went wrong|Execution failed" "$f" | head -n 60 || true
+              grep -E "^e: |error:|What went wrong|Execution failed|Caused by:|OutOfMemory|Metaspace|Killed|Daemon" "$f" | head -n 80 || true
             done
+
+            echo
+            echo "### Raw tail of the unit test log"
+            echo '```'
+            tail -n 120 /tmp/unit.log 2>/dev/null || true
+            echo '```'
           } > /tmp/report.md
 
-          head -c 60000 /tmp/report.md > /tmp/report-cut.md
-          # `|| true` keeps the job's real verdict coming from the gate below.
-          python3 - <<'PY' || echo "annotation publish failed"
-          import json, os, subprocess
-          body = open("/tmp/report-cut.md", encoding="utf-8").read()
-          payload = {
-              "status": "completed",
-              "conclusion": "neutral",
-              "output": {
-                  "title": "Build summary",
-                  "summary": body[:60000],
-              },
-          }
-          run_id = os.environ["GITHUB_RUN_ID"]
-          url = f"{os.environ['GITHUB_API_URL']}/repos/{os.environ['GITHUB_REPOSITORY']}/check-runs"
-          subprocess.run(
-              ["gh", "api", "--method", "POST", url,
-               "--field", f"name=build-summary-{run_id}",
-               "--field", f"head_sha={os.environ['GITHUB_SHA']}",
-               "--field", "status=completed",
-               "--field", "conclusion=neutral",
-               "--field", f"output[title]=Build summary {run_id}",
-               "--field", f"output[summary]={body[:60000]}"],
-              check=False,
-          )
-          PY
+          head -c 40000 /tmp/report.md > /tmp/report-cut.md
+          echo "--- report preview ---"
+          head -n 40 /tmp/report-cut.md
+          echo "--- end preview ---"
+
+          echo "--- check-run annotation ---"
+          gh api --method POST \
+            "/repos/${GITHUB_REPOSITORY}/check-runs" \
+            --field "name=build-summary" \
+            --field "head_sha=${GITHUB_SHA}" \
+            --field "status=completed" \
+            --field "conclusion=neutral" \
+            --field "output[title]=Build summary" \
+            --raw-field "output[summary]=$(cat /tmp/report-cut.md)" 2>&1 | tail -5
+
+          echo "--- issue ---"
+          gh issue create --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
+            --body-file /tmp/report-cut.md 2>&1 | tail -5
 
       - name: Fail the job if any stage failed
         run: |

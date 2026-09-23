@@ -123,6 +123,14 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                // Robolectric loads a whole Android runtime per test class; an
+                // unbounded heap competes with the Gradle daemon and gets the
+                // build killed on a small CI runner.
+                it.maxHeapSize = "1536m"
+                it.maxParallelForks = 1
+                it.forkEvery = 0
+            }
         }
     }
 
