@@ -7,7 +7,6 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.memorymap.util.MmLog
 import io.github.jan.supabase.auth.SessionManager
-import io.github.jan.supabase.auth.exception.NoSessionFoundException
 import io.github.jan.supabase.auth.user.UserSession
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,7 +53,8 @@ class SecureSessionStore @Inject constructor(
     }
 
     override suspend fun loadSession(): UserSession {
-        val raw = prefs.getString(KEY_SESSION, null) ?: throw NoSessionFoundException()
+        val raw = prefs.getString(KEY_SESSION, null)
+            ?: throw IllegalStateException("No stored session")
         return json.decodeFromString(UserSession.serializer(), raw)
     }
 

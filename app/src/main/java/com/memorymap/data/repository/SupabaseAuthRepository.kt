@@ -96,15 +96,19 @@ class SupabaseAuthRepository @Inject constructor(
         val client = supabaseProvider.get()
             ?: return localSignUp(email, displayName)
 
+        // Captured in locals: inside the Email config lambda an unqualified
+        // `email`/`password` would resolve to the lambda receiver's own fields.
+        val userEmail = email.trim()
+        val userPassword = password
         return runCatching {
             client.auth.signUpWith(Email) {
-                this.email = email.trim()
-                this.password = password
+                this.email = userEmail
+                this.password = userPassword
             }
             // The session arrives through sessionStatus; make sure the local
             // profile row exists even if the callback has not run yet.
             val user = client.auth.currentUserOrNull()
-            rememberUser(user?.id, user?.email ?: email.trim(), displayName)
+            rememberUser(user?.id, user?.email ?: userEmail, displayName)
             AuthRepository.Result.Success as AuthRepository.Result
         }.getOrElse { error ->
             MmLog.e("Sign up failed", error)
@@ -116,13 +120,15 @@ class SupabaseAuthRepository @Inject constructor(
         val client = supabaseProvider.get()
             ?: return localSignIn(email)
 
+        val userEmail = email.trim()
+        val userPassword = password
         return runCatching {
             client.auth.signInWith(Email) {
-                this.email = email.trim()
-                this.password = password
+                this.email = userEmail
+                this.password = userPassword
             }
             val user = client.auth.currentUserOrNull()
-            rememberUser(user?.id, user?.email ?: email.trim(), user?.email ?: email.trim())
+            rememberUser(user?.id, user?.email ?: userEmail, user?.email ?: userEmail)
             AuthRepository.Result.Success as AuthRepository.Result
         }.getOrElse { error ->
             MmLog.e("Sign in failed", error)

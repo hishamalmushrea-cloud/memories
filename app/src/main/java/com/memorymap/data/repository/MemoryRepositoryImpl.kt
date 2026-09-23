@@ -36,7 +36,7 @@ class MemoryRepositoryImpl @Inject constructor(
     override suspend fun save(memory: Memory, personIds: List<String>, placeIds: List<String>) {
         val existing = memoryDao.getById(memory.id)
         val toWrite = memory.copy(
-            createdAt = existing?.createdAt ?: memory.createdAt,
+            createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: memory.createdAt,
             updatedAt = LocalDateTime.now(),
             // A record that has never reached the server stays PENDING_CREATE,
             // otherwise the sync worker would try to PATCH a row that is not there.

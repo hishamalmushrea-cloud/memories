@@ -9,9 +9,9 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
+import com.memorymap.ui.common.rememberLocale
 
 private val LightColors = lightColorScheme(
     primary = MemoryMapColors.Primary,
@@ -49,9 +49,7 @@ fun MemoryMapTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val locale: Locale = remember(LocalConfiguration.current) {
-        LocalConfiguration.current.locales?.get(0) ?: Locale.getDefault()
-    }
+    val locale = rememberLocale()
 
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->

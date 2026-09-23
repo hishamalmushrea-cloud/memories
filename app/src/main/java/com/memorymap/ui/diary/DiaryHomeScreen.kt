@@ -27,10 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.memorymap.ui.common.rememberLocale
 import com.memorymap.R
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.navigation.Routes
@@ -43,9 +43,7 @@ import java.util.Locale
  */
 @Composable
 fun DiaryHomeScreen(navController: NavHostController) {
-    val locale: Locale = remember(LocalConfiguration.current) {
-        LocalConfiguration.current.locales?.get(0) ?: Locale.getDefault()
-    }
+    val locale = rememberLocale()
     val today = remember { LocalDate.now() }
 
     Column(

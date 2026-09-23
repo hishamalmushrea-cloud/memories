@@ -87,15 +87,17 @@ private fun StatsCard(stats: LifeStats, peopleCount: Int) {
             StatRow(stringResource(R.string.stat_photos), stats.photos.toString())
             StatRow(stringResource(R.string.stat_audio), stats.audio.toString())
             StatRow(stringResource(R.string.stat_videos), stats.videos.toString())
-            StatRow(
-                stringResource(R.string.stat_top_emotion),
-                stats.topEmotion?.let(::emotionLabel) ?: stringResource(R.string.stat_none),
-            )
-            StatRow(
-                stringResource(R.string.stat_top_month),
-                stats.topMonth?.let { "${it.year}-${it.month.toString().padStart(2, '0')}" }
-                    ?: stringResource(R.string.stat_none),
-            )
+            val topEmotion = stats.topEmotion
+            val topEmotionText = if (topEmotion != null) {
+                emotionLabel(topEmotion)
+            } else {
+                stringResource(R.string.stat_none)
+            }
+            val topMonthText = stats.topMonth
+                ?.let { "${it.year}-${it.month.toString().padStart(2, '0')}" }
+                ?: stringResource(R.string.stat_none)
+            StatRow(stringResource(R.string.stat_top_emotion), topEmotionText)
+            StatRow(stringResource(R.string.stat_top_month), topMonthText)
         }
     }
 }

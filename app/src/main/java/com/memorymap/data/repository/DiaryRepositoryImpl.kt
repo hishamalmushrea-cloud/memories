@@ -38,7 +38,7 @@ class DiaryRepositoryImpl @Inject constructor(
     override suspend fun saveEntry(entry: DailyEntry, personIds: List<String>, placeIds: List<String>) {
         val existing = entryDao.getById(entry.id)
         val toWrite = entry.copy(
-            createdAt = existing?.createdAt ?: entry.createdAt,
+            createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: entry.createdAt,
             updatedAt = LocalDateTime.now(),
             syncStatus = if (existing == null) SyncStatus.PENDING_CREATE else SyncStatus.PENDING_UPDATE,
         )
