@@ -150,12 +150,24 @@ jobs:
           head -n 30 /tmp/report-cut.md
           echo "--- end preview ---"
 
+          # The job log is unreadable from a restricted network, so anything
+          # needed later has to be printed here or written into the issue.
+          echo "--- token diagnostics ---"
+          echo "actor=${GITHUB_ACTOR} trigger=${GITHUB_TRIGGERING_ACTOR} token_len=${#GH_TOKEN}"
+          gh auth status 2>&1 || true
+
           # `|| true` so a reporting problem cannot mask the real build verdict.
-          gh issue create \
-            --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
-            --body-file /tmp/report-cut.md > /tmp/issue.out 2> /tmp/issue.err \
-            || { echo "issue create failed:"; cat /tmp/issue.err; cat /tmp/issue.out; true; }
-          cat /tmp/issue.out 2>/dev/null || true
+          if gh issue create \
+              --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
+              --body-file /tmp/report-cut.md > /tmp/issue.out 2> /tmp/issue.err; then
+            echo "issue created:"
+            cat /tmp/issue.out
+          else
+            echo "issue create failed:"
+            cat /tmp/issue.err
+            cat /tmp/issue.out
+          fi
+          true
 
       - name: Fail the job if any stage failed
         run: |
