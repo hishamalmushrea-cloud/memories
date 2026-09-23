@@ -126,6 +126,14 @@ verify-dependencies → gradlew help → testDebugUnitTest → lintDebug → ass
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
 
+عند الفشل ينشر CI تقريرًا كـ**Issue** في المستودع (لأن سجلات GitHub مخزّنة على
+نطاق لا يمكن لكل الشبكات الوصول إليه).
+
+> ملاحظة: مخطط Room المُصدَّر (`app/schemas/`) يولّده KSP أثناء البناء، وهو
+> مستثنى من Git حاليًا لأن توكن CI في هذا المستودع لا يملك صلاحية الدفع.
+> يُفضّل عمل commit له يدويًا مرة واحدة ثم إزالة الاستثناء من `.gitignore`،
+> ليصبح أي تغيير في المخطط diff قابلًا للمراجعة.
+
 ## الخارطة
 
 - [x] **Phase 1** – Foundation: Gradle, Compose, Theme, Navigation, Room, Supabase foundation, CI
