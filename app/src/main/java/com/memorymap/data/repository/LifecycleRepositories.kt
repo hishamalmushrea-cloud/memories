@@ -63,7 +63,11 @@ class OnThisDayRepositoryImpl @Inject constructor(
                 isMemory = false,
             )
         }
-        return (memories + notes).sortedByDescending { it.year }
+        // The month-day pattern also matches the current year; "on this day" is
+        // about earlier years, so the day's own records are dropped here.
+        return (memories + notes)
+            .filter { it.year != day.year }
+            .sortedByDescending { it.year }
     }
 }
 

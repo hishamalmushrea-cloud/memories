@@ -122,13 +122,25 @@ jobs:
             python3 - <<'PY' || echo "(no test XML found)"
           import glob, xml.etree.ElementTree as ET
           total = failures = errors = skipped = 0
+          detail = []
           for path in sorted(glob.glob("app/build/test-results/**/*.xml", recursive=True)):
               root = ET.parse(path).getroot()
               t = int(root.get("tests", 0)); f = int(root.get("failures", 0)); e = int(root.get("errors", 0))
               total += t; failures += f; errors += e; skipped += int(root.get("skipped", 0))
               print(f"- {root.get('name', path)}: tests={t} failures={f} errors={e}")
+              for tc in root.iter("testcase"):
+                  for tag in ("failure", "error"):
+                      node = tc.find(tag)
+                      if node is not None:
+                          msg = (node.get("message") or "")[:500]
+                          txt = (node.text or "").strip()[:900]
+                          detail.append(f"{tc.get('classname')}.{tc.get('name')}\n  [{tag}] {msg}\n{txt}")
           print()
           print(f"TOTAL tests={total} failures={failures} errors={errors} skipped={skipped}")
+          if detail:
+              print()
+              print("### Failing tests")
+              print("\n\n".join(detail))
           PY
 
             echo

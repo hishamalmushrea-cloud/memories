@@ -114,9 +114,19 @@ class MemoryRepositoryImplTest {
 
     @Test
     fun `linked people and places are replaced, not accumulated`() = runTest {
+        // The link tables carry foreign keys to people/places, so the referenced
+        // rows must exist first, exactly as in production where ids come from
+        // findOrCreatePerson / savePlace.
+        val now = java.time.LocalDateTime.now().toString()
+        db.personDao().upsert(com.memorymap.data.local.entities.PersonEntity("p1", userId, "أحمد", now))
+        db.personDao().upsert(com.memorymap.data.local.entities.PersonEntity("p2", userId, "سارة", now))
+        db.personDao().upsert(com.memorymap.data.local.entities.PersonEntity("p3", userId, "عمر", now))
+        db.placeDao().upsert(com.memorymap.data.local.entities.PlaceEntity("pl1", userId, "صنعاء", 15.35, 44.20, now))
+
         val memory = sampleMemory(title = "مع الأصدقاء")
         repository.save(memory, personIds = listOf("p1", "p2"), placeIds = listOf("pl1"))
         assertEquals(2, db.memoryDao().peopleOf(memory.id).size)
+        assertEquals(1, db.memoryDao().placesOf(memory.id).size)
 
         repository.save(memory.copy(title = memory.title), personIds = listOf("p3"), placeIds = emptyList())
 
