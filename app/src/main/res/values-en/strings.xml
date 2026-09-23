@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Memory Map</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_map">Map</string>
+    <string name="tab_diary">My diary</string>
+    <string name="tab_memories">Memories</string>
+    <string name="tab_timeline">Timeline</string>
+    <string name="tab_profile">Account</string>
+
+    <!-- Global actions -->
+    <string name="action_add">Add</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Quick add sheet -->
+    <string name="quick_add_title">What do you want to add?</string>
+    <string name="quick_add_memory">Memory</string>
+    <string name="quick_add_entry">Daily event</string>
+    <string name="quick_add_photo">Photo</string>
+    <string name="quick_add_audio">Voice note</string>
+    <string name="quick_add_video">Video</string>
+    <string name="coming_phase_3">Coming soon</string>
+
+    <!-- Diary -->
+    <string name="diary_today">Today</string>
+    <string name="diary_yesterday">Yesterday</string>
+    <string name="diary_this_week">This week</string>
+    <string name="diary_this_month">This month</string>
+    <string name="diary_this_year">This year</string>
+    <string name="diary_add_to_day">Add to my day</string>
+    <string name="diary_day_events">Events of the day</string>
+    <string name="diary_no_events">No events on this day yet.</string>
+    <string name="diary_note_title">Notes of the day</string>
+    <string name="diary_note_hint">What did you do today?</string>
+    <string name="on_this_day">On this day</string>
+
+    <!-- Week / month / year -->
+    <string name="week_events_count">%1$d events</string>
+    <string name="week_media_count">%1$d photos · %2$d recordings · %3$d videos</string>
+    <string name="month_recorded_days">Recorded days: %1$d</string>
+    <string name="month_totals">%1$d events · %2$d photos · %3$d videos · %4$d recordings · %5$d memories</string>
+    <string name="year_recorded_days">Recorded days this year: %1$d</string>
+    <string name="year_days_count">%1$d days</string>
+
+    <!-- Profile -->
+    <string name="profile_local_title">Local account</string>
+    <string name="profile_local_hint">Your data is stored on this device</string>
+    <string name="profile_offline_only">No Supabase project is linked, so the app runs fully offline. This is a supported state, not an error.</string>
+    <string name="profile_stats_title">Life statistics</string>
+    <string name="stat_recorded_days">Recorded days</string>
+    <string name="stat_memories">Memories</string>
+    <string name="stat_events">Events</string>
+    <string name="stat_places">Places</string>
+    <string name="stat_people">People</string>
+    <string name="stat_photos">Photos</string>
+    <string name="stat_audio">Recordings</string>
+    <string name="stat_videos">Videos</string>
+    <string name="stat_top_emotion">Most used emotion</string>
+    <string name="stat_top_month">Busiest month</string>
+    <string name="stat_none">Nothing yet</string>
+
+    <!-- Emotions -->
+    <string name="emotion_happy">Happy</string>
+    <string name="emotion_sad">Sad</string>
+    <string name="emotion_love">Love</string>
+    <string name="emotion_fear">Fear</string>
+    <string name="emotion_pride">Pride</string>
+    <string name="emotion_nostalgia">Nostalgia</string>
+
+    <!-- Honest placeholders -->
+    <string name="placeholder_title">This screen is under construction</string>
+    <string name="placeholder_phase">It is implemented in %1$s. No fake data is shown here.</string>
+</resources>

@@ -1,0 +1,115 @@
+package com.memorymap.ui.profile
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.memorymap.R
+import com.memorymap.domain.model.Emotion
+import com.memorymap.domain.model.LifeStats
+
+/**
+ * Account header and the life statistics: recorded days, memories, events,
+ * places, photos, audio, videos, most used emotion and busiest month.
+ */
+@Composable
+fun ProfileScreen(
+    @Suppress("UNUSED_PARAMETER") navController: androidx.navigation.NavHostController,
+    viewModel: ProfileViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = state.user?.displayName ?: stringResource(R.string.profile_local_title),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            text = state.user?.email ?: stringResource(R.string.profile_local_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (!state.cloudConfigured) {
+            Card(Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.profile_offline_only),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+        }
+
+        state.stats?.let { stats -> StatsCard(stats, state.peopleCount) }
+    }
+}
+
+@Composable
+private fun StatsCard(stats: LifeStats, peopleCount: Int) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.profile_stats_title), style = MaterialTheme.typography.titleMedium)
+            StatRow(stringResource(R.string.stat_recorded_days), stats.recordedDays.toString())
+            StatRow(stringResource(R.string.stat_memories), stats.memories.toString())
+            StatRow(stringResource(R.string.stat_events), stats.events.toString())
+            StatRow(stringResource(R.string.stat_places), stats.places.toString())
+            StatRow(stringResource(R.string.stat_people), peopleCount.toString())
+            StatRow(stringResource(R.string.stat_photos), stats.photos.toString())
+            StatRow(stringResource(R.string.stat_audio), stats.audio.toString())
+            StatRow(stringResource(R.string.stat_videos), stats.videos.toString())
+            StatRow(
+                stringResource(R.string.stat_top_emotion),
+                stats.topEmotion?.let(::emotionLabel) ?: stringResource(R.string.stat_none),
+            )
+            StatRow(
+                stringResource(R.string.stat_top_month),
+                stats.topMonth?.let { "${it.year}-${it.month.toString().padStart(2, '0')}" }
+                    ?: stringResource(R.string.stat_none),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * Maps an emotion to its display name. The Arabic labels live in the default
+ * `values/strings.xml`, so this stays a resource lookup rather than a hardcoded
+ * Arabic string in Kotlin.
+ */
+@Composable
+private fun emotionLabel(emotion: Emotion): String = when (emotion) {
+    Emotion.HAPPY -> stringResource(R.string.emotion_happy)
+    Emotion.SAD -> stringResource(R.string.emotion_sad)
+    Emotion.LOVE -> stringResource(R.string.emotion_love)
+    Emotion.FEAR -> stringResource(R.string.emotion_fear)
+    Emotion.PRIDE -> stringResource(R.string.emotion_pride)
+    Emotion.NOSTALGIA -> stringResource(R.string.emotion_nostalgia)
+}

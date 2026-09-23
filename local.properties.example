@@ -1,0 +1,15 @@
+# Supabase client-only configuration.
+#
+# Copy this file to `local.properties` and fill in your own project values.
+# `local.properties` is git-ignored on purpose.
+#
+# Use the **anon / publishable** key only. Never put the `service_role` key in
+# an Android app: anything shipped inside the APK is public.
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+
+# Optional release signing. See docs/RELEASE.md.
+MEMORYMAP_KEYSTORE=
+MEMORYMAP_KEYSTORE_PASSWORD=
+MEMORYMAP_KEY_ALIAS=
+MEMORYMAP_KEY_PASSWORD=

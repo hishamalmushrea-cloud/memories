@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Local diary data is the user's life archive, so it is included in device
+  backups. Nothing is sent anywhere by the app itself; this only tells Android
+  which files a device-to-device transfer may copy.
+-->
+<full-backup-content>
+    <include
+        domain="database"
+        path="memorymap.db" />
+    <include
+        domain="database"
+        path="memorymap.db-wal" />
+    <include
+        domain="database"
+        path="memorymap.db-shm" />
+    <include
+        domain="file"
+        path="memorymap/" />
+    <include
+        domain="external"
+        path="memorymap/" />
+</full-backup-content>

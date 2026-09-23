@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default language is Arabic; values-en/strings.xml holds the English copy. -->
+<resources>
+    <string name="app_name">خريطة الذكريات</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_map">الخريطة</string>
+    <string name="tab_diary">يومياتي</string>
+    <string name="tab_memories">ذكرياتي</string>
+    <string name="tab_timeline">الخط الزمني</string>
+    <string name="tab_profile">حسابي</string>
+
+    <!-- Global actions -->
+    <string name="action_add">إضافة</string>
+    <string name="action_save">حفظ</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_edit">تعديل</string>
+    <string name="action_cancel">إلغاء</string>
+
+    <!-- Quick add sheet -->
+    <string name="quick_add_title">ماذا تريد أن تضيف؟</string>
+    <string name="quick_add_memory">ذكرى</string>
+    <string name="quick_add_entry">حدث يومي</string>
+    <string name="quick_add_photo">صورة</string>
+    <string name="quick_add_audio">تسجيل صوتي</string>
+    <string name="quick_add_video">فيديو</string>
+    <string name="coming_phase_3">قريبًا</string>
+
+    <!-- Diary -->
+    <string name="diary_today">اليوم</string>
+    <string name="diary_yesterday">الأمس</string>
+    <string name="diary_this_week">هذا الأسبوع</string>
+    <string name="diary_this_month">هذا الشهر</string>
+    <string name="diary_this_year">هذه السنة</string>
+    <string name="diary_add_to_day">إضافة إلى يومي</string>
+    <string name="diary_day_events">أحداث اليوم</string>
+    <string name="diary_no_events">لا توجد أحداث في هذا اليوم بعد.</string>
+    <string name="diary_note_title">مذكرات اليوم</string>
+    <string name="diary_note_hint">ماذا فعلت اليوم؟</string>
+    <string name="on_this_day">في مثل هذا اليوم</string>
+
+    <!-- Week / month / year -->
+    <string name="week_events_count">%1$d حدث</string>
+    <string name="week_media_count">%1$d صورة · %2$d تسجيل · %3$d فيديو</string>
+    <string name="month_recorded_days">أيام مسجّلة: %1$d</string>
+    <string name="month_totals">%1$d حدث · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</string>
+    <string name="year_recorded_days">أيام مسجّلة خلال السنة: %1$d</string>
+    <string name="year_days_count">%1$d يوم</string>
+
+    <!-- Profile -->
+    <string name="profile_local_title">حساب محلي</string>
+    <string name="profile_local_hint">بياناتك محفوظة على هذا الجهاز</string>
+    <string name="profile_offline_only">لا يوجد مشروع Supabase مرتبط، لذلك يعمل التطبيق محليًا بالكامل. هذا وضع مدعوم وليس خطأ.</string>
+    <string name="profile_stats_title">إحصاءات الحياة</string>
+    <string name="stat_recorded_days">الأيام المسجّلة</string>
+    <string name="stat_memories">الذكريات</string>
+    <string name="stat_events">الأحداث</string>
+    <string name="stat_places">الأماكن</string>
+    <string name="stat_people">الأشخاص</string>
+    <string name="stat_photos">الصور</string>
+    <string name="stat_audio">التسجيلات</string>
+    <string name="stat_videos">الفيديوهات</string>
+    <string name="stat_top_emotion">أكثر شعور</string>
+    <string name="stat_top_month">أكثر شهر نشاطًا</string>
+    <string name="stat_none">لا شيء بعد</string>
+
+    <!-- Emotions -->
+    <string name="emotion_happy">سعيد</string>
+    <string name="emotion_sad">حزين</string>
+    <string name="emotion_love">حب</string>
+    <string name="emotion_fear">خوف</string>
+    <string name="emotion_pride">فخر</string>
+    <string name="emotion_nostalgia">حنين</string>
+
+    <!-- Honest placeholders -->
+    <string name="placeholder_title">هذه الشاشة قيد البناء</string>
+    <string name="placeholder_phase">سيتم تنفيذها في %1$s. لا توجد بيانات وهمية معروضة هنا.</string>
+</resources>

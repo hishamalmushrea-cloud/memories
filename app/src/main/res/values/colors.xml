@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="memorymap_background">#FBF8FF</color>
+    <color name="memorymap_primary">#1A237E</color>
+    <color name="memorymap_on_primary">#FFFFFF</color>
+</resources>
