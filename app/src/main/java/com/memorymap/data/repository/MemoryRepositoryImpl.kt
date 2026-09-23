@@ -25,6 +25,9 @@ class MemoryRepositoryImpl @Inject constructor(
     override fun watchAll(userId: String): Flow<List<Memory>> =
         memoryDao.watchAll(userId).map { rows -> rows.map { it.toDomain() } }
 
+    override fun watchOne(id: String): Flow<Memory?> =
+        memoryDao.watchById(id).map { it?.toDomain() }
+
     override fun watchLocated(userId: String): Flow<List<Memory>> =
         memoryDao.watchLocated(userId).map { rows -> rows.map { it.toDomain() } }
 

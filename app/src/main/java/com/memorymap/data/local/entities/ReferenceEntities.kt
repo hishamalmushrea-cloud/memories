@@ -101,4 +101,12 @@ data class MediaEntity(
 
     @ColumnInfo(name = "last_synced_at")
     val lastSyncedAt: String? = null,
+
+    /**
+     * Tombstone. A locally deleted attachment keeps its row so the next sync can
+     * replay the delete; without it a media row deleted offline would come back
+     * the moment the device reconnects.
+     */
+    @ColumnInfo(name = "deleted_at")
+    val deletedAt: String? = null,
 )

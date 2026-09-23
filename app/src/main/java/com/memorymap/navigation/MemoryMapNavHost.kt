@@ -14,6 +14,7 @@ import com.memorymap.ui.diary.YearScreen
 import com.memorymap.ui.map.MapScreen
 import com.memorymap.ui.memories.MemoriesScreen
 import com.memorymap.ui.memories.MemoryDetailScreen
+import com.memorymap.ui.memories.MemoryEditorScreen
 import com.memorymap.ui.nearby.NearbyScreen
 import com.memorymap.ui.profile.ProfileScreen
 import com.memorymap.ui.search.SearchScreen
@@ -74,15 +75,17 @@ fun MemoryMapNavHost(
             MemoryDetailScreen(navController, entry.arguments?.getString("memoryId").orEmpty())
         }
 
-        // The quick-add sheet links to both editors, so the destinations must
-        // exist now even though their forms are built in Phase 3 and 4.
         composable(
             route = Routes.MEMORY_EDITOR,
             arguments = listOf(navArgument("memoryId") {
                 type = NavType.StringType
                 defaultValue = ""
             }),
-        ) { EditorPlaceholder(phase = "Phase 3") }
+        ) { MemoryEditorScreen(navController) }
+
+        // The diary event editor is built in Phase 4; the destination exists now
+        // so the quick-add sheet can link to it.
+
 
         composable(
             route = Routes.ENTRY_EDITOR,
@@ -98,8 +101,8 @@ fun MemoryMapNavHost(
 }
 
 /**
- * Stands in for the two editor forms. It says which phase delivers them instead
- * of pretending to save anything.
+ * Stands in for the diary event editor. It says which phase delivers the form
+ * instead of pretending to save anything.
  */
 @Composable
 private fun EditorPlaceholder(phase: String) {

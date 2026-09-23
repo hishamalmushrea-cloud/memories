@@ -6,6 +6,38 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 3: Memories
+
+- Memory CRUD: create, read, update and soft-delete from the memories tab, with
+  a detail screen and a single editor used for both create and edit.
+- Photo, audio and video attachments. Photos are picked through the system photo
+  picker or taken with the camera; voice notes are recorded in-app; videos are
+  picked and played back locally.
+- Files are copied into app-private external storage, so the archive survives a
+  cache clear, is not indexed by the gallery and needs no storage permission.
+- Camera and microphone permissions are requested at the moment of use, never at
+  startup, and the recorder is released as soon as recording ends.
+- Attachments are plain files by design: audio is never transcribed and video is
+  never analysed or summarised. Only a thumbnail, a duration and a file size are
+  read.
+- `MediaRepository` with a per-owner aggregate query, so the memory list shows
+  thumbnails and media counts without one query per row.
+- A `deleted_at` tombstone on the `media` table. Removing an attachment deletes
+  the file and keeps the row, so an offline delete is replayed by the sync worker
+  instead of being resurrected.
+- Abandoning the editor deletes the files that were imported during it, so
+  nothing is left behind in app-private storage.
+- Tests: `MediaImporterTest` (accepted file types, extensions, duration
+  formatting), `MediaRepositoryImplTest` (attach, tombstone plus file removal,
+  counts, summary, discard), `MemoriesViewModelTest` and
+  `MemoryEditorViewModelTest`.
+
+### Fixed — Phase 3
+
+- "On this day" no longer includes the current year. The month-day pattern also
+  matched today's own records, so the card could list the day it was shown on.
+- The memory list, detail and editor no longer show the Phase 3 placeholder.
+
 ### Added — Phase 2: Authentication
 
 - Email sign up, sign in, sign out and password reset through Supabase Auth.
@@ -71,7 +103,6 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Explicitly not in this phase
 
 The following are placeholders that state which phase implements them instead of
-showing fake data: authentication (Phase 2), memory CRUD and media capture
-(Phase 3), the map and nearby (Phase 5), the sync upload pipeline (Phase 6),
-search/people/places/timeline filters (Phase 7), and backup export/import
-(Phase 8).
+showing fake data: the diary event editor (Phase 4), the map and nearby
+(Phase 5), the sync upload pipeline (Phase 6), search/people/places/timeline
+filters (Phase 7), and backup export/import (Phase 8).

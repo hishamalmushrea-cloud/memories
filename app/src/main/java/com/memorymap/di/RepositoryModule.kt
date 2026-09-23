@@ -4,12 +4,14 @@ import com.memorymap.data.remote.SecureSessionStore
 import com.memorymap.data.remote.SupabaseConfig
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.SupabaseAuthRepository
+import com.memorymap.data.repository.MediaRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.DiaryRepository
+import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.domain.repository.ReferenceRepository
@@ -34,6 +36,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMemoryRepository(impl: MemoryRepositoryImpl): MemoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMediaRepository(impl: MediaRepositoryImpl): MediaRepository
 
     @Binds
     @Singleton

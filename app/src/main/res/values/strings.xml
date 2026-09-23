@@ -102,4 +102,47 @@
     <string name="auth_error_email_required">أدخل البريد الإلكتروني.</string>
     <string name="auth_error_generic">تعذّر إكمال الطلب. تحقّق من الاتصال ثم أعد المحاولة.</string>
     <string name="auth_reset_sent">أُرسل رابط استعادة كلمة المرور إلى بريدك.</string>
+    <!-- Memories: list, editor, detail -->
+    <string name="memory_search_hint">ابحث في الذكريات</string>
+    <string name="memory_empty_title">لا توجد ذكريات بعد</string>
+    <string name="memory_search_empty">لا توجد نتائج مطابقة</string>
+    <string name="memory_empty_body">أضف أول ذكرى من زر الإضافة، وأرفق لها صورة أو تسجيلًا أو فيديو.</string>
+    <string name="memory_delete_title">حذف الذكرى</string>
+    <string name="memory_delete_body">ستُحذف «%1$s» ومرفقاتها من هذا الجهاز.</string>
+    <string name="memory_not_found">لم يتم العثور على هذه الذكرى</string>
+    <string name="memory_section_photos">الصور (%1$d)</string>
+    <string name="memory_section_audio">التسجيلات (%1$d)</string>
+    <string name="memory_section_videos">الفيديوهات (%1$d)</string>
+    <string name="memory_section_attachments">المرفقات</string>
+    <string name="memory_action_play">تشغيل</string>
+    <string name="memory_action_pause">إيقاف مؤقت</string>
+    <string name="memory_editor_new">ذكرى جديدة</string>
+    <string name="memory_editor_edit">تعديل الذكرى</string>
+    <string name="memory_field_title">العنوان</string>
+    <string name="memory_field_text">التفاصيل</string>
+    <string name="memory_field_date">التاريخ: %1$s</string>
+    <string name="memory_field_emotion">الشعور</string>
+    <string name="memory_field_visibility">من يستطيع الرؤية</string>
+    <string name="memory_field_place">اسم المكان</string>
+    <string name="memory_action_pick_photo">اختيار صورة</string>
+    <string name="memory_action_take_photo">التقاط صورة</string>
+    <string name="memory_action_pick_video">اختيار فيديو</string>
+    <string name="memory_action_record">تسجيل صوتي</string>
+    <string name="memory_action_keep">حفظ التسجيل</string>
+    <string name="memory_recording">جارٍ التسجيل… %1$s</string>
+    <string name="memory_discard_title">تجاهل التغييرات؟</string>
+    <string name="memory_discard_body">ستُحذف المرفقات التي أضفتها دون حفظ.</string>
+    <string name="memory_action_discard">تجاهل</string>
+    <string name="memory_error_title">اكتب عنوانًا للذكرى</string>
+    <string name="memory_error_media">تعذّرت إضافة هذا الملف</string>
+    <string name="memory_error_no_account">لا يوجد حساب نشط</string>
+    <string name="memory_error_save">تعذّر حفظ الذكرى</string>
+
+    <!-- Shared labels -->
+    <string name="visibility_private">خاص</string>
+    <string name="visibility_shared">مشترك</string>
+    <string name="visibility_public">عام</string>
+    <string name="media_type_photo">صورة</string>
+    <string name="media_type_audio">تسجيل صوتي</string>
+    <string name="media_type_video">فيديو</string>
 </resources>

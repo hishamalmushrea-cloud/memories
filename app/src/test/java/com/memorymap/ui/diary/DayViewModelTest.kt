@@ -7,19 +7,14 @@ import app.cash.turbine.test
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
-import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Emotion
-import com.memorymap.domain.model.User
-import com.memorymap.domain.repository.AuthRepository
+import com.memorymap.testing.FakeAuthRepository
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.LocalDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -45,7 +40,7 @@ class DayViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: MemoryMapDatabase
     private lateinit var diaryRepository: DiaryRepositoryImpl
-    private lateinit var auth: FakeAuth
+    private lateinit var auth: FakeAuthRepository
 
     private val day = LocalDate.of(2026, 9, 23)
     private val userId = "user-1"
@@ -58,7 +53,7 @@ class DayViewModelTest {
             MemoryMapDatabase::class.java,
         ).allowMainThreadQueries().build()
         diaryRepository = DiaryRepositoryImpl(db.dailyEntryDao(), db.diaryNoteDao())
-        auth = FakeAuth(userId)
+        auth = FakeAuthRepository(userId)
     }
 
     @After
@@ -112,7 +107,7 @@ class DayViewModelTest {
 
     @Test
     fun `with no signed-in user the day stays loading and shows nothing`() = runTest {
-        val signedOut = FakeAuth(null)
+        val signedOut = FakeAuthRepository(null)
         diaryRepository.saveEntry(entry("يتيم", 9, 0))
 
         val viewModel = DayViewModel(
@@ -144,21 +139,4 @@ class DayViewModelTest {
         title = title,
         emotion = Emotion.HAPPY,
     )
-}
-
-/** Minimal auth double: a fixed account id, no network. */
-private class FakeAuth(userId: String?) : AuthRepository {
-    private val id = MutableStateFlow(userId)
-    override val currentUserId: StateFlow<String?> = id.asStateFlow()
-    override val authState: StateFlow<AuthState> = MutableStateFlow(
-        if (userId == null) AuthState.SignedOut else AuthState.SignedIn(User(id = userId, email = "", displayName = ""), false),
-    )
-    override val isCloudConfigured: Boolean = false
-    override suspend fun restoreSession() {}
-    override suspend fun signUp(email: String, password: String, displayName: String) = AuthRepository.Result.Success
-    override suspend fun signIn(email: String, password: String) = AuthRepository.Result.Success
-    override suspend fun resetPassword(email: String) = AuthRepository.Result.Success
-    override suspend fun signOut() { id.value = null }
-    override suspend fun continueOffline(displayName: String?): User =
-        User(id = id.value ?: "local-user", email = "", displayName = displayName.orEmpty())
 }

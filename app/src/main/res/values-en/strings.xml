@@ -101,4 +101,47 @@
     <string name="auth_error_email_required">Enter your email address.</string>
     <string name="auth_error_generic">The request could not be completed. Check the connection and try again.</string>
     <string name="auth_reset_sent">A password reset link was sent to your email.</string>
+    <!-- Memories: list, editor, detail -->
+    <string name="memory_search_hint">Search memories</string>
+    <string name="memory_empty_title">No memories yet</string>
+    <string name="memory_search_empty">No matching memories</string>
+    <string name="memory_empty_body">Add your first memory from the add button, and attach a photo, a recording or a video.</string>
+    <string name="memory_delete_title">Delete memory</string>
+    <string name="memory_delete_body">%1$s and its attachments will be removed from this device.</string>
+    <string name="memory_not_found">That memory could not be found</string>
+    <string name="memory_section_photos">Photos (%1$d)</string>
+    <string name="memory_section_audio">Recordings (%1$d)</string>
+    <string name="memory_section_videos">Videos (%1$d)</string>
+    <string name="memory_section_attachments">Attachments</string>
+    <string name="memory_action_play">Play</string>
+    <string name="memory_action_pause">Pause</string>
+    <string name="memory_editor_new">New memory</string>
+    <string name="memory_editor_edit">Edit memory</string>
+    <string name="memory_field_title">Title</string>
+    <string name="memory_field_text">Details</string>
+    <string name="memory_field_date">Date: %1$s</string>
+    <string name="memory_field_emotion">Emotion</string>
+    <string name="memory_field_visibility">Who can see this</string>
+    <string name="memory_field_place">Place name</string>
+    <string name="memory_action_pick_photo">Pick photo</string>
+    <string name="memory_action_take_photo">Take photo</string>
+    <string name="memory_action_pick_video">Pick video</string>
+    <string name="memory_action_record">Record audio</string>
+    <string name="memory_action_keep">Keep recording</string>
+    <string name="memory_recording">Recording… %1$s</string>
+    <string name="memory_discard_title">Discard changes?</string>
+    <string name="memory_discard_body">Attachments you added will be deleted without saving.</string>
+    <string name="memory_action_discard">Discard</string>
+    <string name="memory_error_title">Give the memory a title</string>
+    <string name="memory_error_media">That file could not be added</string>
+    <string name="memory_error_no_account">No active account</string>
+    <string name="memory_error_save">The memory could not be saved</string>
+
+    <!-- Shared labels -->
+    <string name="visibility_private">Private</string>
+    <string name="visibility_shared">Shared</string>
+    <string name="visibility_public">Public</string>
+    <string name="media_type_photo">Photo</string>
+    <string name="media_type_audio">Recording</string>
+    <string name="media_type_video">Video</string>
 </resources>

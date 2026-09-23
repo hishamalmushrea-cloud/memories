@@ -97,7 +97,7 @@ interface DailyEntryDao {
             SELECT e.date, 0, COUNT(*), 0, 0, 0, 0
             FROM media m
             INNER JOIN daily_entries e ON e.id = m.owner_id
-            WHERE m.owner_type = 'DAILY_ENTRY' AND m.media_type = 'PHOTO'
+            WHERE m.owner_type = 'DAILY_ENTRY' AND m.media_type = 'PHOTO' AND m.deleted_at IS NULL
               AND e.user_id = :userId AND e.deleted_at IS NULL AND e.date >= :from AND e.date <= :to
             GROUP BY e.date
 
@@ -106,7 +106,7 @@ interface DailyEntryDao {
             SELECT e.date, 0, 0, COUNT(*), 0, 0, 0
             FROM media m
             INNER JOIN daily_entries e ON e.id = m.owner_id
-            WHERE m.owner_type = 'DAILY_ENTRY' AND m.media_type = 'AUDIO'
+            WHERE m.owner_type = 'DAILY_ENTRY' AND m.media_type = 'AUDIO' AND m.deleted_at IS NULL
               AND e.user_id = :userId AND e.deleted_at IS NULL AND e.date >= :from AND e.date <= :to
             GROUP BY e.date
 
@@ -115,7 +115,7 @@ interface DailyEntryDao {
             SELECT e.date, 0, 0, 0, COUNT(*), 0, 0
             FROM media m
             INNER JOIN daily_entries e ON e.id = m.owner_id
-            WHERE m.owner_type = 'DAILY_ENTRY' AND m.media_type = 'VIDEO'
+            WHERE m.owner_type = 'DAILY_ENTRY' AND m.media_type = 'VIDEO' AND m.deleted_at IS NULL
               AND e.user_id = :userId AND e.deleted_at IS NULL AND e.date >= :from AND e.date <= :to
             GROUP BY e.date
 

@@ -22,7 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.memorymap.R
 import com.memorymap.domain.model.AuthState
-import com.memorymap.domain.model.Emotion
+import com.memorymap.ui.common.emotionLabel
 import com.memorymap.domain.model.LifeStats
 
 /**
@@ -110,17 +110,3 @@ private fun StatRow(label: String, value: String) {
     }
 }
 
-/**
- * Maps an emotion to its display name. The Arabic labels live in the default
- * `values/strings.xml`, so this stays a resource lookup rather than a hardcoded
- * Arabic string in Kotlin.
- */
-@Composable
-private fun emotionLabel(emotion: Emotion): String = when (emotion) {
-    Emotion.HAPPY -> stringResource(R.string.emotion_happy)
-    Emotion.SAD -> stringResource(R.string.emotion_sad)
-    Emotion.LOVE -> stringResource(R.string.emotion_love)
-    Emotion.FEAR -> stringResource(R.string.emotion_fear)
-    Emotion.PRIDE -> stringResource(R.string.emotion_pride)
-    Emotion.NOSTALGIA -> stringResource(R.string.emotion_nostalgia)
-}

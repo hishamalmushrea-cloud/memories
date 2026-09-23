@@ -3,7 +3,7 @@
 تطبيق Android يجمع **خريطة الذكريات + يوميات شخصية + سجل زمني للحياة**.
 تحفظ فيه ذكرياتك المهمة، وتكتب يومك بنفسك، ثم تعود بعد سنوات لتجد حياتك مرتبة زمنيًا وجغرافيًا.
 
-> الحالة الحالية: **Phase 1 (الأساس)** و**Phase 2 (المصادقة)** مكتملتان، والبناء + الاختبارات تعمل في CI. بقية المراحل موثقة في [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+> الحالة الحالية: **Phase 1 (الأساس)** و**Phase 2 (المصادقة)** و**Phase 3 (الذكريات)** مكتملة، والبناء + الاختبارات تعمل في CI. بقية المراحل موثقة في [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
 
 ---
 
@@ -138,7 +138,7 @@ verify-dependencies → gradlew help → testDebugUnitTest → lintDebug → ass
 
 - [x] **Phase 1** – Foundation: Gradle, Compose, Theme, Navigation, Room, Supabase foundation, CI
 - [x] **Phase 2** – Authentication (Supabase Auth + الجلسة + حساب محلي دون اتصال)
-- [ ] **Phase 3** – Memories (CRUD + صور/صوت/فيديو)
+- [x] **Phase 3** – Memories (CRUD + صور/صوت/فيديو)
 - [ ] **Phase 4** – Diary (اليوم، التقويم، الأسبوع، الشهر، السنة)
 - [ ] **Phase 5** – Map (مزود خرائط مفتوح + Markers + Clustering)
 - [ ] **Phase 6** – Sync (طابور غير متصل، رفع، تعارضات)
@@ -172,7 +172,8 @@ optional locale; all code and comments are in English.
 ./gradlew testDebugUnitTest
 ```
 
-Status: **Phase 1 (Foundation)** and **Phase 2 (Authentication)** — project
+Status: **Phase 1 (Foundation)**, **Phase 2 (Authentication)** and **Phase 3
+(Memories)** — project
 structure, Gradle version catalog, Compose + Material 3 theme (Cairo/Inter),
 navigation shell, the full Room schema with repositories, Supabase email
 authentication with Keystore-backed session storage and an offline local account,

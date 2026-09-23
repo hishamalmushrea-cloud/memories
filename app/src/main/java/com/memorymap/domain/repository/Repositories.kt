@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.Flow
 /** Memories: create, read, update, soft-delete. */
 interface MemoryRepository {
     fun watchAll(userId: String): Flow<List<Memory>>
+    /** One memory as a stream, so the detail screen reflects edits and deletes. */
+    fun watchOne(id: String): Flow<Memory?>
     fun watchLocated(userId: String): Flow<List<Memory>>
     fun watchByDate(userId: String, date: LocalDate): Flow<List<Memory>>
     suspend fun getById(id: String): Memory?

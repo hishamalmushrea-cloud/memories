@@ -143,6 +143,7 @@ object Mappers {
         createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
         syncStatus = SyncStatus.fromName(syncStatus),
         lastSyncedAt = lastSyncedAt.toDateTime(),
+        deletedAt = deletedAt.toDateTime(),
     )
 
     fun MediaItem.toEntity(): MediaEntity = MediaEntity(
@@ -158,6 +159,7 @@ object Mappers {
         createdAt = createdAt.iso(),
         syncStatus = syncStatus.name,
         lastSyncedAt = lastSyncedAt?.iso(),
+        deletedAt = deletedAt?.iso(),
     )
 
     // --- People / places ---

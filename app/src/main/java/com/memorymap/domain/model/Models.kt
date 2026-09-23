@@ -76,10 +76,26 @@ data class MediaItem(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
     val lastSyncedAt: LocalDateTime? = null,
-)
+    val deletedAt: LocalDateTime? = null,
+) {
+    val isDeleted: Boolean get() = deletedAt != null
+}
 
 /** Which table a [MediaItem] belongs to. */
 enum class MediaOwner { MEMORY, DAILY_ENTRY }
+
+/**
+ * Attachment counters for one owner, plus one photo to show as a cover. Lets a
+ * list render thumbnails and badges from a single query.
+ */
+data class MediaSummary(
+    val photos: Int = 0,
+    val audio: Int = 0,
+    val videos: Int = 0,
+    val coverUri: String? = null,
+) {
+    val total: Int get() = photos + audio + videos
+}
 
 /** A person the user can link to memories, events and days. */
 data class Person(

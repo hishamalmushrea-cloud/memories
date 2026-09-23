@@ -33,6 +33,10 @@ interface MemoryDao {
     @Query("SELECT * FROM memories WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): MemoryEntity?
 
+    /** Reactive single read, so the detail screen updates after an edit. */
+    @Query("SELECT * FROM memories WHERE id = :id LIMIT 1")
+    fun watchById(id: String): Flow<MemoryEntity?>
+
     @Query(
         """
         SELECT * FROM memories
