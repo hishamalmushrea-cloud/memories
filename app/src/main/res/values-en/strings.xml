@@ -74,4 +74,31 @@
     <!-- Honest placeholders -->
     <string name="placeholder_title">This screen is under construction</string>
     <string name="placeholder_phase">It is implemented in %1$s. No fake data is shown here.</string>
+
+    <!-- Authentication -->
+    <string name="auth_subtitle">Your diary and memories live on your device first</string>
+    <string name="auth_tab_sign_in">Sign in</string>
+    <string name="auth_tab_sign_up">Create account</string>
+    <string name="auth_display_name">Name</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_action_sign_in">Sign in</string>
+    <string name="auth_action_sign_up">Create account</string>
+    <string name="auth_action_reset">Send reset link</string>
+    <string name="auth_action_sign_out">Sign out</string>
+    <string name="auth_forgot_password">Forgot your password?</string>
+    <string name="auth_back_to_sign_in">Back to sign in</string>
+    <string name="auth_continue_offline">Continue with a local account</string>
+    <string name="auth_start_local">Start with a local account</string>
+    <string name="auth_offline_title">No Supabase project is linked</string>
+    <string name="auth_offline_body">The app runs entirely on this device with no cloud account. Nothing is sent anywhere, and you can link Supabase later from the build settings.</string>
+    <string name="auth_error_credentials">The email or password is incorrect.</string>
+    <string name="auth_error_weak_password">That password is too short. Use at least 6 characters.</string>
+    <string name="auth_error_email_taken">That email is already registered.</string>
+    <string name="auth_error_email_unconfirmed">The email address has not been confirmed yet.</string>
+    <string name="auth_error_rate_limited">Too many attempts in a short time. Wait a moment and try again.</string>
+    <string name="auth_error_offline">There is no local account with that email. Start a local account or create a new one.</string>
+    <string name="auth_error_email_required">Enter your email address.</string>
+    <string name="auth_error_generic">The request could not be completed. Check the connection and try again.</string>
+    <string name="auth_reset_sent">A password reset link was sent to your email.</string>
 </resources>

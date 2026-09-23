@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,12 +21,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.memorymap.R
+import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.LifeStats
 
 /**
- * Account header and the life statistics: recorded days, memories, events,
- * places, photos, audio, videos, most used emotion and busiest month.
+ * Account header, the life statistics, and the session actions.
+ *
+ * Signing out ends the session only. The local archive is never deleted by a
+ * sign-out: wiping data is a separate, explicitly confirmed action.
  */
 @Composable
 fun ProfileScreen(
@@ -33,6 +37,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val signedIn = state.authState as? AuthState.SignedIn
 
     Column(
         modifier = Modifier
@@ -42,16 +47,16 @@ fun ProfileScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = state.user?.displayName ?: stringResource(R.string.profile_local_title),
+            text = signedIn?.user?.displayName ?: stringResource(R.string.profile_local_title),
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            text = state.user?.email ?: stringResource(R.string.profile_local_hint),
+            text = signedIn?.user?.email ?: stringResource(R.string.profile_local_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        if (!state.cloudConfigured) {
+        if (signedIn?.offlineAccount == true || !state.cloudConfigured) {
             Card(Modifier.fillMaxWidth()) {
                 Text(
                     text = stringResource(R.string.profile_offline_only),
@@ -62,6 +67,10 @@ fun ProfileScreen(
         }
 
         state.stats?.let { stats -> StatsCard(stats, state.peopleCount) }
+
+        OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.auth_action_sign_out))
+        }
     }
 }
 

@@ -1,11 +1,14 @@
 package com.memorymap.di
 
+import com.memorymap.data.remote.SecureSessionStore
 import com.memorymap.data.remote.SupabaseConfig
 import com.memorymap.data.repository.DiaryRepositoryImpl
+import com.memorymap.data.repository.SupabaseAuthRepository
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
+import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
@@ -16,6 +19,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import io.github.jan.supabase.auth.SessionManager
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 
@@ -47,11 +51,19 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: SupabaseAuthRepository): AuthRepository
+
     companion object {
 
         @Provides
         @Singleton
         fun provideSupabaseConfig(): SupabaseConfig = SupabaseConfig.fromBuildConfig()
+
+        @Provides
+        @Singleton
+        fun provideSessionManager(store: SecureSessionStore): SessionManager = store
 
         /** Shared JSON configuration for backups and for Supabase payloads. */
         @Provides

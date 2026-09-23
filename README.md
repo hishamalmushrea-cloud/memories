@@ -3,7 +3,7 @@
 تطبيق Android يجمع **خريطة الذكريات + يوميات شخصية + سجل زمني للحياة**.
 تحفظ فيه ذكرياتك المهمة، وتكتب يومك بنفسك، ثم تعود بعد سنوات لتجد حياتك مرتبة زمنيًا وجغرافيًا.
 
-> الحالة الحالية: **Phase 1 – Foundation** مكتملة (البناء + الاختبارات تعمل في CI). بقية المراحل موثقة في [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+> الحالة الحالية: **Phase 1 (الأساس)** و**Phase 2 (المصادقة)** مكتملتان، والبناء + الاختبارات تعمل في CI. بقية المراحل موثقة في [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
 
 ---
 
@@ -137,7 +137,7 @@ verify-dependencies → gradlew help → testDebugUnitTest → lintDebug → ass
 ## الخارطة
 
 - [x] **Phase 1** – Foundation: Gradle, Compose, Theme, Navigation, Room, Supabase foundation, CI
-- [ ] **Phase 2** – Authentication (Supabase Auth + الجلسة)
+- [x] **Phase 2** – Authentication (Supabase Auth + الجلسة + حساب محلي دون اتصال)
 - [ ] **Phase 3** – Memories (CRUD + صور/صوت/فيديو)
 - [ ] **Phase 4** – Diary (اليوم، التقويم، الأسبوع، الشهر، السنة)
 - [ ] **Phase 5** – Map (مزود خرائط مفتوح + Markers + Clustering)
@@ -172,7 +172,9 @@ optional locale; all code and comments are in English.
 ./gradlew testDebugUnitTest
 ```
 
-Status: **Phase 1 (Foundation)** — project structure, Gradle version catalog, Compose +
-Material 3 theme (Cairo/Inter), navigation shell, the full Room schema with repositories,
-the Supabase client foundation, and a CI pipeline that builds and tests every push.
-The full specification lives in [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+Status: **Phase 1 (Foundation)** and **Phase 2 (Authentication)** — project
+structure, Gradle version catalog, Compose + Material 3 theme (Cairo/Inter),
+navigation shell, the full Room schema with repositories, Supabase email
+authentication with Keystore-backed session storage and an offline local account,
+and a CI pipeline that builds and tests every push. The full specification lives
+in [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).

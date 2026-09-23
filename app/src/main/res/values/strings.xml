@@ -75,4 +75,31 @@
     <!-- Honest placeholders -->
     <string name="placeholder_title">هذه الشاشة قيد البناء</string>
     <string name="placeholder_phase">سيتم تنفيذها في %1$s. لا توجد بيانات وهمية معروضة هنا.</string>
+
+    <!-- المصادقة -->
+    <string name="auth_subtitle">يومياتك وذكرياتك محفوظة على جهازك أولًا</string>
+    <string name="auth_tab_sign_in">تسجيل الدخول</string>
+    <string name="auth_tab_sign_up">إنشاء حساب</string>
+    <string name="auth_display_name">الاسم</string>
+    <string name="auth_email">البريد الإلكتروني</string>
+    <string name="auth_password">كلمة المرور</string>
+    <string name="auth_action_sign_in">دخول</string>
+    <string name="auth_action_sign_up">إنشاء الحساب</string>
+    <string name="auth_action_reset">إرسال رابط الاستعادة</string>
+    <string name="auth_action_sign_out">تسجيل الخروج</string>
+    <string name="auth_forgot_password">نسيت كلمة المرور؟</string>
+    <string name="auth_back_to_sign_in">العودة إلى تسجيل الدخول</string>
+    <string name="auth_continue_offline">المتابعة بحساب محلي</string>
+    <string name="auth_start_local">ابدأ بحساب محلي</string>
+    <string name="auth_offline_title">لا يوجد مشروع Supabase مرتبط</string>
+    <string name="auth_offline_body">يعمل التطبيق بالكامل على هذا الجهاز دون حساب سحابي. لا تُرسَل أي بيانات إلى أي مكان، ويمكنك ربط Supabase لاحقًا من إعدادات البناء.</string>
+    <string name="auth_error_credentials">البريد الإلكتروني أو كلمة المرور غير صحيحة.</string>
+    <string name="auth_error_weak_password">كلمة المرور قصيرة جدًا. استخدم 6 أحرف على الأقل.</string>
+    <string name="auth_error_email_taken">هذا البريد الإلكتروني مسجَّل مسبقًا.</string>
+    <string name="auth_error_email_unconfirmed">لم يتم تأكيد البريد الإلكتروني بعد.</string>
+    <string name="auth_error_rate_limited">محاولات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.</string>
+    <string name="auth_error_offline">لا يوجد حساب محلي بهذا البريد. ابدأ بحساب محلي أو أنشئ حسابًا جديدًا.</string>
+    <string name="auth_error_email_required">أدخل البريد الإلكتروني.</string>
+    <string name="auth_error_generic">تعذّر إكمال الطلب. تحقّق من الاتصال ثم أعد المحاولة.</string>
+    <string name="auth_reset_sent">أُرسل رابط استعادة كلمة المرور إلى بريدك.</string>
 </resources>

@@ -7,14 +7,20 @@ import app.cash.turbine.test
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
-import com.memorymap.data.repository.UserRepositoryImpl
+import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Emotion
+import com.memorymap.domain.model.User
+import com.memorymap.domain.repository.AuthRepository
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.LocalDateTime
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -29,7 +35,7 @@ import org.robolectric.annotation.Config
 
 /**
  * ViewModel level test: the day screen must show the events of its own day and
- * must persist the end-of-day note the user typed.
+ * must persist the end-of-day note the user typed, scoped to the signed-in user.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -39,8 +45,10 @@ class DayViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: MemoryMapDatabase
     private lateinit var diaryRepository: DiaryRepositoryImpl
+    private lateinit var auth: FakeAuth
 
     private val day = LocalDate.of(2026, 9, 23)
+    private val userId = "user-1"
 
     @Before
     fun setUp() {
@@ -50,6 +58,7 @@ class DayViewModelTest {
             MemoryMapDatabase::class.java,
         ).allowMainThreadQueries().build()
         diaryRepository = DiaryRepositoryImpl(db.dailyEntryDao(), db.diaryNoteDao())
+        auth = FakeAuth(userId)
     }
 
     @After
@@ -81,7 +90,7 @@ class DayViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        assertEquals("خرجت مساءً مع الأصدقاء", diaryRepository.getDiaryNote("local", day))
+        assertEquals("خرجت مساءً مع الأصدقاء", diaryRepository.getDiaryNote(userId, day))
     }
 
     @Test
@@ -98,21 +107,58 @@ class DayViewModelTest {
         val stored = db.dailyEntryDao().getById(event.id)
         assertEquals("the row must stay until the server confirms the delete", event.id, stored?.id)
         assertEquals("PENDING_DELETE", stored?.syncStatus)
-        assertEquals(0, diaryRepository.watchDay("local", day).first().size)
+        assertEquals(0, diaryRepository.watchDay(userId, day).first().size)
+    }
+
+    @Test
+    fun `with no signed-in user the day stays loading and shows nothing`() = runTest {
+        val signedOut = FakeAuth(null)
+        diaryRepository.saveEntry(entry("يتيم", 9, 0))
+
+        val viewModel = DayViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("date" to day.toString())),
+            diaryRepository = diaryRepository,
+            onThisDayRepository = OnThisDayRepositoryImpl(db.memoryDao(), db.diaryNoteDao()),
+            authRepository = signedOut,
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.state.test {
+            val state = awaitItem()
+            assertEquals(emptyList< DailyEntry>(), state.entries)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     private fun viewModel(): DayViewModel = DayViewModel(
         savedStateHandle = SavedStateHandle(mapOf("date" to day.toString())),
         diaryRepository = diaryRepository,
         onThisDayRepository = OnThisDayRepositoryImpl(db.memoryDao(), db.diaryNoteDao()),
-        userRepository = UserRepositoryImpl(db.userDao()),
+        authRepository = auth,
     )
 
     private fun entry(title: String, hour: Int, minute: Int, on: LocalDate = day) = DailyEntry(
-        userId = "local",
+        userId = userId,
         date = on,
-        time = LocalDateTime.of(on, java.time.LocalTime.of(hour, minute)),
+        time = LocalDateTime.of(on, LocalTime.of(hour, minute)),
         title = title,
         emotion = Emotion.HAPPY,
     )
+}
+
+/** Minimal auth double: a fixed account id, no network. */
+private class FakeAuth(userId: String?) : AuthRepository {
+    private val id = MutableStateFlow(userId)
+    override val currentUserId: StateFlow<String?> = id.asStateFlow()
+    override val authState: StateFlow<AuthState> = MutableStateFlow(
+        if (userId == null) AuthState.SignedOut else AuthState.SignedIn(User(id = userId, email = "", displayName = ""), false),
+    )
+    override val isCloudConfigured: Boolean = false
+    override suspend fun restoreSession() {}
+    override suspend fun signUp(email: String, password: String, displayName: String) = AuthRepository.Result.Success
+    override suspend fun signIn(email: String, password: String) = AuthRepository.Result.Success
+    override suspend fun resetPassword(email: String) = AuthRepository.Result.Success
+    override suspend fun signOut() { id.value = null }
+    override suspend fun continueOffline(displayName: String?): User =
+        User(id = id.value ?: "local-user", email = "", displayName = displayName.orEmpty())
 }

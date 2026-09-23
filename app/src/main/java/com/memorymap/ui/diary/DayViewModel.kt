@@ -5,16 +5,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.OnThisDayItem
+import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
-import com.memorymap.domain.repository.UserRepository
 import com.memorymap.util.MmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -29,62 +35,69 @@ data class DayUiState(
 
 /**
  * Backs the day screen. The day is the basic unit of the diary, so this is the
- * first screen with a real data path: Room -> repository -> StateFlow -> Compose.
+ * screen with the real data path: Room -> repository -> StateFlow -> Compose.
  *
- * Everything is read from the local database, so the screen works with no
- * network at all.
+ * Every read is local, and it is scoped to whoever is signed in, which is why
+ * the stream restarts when the account changes.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class DayViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val diaryRepository: DiaryRepository,
     private val onThisDayRepository: OnThisDayRepository,
-    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val date: LocalDate = savedStateHandle.get<String>("date")
         ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         ?: LocalDate.now()
 
-    private val _state = MutableStateFlow(DayUiState(date = date))
-    val state: StateFlow<DayUiState> = _state.asStateFlow()
+    private val note = MutableStateFlow<String?>(null)
+    private val memories = MutableStateFlow<List<OnThisDayItem>>(emptyList())
 
-    /**
-     * Phase 1 has no authentication yet, so records are read under the local
-     * placeholder owner. Phase 2 replaces this with the signed-in user id.
-     */
-    private var userId: String = LOCAL_USER_ID
+    val state: StateFlow<DayUiState> = authRepository.currentUserId
+        .flatMapLatest { userId ->
+            if (userId == null) {
+                flowOf(DayUiState(date = date, isLoading = true))
+            } else {
+                combine(
+                    diaryRepository.watchDay(userId, date),
+                    note,
+                    memories,
+                ) { entries, diaryNote, onThisDay ->
+                    DayUiState(
+                        date = date,
+                        entries = entries,
+                        diaryNote = diaryNote.orEmpty(),
+                        onThisDay = onThisDay,
+                        isLoading = false,
+                    )
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DayUiState(date = date))
 
     init {
-        observe()
-    }
-
-    private fun observe() {
+        // The note and the "on this day" list are single reads, refreshed
+        // whenever the account or the day changes.
         viewModelScope.launch {
-            userRepository.watchCurrentUser().collect { user ->
-                if (user != null) userId = user.id
+            authRepository.currentUserId.collect { userId ->
+                if (userId == null) return@collect
+                runCatching {
+                    note.value = diaryRepository.getDiaryNote(userId, date)
+                    memories.value = onThisDayRepository.items(userId, date)
+                }.onFailure { MmLog.e("Unable to load the day", it) }
             }
-        }
-
-        viewModelScope.launch {
-            diaryRepository.watchDay(userId, date).collect { entries ->
-                _state.update { it.copy(entries = entries, isLoading = false) }
-            }
-        }
-
-        viewModelScope.launch {
-            // The day note is a single row, refreshed when the day is opened.
-            _state.update { it.copy(diaryNote = diaryRepository.getDiaryNote(userId, date).orEmpty()) }
-            _state.update { it.copy(onThisDay = onThisDayRepository.items(userId, date)) }
         }
     }
 
     /** Saves the end-of-day note. Written by the user, never generated. */
     fun saveDiaryNote(text: String) {
         viewModelScope.launch {
-            runCatching { diaryRepository.saveDiaryNote(userId, date, text) }
+            note.value = text
+            runCatching { currentUserId()?.let { diaryRepository.saveDiaryNote(it, date, text) } }
                 .onFailure { MmLog.e("Unable to save the diary note", it) }
-            _state.update { it.copy(diaryNote = text) }
         }
     }
 
@@ -96,7 +109,6 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    companion object {
-        const val LOCAL_USER_ID = "local"
-    }
+    /** The account every write is scoped to; null before a session exists. */
+    private fun currentUserId(): String? = authRepository.currentUserId.value
 }

@@ -1,9 +1,10 @@
 package com.memorymap.data.remote
 
 import com.memorymap.util.MmLog
+import io.github.jan.supabase.auth.SessionManager
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
 import javax.inject.Inject
@@ -18,6 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class SupabaseClientProvider @Inject constructor(
     private val config: SupabaseConfig,
+    private val sessionStore: SessionManager,
 ) {
 
     val isAvailable: Boolean get() = config.isConfigured
@@ -34,7 +36,14 @@ class SupabaseClientProvider @Inject constructor(
         cached?.let { return it }
         return try {
             createSupabaseClient(supabaseUrl = config.url, supabaseKey = config.anonKey) {
-                install(Auth)
+                install(Auth) {
+                    // The session lives in the Keystore-backed store, and is
+                    // loaded and saved automatically around it.
+                    sessionManager = sessionStore
+                    autoLoadFromStorage = true
+                    autoSaveToStorage = true
+                    alwaysAutoRefresh = true
+                }
                 install(Postgrest)
                 install(Storage)
             }.also { cached = it }

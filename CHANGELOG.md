@@ -6,6 +6,28 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 2: Authentication
+
+- Email sign up, sign in, sign out and password reset through Supabase Auth.
+- Session persistence in EncryptedSharedPreferences backed by the Android
+  Keystore; the refresh token never reaches Room, the logs or a backup export.
+- Automatic session restoration on cold start, so a signed-in user is not shown
+  the sign-in form again (an `AuthState.Unknown` gate drives the splash).
+- An offline local account: when no Supabase project is configured the app still
+  has an identity and every feature works on-device. No password is stored or
+  checked for it, because there is no credential to verify.
+- Every query is now scoped to the signed-in user id; the diary streams restart
+  when the account changes.
+- Server failures map to stable `strings.xml` keys, so no server error text
+  (which can contain the email) is shown on screen.
+- Tests: `SupabaseAuthRepositoryTest` (offline path, session restore, sign out
+  keeps the archive) and the day screen now tested against a signed-in user.
+
+### Changed — Phase 2
+
+- `SupabaseClientProvider` depends on the `SessionManager` interface, and the
+  Auth plugin is installed with the Keystore-backed session manager.
+
 ### Added — Phase 1: Foundation
 
 - Android project `com.memorymap` with `minSdk 26`, `compileSdk 36`, `targetSdk 36`,
