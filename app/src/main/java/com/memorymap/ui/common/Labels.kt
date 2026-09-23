@@ -18,7 +18,7 @@ fun emotionLabel(emotion: Emotion): String = when (emotion) {
     Emotion.SAD -> stringResource(R.string.emotion_sad)
     Emotion.LOVE -> stringResource(R.string.emotion_love)
     Emotion.FEAR -> stringResource(R.string.emotion_fear)
-    Emotion.PRID -> stringResource(R.string.emotion_pride)
+    Emotion.PRIDE -> stringResource(R.string.emotion_pride)
     Emotion.NOSTALGIA -> stringResource(R.string.emotion_nostalgia)
 }
 

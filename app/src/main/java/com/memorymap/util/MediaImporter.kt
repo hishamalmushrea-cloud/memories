@@ -72,9 +72,11 @@ object MediaImporter {
 
         val target = MediaStore.newFile(context, type, ownerId, extensionFor(mimeType))
         val copied = runCatching {
-            resolver.openInputStream(source)?.use { input ->
-                target.outputStream().use { output -> input.copyTo(output) }
-            } ?: false
+            val input = resolver.openInputStream(source) ?: return@runCatching false
+            input.use { from ->
+                target.outputStream().use { to -> from.copyTo(to) }
+            }
+            true
         }.getOrDefault(false)
 
         // An empty copy is worse than no attachment at all.

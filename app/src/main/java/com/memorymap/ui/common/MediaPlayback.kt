@@ -166,12 +166,18 @@ fun VideoPlayer(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                     ),
                 )
+                // VideoView does not expose the path it was given, so the tag
+                // records it and the update block only reloads on a real change.
+                tag = path
                 view.setVideoPath(path)
             }
         },
         update = { container ->
             val view = container.getChildAt(0) as? VideoView ?: return@AndroidView
-            if (view.videoPath != path) view.setVideoPath(path)
+            if (container.tag != path) {
+                container.tag = path
+                view.setVideoPath(path)
+            }
         },
         onRelease = { container ->
             (container.getChildAt(0) as? VideoView)?.stopPlayback()
