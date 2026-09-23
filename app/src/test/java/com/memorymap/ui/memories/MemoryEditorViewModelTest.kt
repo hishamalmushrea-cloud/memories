@@ -3,6 +3,7 @@ package com.memorymap.ui.memories
 import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.cash.turbine.test
 import com.memorymap.R
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.repository.MediaRepositoryImpl
@@ -11,6 +12,7 @@ import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
+import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Visibility
 import com.memorymap.testing.FakeAuthRepository
 import java.time.LocalDate
@@ -36,6 +38,10 @@ import org.robolectric.annotation.Config
  * The editor is where a memory becomes real, so these cover the rules that
  * matter: a title is required, a save writes to Room, an edit reloads what is
  * stored, and removing an attachment tombstones it.
+ *
+ * Room runs its suspend queries on a real executor, which the test scheduler
+ * cannot fast-forward, so every assertion waits on the state stream instead of
+ * calling `advanceUntilIdle`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -70,11 +76,9 @@ class MemoryEditorViewModelTest {
     @Test
     fun `saving without a title is refused and writes nothing`() = runTest {
         val viewModel = editor(memoryId = "new-1")
-        dispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onTextChange("نص بلا عنوان")
         viewModel.save()
-        dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(R.string.memory_error_title, viewModel.state.value.errorRes)
         assertFalse(viewModel.state.value.isSaved)
@@ -84,7 +88,6 @@ class MemoryEditorViewModelTest {
     @Test
     fun `saving writes the memory with the fields the user chose`() = runTest {
         val viewModel = editor(memoryId = "new-2")
-        dispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onTitleChange("رحلة إلى صنعاء")
         viewModel.onTextChange("يوم طويل")
@@ -93,9 +96,10 @@ class MemoryEditorViewModelTest {
         viewModel.onVisibilityChange(Visibility.SHARED)
         viewModel.onPlaceNameChange("صنعاء")
         viewModel.save()
-        dispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.state.value.isSaved)
+        val state = awaitState(viewModel) { it.isSaved }
+        assertTrue(state.isSaved)
+
         val stored = memories.getById("new-2")
         assertNotNull(stored)
         assertEquals("رحلة إلى صنعاء", stored!!.title)
@@ -110,28 +114,31 @@ class MemoryEditorViewModelTest {
     @Test
     fun `a blank place name is stored as no place`() = runTest {
         val viewModel = editor(memoryId = "new-3")
-        dispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onTitleChange("بلا مكان")
         viewModel.onPlaceNameChange("   ")
         viewModel.save()
-        dispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(memories.getById("new-3")!!.placeName)
+        awaitState(viewModel) { it.isSaved }
+
+        val stored = memories.getById("new-3")
+        assertNotNull("the memory must have been written", stored)
+        assertNull(stored!!.placeName)
     }
 
     @Test
     fun `editing reloads what is stored and keeps the same id`() = runTest {
-        val existing = com.memorymap.domain.model.Memory(
-            id = "existing-1",
-            userId = userId,
-            title = "ذكرى محفوظة",
-            text = "تفاصيل",
-            memoryDate = day,
-            emotion = Emotion.LOVE,
-            placeName = "عدن",
+        memories.save(
+            Memory(
+                id = "existing-1",
+                userId = userId,
+                title = "ذكرى محفوظة",
+                text = "تفاصيل",
+                memoryDate = day,
+                emotion = Emotion.LOVE,
+                placeName = "عدن",
+            ),
         )
-        memories.save(existing)
         media.attach(
             MediaItem(
                 ownerId = "existing-1",
@@ -142,10 +149,10 @@ class MemoryEditorViewModelTest {
         )
 
         val viewModel = editor(memoryId = "existing-1")
-        dispatcher.scheduler.advanceUntilIdle()
+        val state = awaitState(viewModel) { !it.isNew && it.savedAttachments.isNotEmpty() }
 
-        val state = viewModel.state.value
         assertFalse(state.isNew)
+        assertEquals("existing-1", state.memoryId)
         assertEquals("ذكرى محفوظة", state.title)
         assertEquals("تفاصيل", state.text)
         assertEquals(day, state.date)
@@ -158,7 +165,7 @@ class MemoryEditorViewModelTest {
     @Test
     fun `removing a stored attachment tombstones it`() = runTest {
         memories.save(
-            com.memorymap.domain.model.Memory(
+            Memory(
                 id = "existing-2",
                 userId = userId,
                 title = "مع مرفق",
@@ -174,20 +181,17 @@ class MemoryEditorViewModelTest {
         media.attach(attachment)
 
         val viewModel = editor(memoryId = "existing-2")
-        dispatcher.scheduler.advanceUntilIdle()
-        assertEquals(1, viewModel.state.value.savedAttachments.size)
+        awaitState(viewModel) { it.savedAttachments.isNotEmpty() }
 
         viewModel.removeAttachment(attachment)
-        dispatcher.scheduler.advanceUntilIdle()
+        awaitState(viewModel) { it.savedAttachments.isEmpty() }
 
-        assertTrue(viewModel.state.value.savedAttachments.isEmpty())
         assertEquals(1, db.mediaDao().tombstones().size)
     }
 
     @Test
     fun `a new editor starts empty and owned by nobody yet`() = runTest {
         val viewModel = editor(memoryId = null)
-        dispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
         assertTrue(state.isNew)
@@ -206,4 +210,21 @@ class MemoryEditorViewModelTest {
         mediaRepository = media,
         authRepository = FakeAuthRepository(userId),
     )
+
+    /** Waits on the real state stream until [predicate] holds, then returns it. */
+    private suspend fun awaitState(
+        viewModel: MemoryEditorViewModel,
+        predicate: (MemoryEditorUiState) -> Boolean,
+    ): MemoryEditorUiState {
+        var result = viewModel.state.value
+        viewModel.state.test {
+            var state = awaitItem()
+            while (!predicate(state)) {
+                state = awaitItem()
+            }
+            result = state
+            cancelAndIgnoreRemainingEvents()
+        }
+        return result
+    }
 }

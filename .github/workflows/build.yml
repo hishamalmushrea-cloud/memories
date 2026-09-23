@@ -144,6 +144,36 @@ jobs:
           PY
 
             echo
+            echo "### Lint"
+            python3 - <<'PY' || echo "(lint report step failed)"
+          import glob, xml.etree.ElementTree as ET
+          paths = glob.glob("app/build/reports/lint-results*.xml")
+          if not paths:
+              print("(no lint report found)")
+          else:
+              errors = 0
+              warnings = 0
+              shown = []
+              for path in paths:
+                  root = ET.parse(path).getroot()
+                  for issue in root.iter("issue"):
+                      sev = issue.get("severity", "")
+                      if sev == "Error":
+                          errors += 1
+                          loc = issue.find("location")
+                          where = "?"
+                          if loc is not None:
+                              where = loc.get("file", "?").split("/memories/")[-1] + ":" + loc.get("line", "?")
+                          shown.append("- [%s] %s\n  %s\n  %s" % (issue.get("id"), issue.get("message", ""), where, (issue.get("explanation") or "")[:220]))
+                      elif sev == "Warning":
+                          warnings += 1
+              print("errors=%d warnings=%d" % (errors, warnings))
+              if shown:
+                  print()
+                  print("\n".join(shown[:40]))
+          PY
+
+            echo
             echo "### APK"
             find app/build/outputs/apk -name "*.apk" -printf "%p %s bytes\n" 2>/dev/null || echo "(none)"
 
