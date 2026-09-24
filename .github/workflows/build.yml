@@ -210,6 +210,11 @@ jobs:
             echo '```'
             tail -n 150 /tmp/unit.log 2>/dev/null || true
             echo '```'
+
+            echo "### Raw tail of the release log"
+            echo '```'
+            tail -n 150 /tmp/release.log 2>/dev/null || true
+            echo '```'
           } > /tmp/report.md
 
           head -c 40000 /tmp/report.md > /tmp/report-cut.md

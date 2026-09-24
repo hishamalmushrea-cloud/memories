@@ -111,7 +111,7 @@ class AccountDeletionTest {
         )
     }
 
-    private fun seedArchive() {
+    private suspend fun seedArchive() {
         db.userDao().upsert(UserEntity(id = userId, email = "a@example.com", displayName = "أ", createdAt = "2024-01-01T00:00:00"))
         db.memoryDao().upsert(memory("m1", userId))
         db.memoryDao().upsert(memory("m2", userId))
