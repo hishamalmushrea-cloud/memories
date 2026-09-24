@@ -97,7 +97,20 @@ class ClientSecurityTest {
     fun `the service role key is nowhere in the client build`() {
         // Everything inside an APK is public, so a service key in the build
         // script or the manifest would be a published credential.
-        assertFalse(buildScript.contains("service_role"))
-        assertFalse(manifest.contains("service_role"))
+        //
+        // Both files state the rule in a comment, which is the opposite of
+        // breaking it, so comments are dropped first: what matters is that no
+        // statement reaches for the key.
+        val buildStatements = buildScript.lines()
+            .filterNot { line ->
+                val trimmed = line.trimStart()
+                trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")
+            }
+            .joinToString("\n")
+
+        assertFalse(buildStatements.contains("service_role"))
+
+        val manifestStatements = manifest.replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "")
+        assertFalse(manifestStatements.contains("service_role"))
     }
 }
