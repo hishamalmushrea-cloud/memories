@@ -3,7 +3,6 @@ package com.memorymap.domain.usecase
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Memory
 import java.time.LocalDate
-import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,7 +29,7 @@ class PerformanceTest {
         DailyEntry(
             userId = "u1",
             date = start.plusDays(index.toLong()),
-            time = LocalDateTime.of(start.plusDays(index.toLong()), 8 + (index % 12), index % 60),
+            time = start.plusDays(index.toLong()).atTime(8 + (index % 12), index % 60),
             title = "حدث $index",
             text = "نص الحدث رقم $index",
         )
