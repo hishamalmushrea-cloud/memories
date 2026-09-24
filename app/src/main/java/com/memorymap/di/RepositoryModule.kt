@@ -3,7 +3,9 @@ package com.memorymap.di
 import com.memorymap.data.remote.SecureSessionStore
 import com.memorymap.BuildConfig
 import com.memorymap.data.map.MapProviders
+import com.memorymap.data.remote.PostgrestSyncApi
 import com.memorymap.data.remote.SupabaseConfig
+import com.memorymap.data.remote.SyncApi
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.SupabaseAuthRepository
 import com.memorymap.data.repository.MediaRepositoryImpl
@@ -61,6 +63,16 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    /**
+     * The remote half of synchronisation.
+     *
+     * Bound behind its interface so the repository — and every test — depends on
+     * `SyncApi` and never on Postgrest.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindSyncApi(impl: PostgrestSyncApi): SyncApi
 
     @Binds
     @Singleton
