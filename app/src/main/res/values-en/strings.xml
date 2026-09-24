@@ -212,7 +212,7 @@
     <string name="search_open_place">Everything that happened here</string>
     <string name="search_open_full">Full search</string>
     <string name="people_title">People</string>
-    <string name="people_add_label">Person's name</string>
+    <string name="people_add_label">Person\'s name</string>
     <string name="people_add_action">Add the person</string>
     <string name="people_empty">No people yet. Add a name, then link it to your memories and events.</string>
     <string name="people_delete">Delete the person</string>
