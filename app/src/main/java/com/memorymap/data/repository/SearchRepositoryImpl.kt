@@ -108,10 +108,10 @@ class SearchRepositoryImpl @Inject constructor(
         // Only narrowed by a person when the user actually named one; otherwise
         // merely having a person match would hide every unlinked memory.
         if (query.person != null) {
-            ids = intersect(ids, personIds.flatMap { memoryDao.memoriesWithPerson(it).map { m -> m.id } })
+            ids = intersect(ids, personIds.flatMap { memoryDao.memoriesWithPerson(it).map { m -> m.id } }.toSet())
         }
         if (query.place != null) {
-            ids = intersect(ids, placeIds.flatMap { memoryDao.memoriesAtPlace(it).map { m -> m.id } })
+            ids = intersect(ids, placeIds.flatMap { memoryDao.memoriesAtPlace(it).map { m -> m.id } }.toSet())
         }
 
         return if (ids == null) memoryDao.allForUser(userId) else ids.mapNotNull { memoryDao.getById(it) }
@@ -131,10 +131,10 @@ class SearchRepositoryImpl @Inject constructor(
                 .reduce { acc, next -> acc.intersect(next) }
         }
         if (query.person != null) {
-            ids = intersect(ids, personIds.flatMap { entryDao.entriesWithPerson(it).map { e -> e.id } })
+            ids = intersect(ids, personIds.flatMap { entryDao.entriesWithPerson(it).map { e -> e.id } }.toSet())
         }
         if (query.place != null) {
-            ids = intersect(ids, placeIds.flatMap { entryDao.entriesAtPlace(it).map { e -> e.id } })
+            ids = intersect(ids, placeIds.flatMap { entryDao.entriesAtPlace(it).map { e -> e.id } }.toSet())
         }
 
         return if (ids == null) entryDao.allForUser(userId) else ids.mapNotNull { entryDao.getById(it) }

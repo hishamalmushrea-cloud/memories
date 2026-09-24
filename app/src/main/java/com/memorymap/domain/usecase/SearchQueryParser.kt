@@ -179,7 +179,7 @@ object SearchQueryParser {
     /** Splits on whitespace and strips the punctuation a search box accumulates. */
     private fun tokenize(raw: String): List<String> = raw
         .split(WHITESPACE)
-        .map { it.trim(PUNCTUATION) }
+        .map { it.trim(*PUNCTUATION) }
         .filter { it.isNotBlank() }
 
     /**
@@ -190,7 +190,7 @@ object SearchQueryParser {
      * user's own spelling, because that is what has to match the database.
      */
     internal fun normalize(token: String): String = token
-        .trim(PUNCTUATION)
+        .trim(*PUNCTUATION)
         .replace(ARABIC_DIACRITICS, "")
         .replace('أ', 'ا')
         .replace('إ', 'ا')
@@ -203,7 +203,7 @@ object SearchQueryParser {
         .lowercase(Locale.ROOT)
 
     private val WHITESPACE = Regex("\\s+")
-    private const val PUNCTUATION = ".,;:!?\"'()[]{}«»؟،ـ\u0640"
+    private val PUNCTUATION: CharArray = ".,;:!?\"'()[]{}«»؟،ـ\u0640".toCharArray()
     private val ARABIC_DIACRITICS = Regex("[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
 
     // Every set below is compared against `normalize(token)`, so the members are
