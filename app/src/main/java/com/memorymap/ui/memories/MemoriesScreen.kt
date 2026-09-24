@@ -28,6 +28,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -91,6 +92,25 @@ fun MemoriesScreen(
                 }
             },
         )
+
+        // The field above searches memories only. These reach the search that
+        // covers the whole archive, and the two lists it is organised by.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(onClick = { navController.navigate(Routes.search()) }) {
+                Text(stringResource(R.string.search_open_full))
+            }
+            OutlinedButton(onClick = { navController.navigate(Routes.PEOPLE) }) {
+                Text(stringResource(R.string.people_title))
+            }
+            OutlinedButton(onClick = { navController.navigate(Routes.PLACES) }) {
+                Text(stringResource(R.string.places_title))
+            }
+        }
 
         when {
             state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

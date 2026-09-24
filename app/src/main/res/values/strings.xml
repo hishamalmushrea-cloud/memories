@@ -192,4 +192,36 @@
     <string name="sync_last_run_at">وقت آخر مزامنة: %1$s</string>
     <string name="sync_running">جارٍ المزامنة…</string>
     <string name="sync_action_now">زامِن الآن</string>
+
+    <!-- Search and organisation (Phase 7) -->
+    <string name="search_field_label">ابحث في أرشيفك</string>
+    <string name="search_field_example">مثال: مذكرات سبتمبر، الأحداث مع أحمد، في صنعاء 2024</string>
+    <string name="search_clear">مسح البحث</string>
+    <string name="search_running">جارٍ البحث…</string>
+    <string name="search_explainer">اكتب كلمة أو اسم شخص أو مكان أو تاريخًا. البحث محلي بالكامل ولا يغادر جهازك.</string>
+    <string name="search_no_results">لا نتيجة مطابقة</string>
+    <string name="search_intent_person">الشخص: %1$s</string>
+    <string name="search_intent_place">المكان: %1$s</string>
+    <string name="search_intent_date">التاريخ: %1$s</string>
+    <string name="search_intent_words">الكلمات: %1$s</string>
+    <string name="search_clear_filter">إلغاء التصفية</string>
+    <string name="search_section_people">الأشخاص (%1$d)</string>
+    <string name="search_section_places">الأماكن (%1$d)</string>
+    <string name="search_section_memories">الذكريات (%1$d)</string>
+    <string name="search_section_events">الأحداث (%1$d)</string>
+    <string name="search_open_person">كل ما يرتبط بهذا الشخص</string>
+    <string name="search_open_place">كل ما حدث في هذا المكان</string>
+    <string name="search_open_full">بحث شامل</string>
+    <string name="people_title">الأشخاص</string>
+    <string name="people_add_label">اسم الشخص</string>
+    <string name="people_add_action">أضف الشخص</string>
+    <string name="people_empty">لا أشخاص بعد. أضف اسمًا ثم اربطه بذكرياتك وأحداثك.</string>
+    <string name="people_delete">حذف الشخص</string>
+    <string name="places_title">الأماكن</string>
+    <string name="places_add_label">اسم المكان</string>
+    <string name="places_add_action">أضف المكان</string>
+    <string name="places_pick_location">اختر الموقع</string>
+    <string name="places_empty">لا أماكن بعد. أضف اسمًا وحدد موقعه ليظهر على الخريطة.</string>
+    <string name="places_delete">حذف المكان</string>
+    <string name="reference_record_count">%1$d سجل</string>
 </resources>

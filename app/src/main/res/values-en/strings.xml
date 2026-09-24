@@ -191,4 +191,36 @@
     <string name="sync_last_run_at">Last synchronised: %1$s</string>
     <string name="sync_running">Synchronising…</string>
     <string name="sync_action_now">Synchronise now</string>
+
+    <!-- Search and organisation (Phase 7) -->
+    <string name="search_field_label">Search your archive</string>
+    <string name="search_field_example">e.g. September notes, events with Ahmed, in Sanaa 2024</string>
+    <string name="search_clear">Clear the search</string>
+    <string name="search_running">Searching…</string>
+    <string name="search_explainer">Type a word, a person, a place or a date. Search runs entirely on this device and never leaves it.</string>
+    <string name="search_no_results">Nothing matches</string>
+    <string name="search_intent_person">Person: %1$s</string>
+    <string name="search_intent_place">Place: %1$s</string>
+    <string name="search_intent_date">Date: %1$s</string>
+    <string name="search_intent_words">Words: %1$s</string>
+    <string name="search_clear_filter">Clear the filter</string>
+    <string name="search_section_people">People (%1$d)</string>
+    <string name="search_section_places">Places (%1$d)</string>
+    <string name="search_section_memories">Memories (%1$d)</string>
+    <string name="search_section_events">Events (%1$d)</string>
+    <string name="search_open_person">Everything linked to this person</string>
+    <string name="search_open_place">Everything that happened here</string>
+    <string name="search_open_full">Full search</string>
+    <string name="people_title">People</string>
+    <string name="people_add_label">Person's name</string>
+    <string name="people_add_action">Add the person</string>
+    <string name="people_empty">No people yet. Add a name, then link it to your memories and events.</string>
+    <string name="people_delete">Delete the person</string>
+    <string name="places_title">Places</string>
+    <string name="places_add_label">Place name</string>
+    <string name="places_add_action">Add the place</string>
+    <string name="places_pick_location">Pick the location</string>
+    <string name="places_empty">No places yet. Add a name and set its position so it can appear on the map.</string>
+    <string name="places_delete">Delete the place</string>
+    <string name="reference_record_count">%1$d records</string>
 </resources>

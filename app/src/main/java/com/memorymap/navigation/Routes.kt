@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Timeline
+import android.net.Uri
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.memorymap.R
 
@@ -39,7 +40,9 @@ object Routes {
     const val TIMELINE = "timeline"
     const val PROFILE = "profile"
     const val NEARBY = "nearby"
-    const val SEARCH = "search"
+    const val SEARCH = "search?query={query}"
+    const val PEOPLE = "people"
+    const val PLACES = "places"
     const val CALENDAR = "calendar"
     const val SETTINGS = "settings"
 
@@ -54,6 +57,15 @@ object Routes {
     const val PLACE_DETAIL = "place/{placeId}"
     const val LOCATION_PICKER = "location-picker?lat={lat}&lon={lon}"
     const val PERSON_DETAIL = "person/{personId}"
+
+    /**
+     * Search, optionally pre-filled.
+     *
+     * People and places link here with their own pattern - `مع أحمد`, `في صنعاء` -
+     * so one screen shows every kind of result instead of three screens showing
+     * one each. The value is encoded because a name can contain a space.
+     */
+    fun search(query: String? = null) = "search?query=${Uri.encode(query.orEmpty())}"
 
     fun day(date: String) = "day/$date"
     fun week(date: String) = "week/$date"

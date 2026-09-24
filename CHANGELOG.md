@@ -6,6 +6,32 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 7: Search and Organisation
+
+- One search over the whole local archive: memory titles and bodies, event
+  titles and bodies, people, places and dates. Structured text search only —
+  the specification rules out a model interpreting the query, so every result
+  can be explained by pointing at the row that matched.
+- `SearchQueryParser` reads a search box as structure. `مذكرات سبتمبر` is a
+  month, `كل ما سجلته في صنعاء` is a place, `الأحداث مع أحمد` is a person,
+  `15 مارس 2019` is a day. Arabic-Indic digits read the same as western ones,
+  the Gregorian, Maghrebi, Levantine and English month names are all
+  recognised, and stop words are dropped so `عن` does not match the archive.
+- The screen says out loud what was understood — person, place, date, words —
+  because structured search can only be trusted if the structure is visible.
+- `DateConstraint` handles what a range cannot: a month with no year means that
+  month in every year.
+- People and places screens: add a name once, see how many records it is linked
+  to, open it to everything connected, delete it. A place asks for a position as
+  well as a name, because without coordinates it could not appear on the map.
+- Words are AND-ed, so a longer query is narrower rather than noisier. Naming a
+  person or place narrows by intersection; a bare name is offered as a way in
+  rather than silently pulling in everything linked to it.
+- Emotion filter on top of the words.
+- Everything is scoped to the signed-in account and excludes tombstones, so a
+  deleted record never resurfaces in search.
+- Tests: `SearchQueryParserTest`, `DateConstraintTest`, `SearchRepositoryImplTest`.
+
 ### Added — Phase 6: Sync
 
 - The offline queue now drains. `SyncWorker` became a `CoroutineWorker` that
@@ -188,5 +214,5 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Explicitly not in this phase
 
 The following are placeholders that state which phase implements them instead of
-showing fake data: nearby and search/people/places filters (Phase 7) and backup
-export/import (Phase 8).
+showing fake data: nearby (Phase 5 follow-up) and backup export/import
+(Phase 8).

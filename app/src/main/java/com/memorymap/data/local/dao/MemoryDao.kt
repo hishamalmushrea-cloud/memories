@@ -211,6 +211,16 @@ interface MemoryDao {
     @Query("DELETE FROM memories WHERE user_id = :userId")
     suspend fun hardDeleteAll(userId: String)
 
+
+    /**
+     * Every live row for one account.
+     *
+     * Used by search when the user filtered by date or emotion without typing a
+     * word, so there is no text query to narrow with.
+     */
+    @Query("SELECT * FROM memories WHERE user_id = :userId AND deleted_at IS NULL")
+    suspend fun allForUser(userId: String): List<MemoryEntity>
+
     // --- Synchronisation (Phase 6) ---------------------------------------
     // Everything that is not SYNCED still needs work: the three pending states
     // and SYNC_ERROR, which is how a failed row is retried on the next run.

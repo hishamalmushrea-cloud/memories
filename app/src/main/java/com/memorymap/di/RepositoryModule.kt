@@ -12,6 +12,7 @@ import com.memorymap.data.repository.MediaRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
+import com.memorymap.data.repository.SearchRepositoryImpl
 import com.memorymap.data.repository.SyncRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
 import com.memorymap.domain.map.MapProvider
@@ -21,6 +22,7 @@ import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.domain.repository.SearchRepository
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
 import dagger.Binds
@@ -73,6 +75,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSyncApi(impl: PostgrestSyncApi): SyncApi
+
+    @Binds
+    @Singleton
+    abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
 
     @Binds
     @Singleton
