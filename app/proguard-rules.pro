@@ -13,6 +13,12 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
 
+# Tink, which androidx.security-crypto uses to encrypt the session, is annotated
+# with error-prone annotations that are compile-time only and never shipped. R8
+# treats a reference to a missing class as an error rather than a note, so the
+# release build fails without this. There is no runtime behaviour to lose.
+-dontwarn com.google.errorprone.annotations.**
+
 # Never log user content or coordinates in release builds.
 #
 # MmLog is a Kotlin `object`, so d() and v() compile to *instance* methods on
