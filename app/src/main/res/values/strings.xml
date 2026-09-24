@@ -224,4 +224,25 @@
     <string name="places_empty">لا أماكن بعد. أضف اسمًا وحدد موقعه ليظهر على الخريطة.</string>
     <string name="places_delete">حذف المكان</string>
     <string name="reference_record_count">%1$d سجل</string>
+
+    <!-- Phase 8: local backup -->
+    <string name="backup_title">النسخ الاحتياطي</string>
+    <string name="backup_intro">احفظ نسخة من ذكرياتك في مجلد تختاره أنت على جهازك، ثم استوردها متى شئت. النسخة ملفات عادية يمكن قراءتها، ولا تعتمد على أي خادم.</string>
+    <string name="backup_action_open">النسخ الاحتياطي والاستعادة</string>
+    <string name="backup_action_export">تصدير نسخة</string>
+    <string name="backup_action_import">استيراد نسخة</string>
+    <string name="backup_action_import_confirm">استيراد</string>
+    <string name="backup_running">جارٍ العمل…</string>
+    <string name="backup_exported">تم حفظ النسخة في المجلد الذي اخترته.</string>
+    <string name="backup_imported">تم دمج النسخة في أرشيفك.</string>
+    <string name="backup_confirm_title">استيراد هذه النسخة؟</string>
+    <string name="backup_confirm_body">ستُدمج السجلات مع ما هو موجود لديك. السجل الأحدث هو الذي يبقى، وما حذفته من قبل لن يعود.</string>
+    <string name="backup_created_at">أُنشئت في %1$s</string>
+    <string name="backup_media_copied">ملفات الوسائط المنسوخة: %1$d</string>
+    <string name="backup_media_missing">ملفات وسائط مفقودة: %1$d</string>
+    <string name="backup_media_restored">ملفات وسائط مستعادة: %1$d</string>
+    <string name="backup_skipped">سجلات موجودة تم تخطيها: %1$d</string>
+    <string name="backup_error_open">تعذّر فتح هذا المجلد.</string>
+    <string name="backup_error_write">تعذّر الكتابة في هذا المجلد.</string>
+    <string name="backup_error_format">هذا المجلد لا يحتوي نسخة احتياطية صالحة.</string>
 </resources>

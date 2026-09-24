@@ -28,10 +28,11 @@ object BackupLayout {
     const val DAILY_ENTRIES = "daily_entries.json"
     const val PEOPLE = "people.json"
     const val PLACES = "places.json"
+    const val MEDIA = "media.json"
     const val MEDIA_DIR = "media"
 
     /** Relative paths of every JSON document inside an archive. */
-    val JSON_FILES: List<String> = listOf(MANIFEST, MEMORIES, DAILY_ENTRIES, PEOPLE, PLACES)
+    val JSON_FILES: List<String> = listOf(MANIFEST, MEMORIES, DAILY_ENTRIES, PEOPLE, PLACES, MEDIA)
 }
 
 /** Current archive format version. Bumped whenever a field is added or renamed. */

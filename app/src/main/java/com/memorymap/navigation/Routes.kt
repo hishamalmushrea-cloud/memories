@@ -44,7 +44,7 @@ object Routes {
     const val PEOPLE = "people"
     const val PLACES = "places"
     const val CALENDAR = "calendar"
-    const val SETTINGS = "settings"
+    const val BACKUP = "backup"
 
     // Parameterised routes.
     const val DAY = "day/{date}"

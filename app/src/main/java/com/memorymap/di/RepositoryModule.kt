@@ -6,6 +6,7 @@ import com.memorymap.data.map.MapProviders
 import com.memorymap.data.remote.PostgrestSyncApi
 import com.memorymap.data.remote.SupabaseConfig
 import com.memorymap.data.remote.SyncApi
+import com.memorymap.data.repository.BackupRepositoryImpl
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.SupabaseAuthRepository
 import com.memorymap.data.repository.MediaRepositoryImpl
@@ -17,6 +18,7 @@ import com.memorymap.data.repository.SyncRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
 import com.memorymap.domain.map.MapProvider
 import com.memorymap.domain.repository.AuthRepository
+import com.memorymap.domain.repository.BackupRepository
 import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
@@ -79,6 +81,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 
     @Binds
     @Singleton

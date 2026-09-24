@@ -19,6 +19,7 @@ import com.memorymap.ui.memories.MemoryDetailScreen
 import com.memorymap.ui.memories.MemoryEditorScreen
 import com.memorymap.ui.nearby.NearbyScreen
 import com.memorymap.ui.profile.ProfileScreen
+import com.memorymap.ui.backup.BackupScreen
 import com.memorymap.ui.search.PeopleScreen
 import com.memorymap.ui.search.PlacesScreen
 import com.memorymap.ui.search.SearchScreen
@@ -52,6 +53,7 @@ fun MemoryMapNavHost(
         ) { SearchScreen(navController) }
         composable(Routes.PEOPLE) { PeopleScreen(navController) }
         composable(Routes.PLACES) { PlacesScreen(navController) }
+        composable(Routes.BACKUP) { BackupScreen() }
 
         composable(
             route = Routes.DAY,

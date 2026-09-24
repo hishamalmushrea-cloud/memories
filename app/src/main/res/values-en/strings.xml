@@ -223,4 +223,25 @@
     <string name="places_empty">No places yet. Add a name and set its position so it can appear on the map.</string>
     <string name="places_delete">Delete the place</string>
     <string name="reference_record_count">%1$d records</string>
+
+    <!-- Phase 8: local backup -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_intro">Save a copy of your memories in a folder you choose on your device, and restore it whenever you like. The archive is plain readable files and does not depend on any server.</string>
+    <string name="backup_action_open">Backup and restore</string>
+    <string name="backup_action_export">Export a backup</string>
+    <string name="backup_action_import">Import a backup</string>
+    <string name="backup_action_import_confirm">Import</string>
+    <string name="backup_running">Working…</string>
+    <string name="backup_exported">The backup was written to the folder you chose.</string>
+    <string name="backup_imported">The backup was merged into your archive.</string>
+    <string name="backup_confirm_title">Import this backup?</string>
+    <string name="backup_confirm_body">The records will be merged with what you already have. The newer copy of each record is kept, and anything you deleted stays deleted.</string>
+    <string name="backup_created_at">Created on %1$s</string>
+    <string name="backup_media_copied">Media files copied: %1$d</string>
+    <string name="backup_media_missing">Media files missing: %1$d</string>
+    <string name="backup_media_restored">Media files restored: %1$d</string>
+    <string name="backup_skipped">Existing records skipped: %1$d</string>
+    <string name="backup_error_open">That folder could not be opened.</string>
+    <string name="backup_error_write">That folder could not be written to.</string>
+    <string name="backup_error_format">That folder does not hold a valid backup.</string>
 </resources>

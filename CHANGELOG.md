@@ -6,6 +6,34 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 8: Local Backup
+
+- Export writes the whole archive to a folder the user picks, through the
+  Storage Access Framework, so no storage permission is needed and the copy
+  lands wherever the user wants it: Documents, an SD card, a synced directory.
+  The layout is `manifest.json`, `memories.json`, `daily_entries.json`,
+  `people.json`, `places.json`, `media.json` and `media/`.
+- The archive holds the content of a record and none of this phone's
+  bookkeeping. No sync status, no tombstones, no last-synced stamp: those
+  describe one device's relationship with a server and would be meaningless on
+  another phone. The point of the format is that getting your life back never
+  depends on Supabase, or on this app, being reachable.
+- Import merges rather than replaces, through the same rule sync uses. A newer
+  local copy is kept, an older archived one is skipped, and a record deleted on
+  this device stays deleted however recent the archive is — restoring a backup
+  can neither destroy newer work nor resurrect a delete.
+- Nothing is written until the manifest has been read back and shown: the
+  archive's record counts and creation date appear in a confirmation dialog
+  first, because merging somebody's life into an existing archive is a decision
+  to make with the numbers in front of you.
+- Attachments are copied as plain files named `<ownerId>_<mediaId>.<ext>` and
+  re-linked to their record on the way back. An attachment whose owner is not
+  on this device is left in the folder rather than written as an orphan.
+- An archive written by a newer version still reads: unknown fields are ignored
+  rather than rejecting the document, and a format version this app cannot
+  understand is refused before anything is touched.
+- Reached from the profile tab under "Backup and restore".
+
 ### Added — Phase 7: Search and Organisation
 
 - One search over the whole local archive: memory titles and bodies, event

@@ -22,12 +22,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.memorymap.R
 import com.memorymap.domain.model.AuthState
+import androidx.navigation.NavHostController
 import com.memorymap.domain.model.SyncOutcome
 import com.memorymap.domain.model.SyncState
 import com.memorymap.ui.common.emotionLabel
 import com.memorymap.ui.common.formatDateTime
 import com.memorymap.ui.common.rememberLocale
 import com.memorymap.domain.model.LifeStats
+import com.memorymap.navigation.Routes
 
 /**
  * Account header, the life statistics, and the session actions.
@@ -37,7 +39,7 @@ import com.memorymap.domain.model.LifeStats
  */
 @Composable
 fun ProfileScreen(
-    @Suppress("UNUSED_PARAMETER") navController: androidx.navigation.NavHostController,
+    navController: NavHostController,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -75,6 +77,23 @@ fun ProfileScreen(
         }
 
         state.stats?.let { stats -> StatsCard(stats, state.peopleCount) }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.backup_intro),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = { navController.navigate(Routes.BACKUP) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.backup_action_open))
+                }
+            }
+        }
 
         OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.auth_action_sign_out))

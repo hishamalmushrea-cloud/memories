@@ -46,6 +46,10 @@ interface PersonDao {
     @Query("SELECT COUNT(*) FROM people WHERE user_id = :userId")
     suspend fun count(userId: String): Int
 
+    /** Every row for one account, for backup export. */
+    @Query("SELECT * FROM people WHERE user_id = :userId ORDER BY name COLLATE NOCASE ASC")
+    suspend fun allForUser(userId: String): List<PersonEntity>
+
     @Query("DELETE FROM people WHERE id = :id")
     suspend fun deleteById(id: String)
 
@@ -71,6 +75,10 @@ interface PlaceDao {
     @Query("SELECT COUNT(*) FROM places WHERE user_id = :userId")
     suspend fun count(userId: String): Int
 
+    /** Every row for one account, for backup export. */
+    @Query("SELECT * FROM places WHERE user_id = :userId ORDER BY name COLLATE NOCASE ASC")
+    suspend fun allForUser(userId: String): List<PlaceEntity>
+
     @Query("DELETE FROM places WHERE id = :id")
     suspend fun deleteById(id: String)
 
@@ -95,6 +103,10 @@ interface MediaDao {
 
     @Query("SELECT * FROM media WHERE owner_type = :ownerType AND owner_id = :ownerId AND deleted_at IS NULL ORDER BY created_at ASC")
     suspend fun getFor(ownerType: String, ownerId: String): List<MediaEntity>
+
+    /** Every live attachment belonging to any of the given owners, in one pass. */
+    @Query("SELECT * FROM media WHERE owner_id IN (:ownerIds) AND deleted_at IS NULL ORDER BY created_at ASC")
+    suspend fun activeForOwners(ownerIds: List<String>): List<MediaEntity>
 
     @Query("SELECT media_type AS mediaType, COUNT(*) AS count FROM media WHERE deleted_at IS NULL GROUP BY media_type")
     suspend fun countByType(): List<MediaTypeCountRow>
