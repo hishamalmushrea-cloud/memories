@@ -259,12 +259,12 @@
     <!-- Linking a record to people and places -->
     <string name="editor_people_label">People</string>
     <string name="editor_people_empty">No people yet. Add a name to link it to this record.</string>
-    <string name="editor_person_add">Person's name</string>
+    <string name="editor_person_add">Person\'s name</string>
     <string name="editor_add_action">Add</string>
     <string name="editor_places_label">Places</string>
     <string name="editor_places_empty">No places yet. Add a name to link it to this record.</string>
     <string name="editor_place_add">Place name</string>
-    <string name="editor_places_needs_location">No places yet. Set the record's location first to make adding a place possible.</string>
+    <string name="editor_places_needs_location">No places yet. Set the record\'s location first to make adding a place possible.</string>
     <string name="editor_place_needs_location">A place cannot be added without a location.</string>
     <string name="editor_places_pick_elsewhere">No places yet. Places are created from the map or from a memory that has a location.</string>
 </resources>
