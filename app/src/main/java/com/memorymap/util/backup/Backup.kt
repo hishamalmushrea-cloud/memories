@@ -15,8 +15,12 @@ import kotlinx.serialization.Serializable
  * ├── daily_entries.json
  * ├── people.json
  * ├── places.json
+ * ├── media.json
  * └── media/
  * ```
+ *
+ * `media.json` indexes the attachments in `media/`, so an import can put each
+ * file back on the record it belonged to instead of guessing from a name.
  *
  * Keeping the format explicit means the user is never dependent on Supabase to
  * get their own life back.

@@ -13,7 +13,14 @@ class BackupPlannerTest {
     @Test
     fun `archive layout matches the documented folder shape`() {
         assertEquals(
-            listOf("manifest.json", "memories.json", "daily_entries.json", "people.json", "places.json"),
+            listOf(
+                "manifest.json",
+                "memories.json",
+                "daily_entries.json",
+                "people.json",
+                "places.json",
+                "media.json",
+            ),
             BackupLayout.JSON_FILES,
         )
         assertEquals("media", BackupLayout.MEDIA_DIR)
