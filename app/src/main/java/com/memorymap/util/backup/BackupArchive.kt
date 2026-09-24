@@ -89,7 +89,7 @@ class BackupArchive(
         // other and quietly double the archive.
         mediaDir.findFile(name)?.delete()
         val target = mediaDir.createFile("application/octet-stream", name) ?: return false
-        return copy(Uri.fromFile(source), Uri.fromFile(target))
+        return copy(Uri.fromFile(source), target.uri)
     }
 
     /** Copies a file out of the archive to a path on this device. */
