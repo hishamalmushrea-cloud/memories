@@ -8,6 +8,18 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- The links between records and the people and places they mention now
+  synchronise. A link carries no timestamp of its own, so there is nothing to
+  resolve a conflict with and no queue of its own to keep: it travels with the
+  record that owns it, whose `updated_at` already moves when its links change,
+  and it is replaced wholesale in both directions. That is what makes an unlink
+  reach another device instead of being merged back in.
+- `DailyEntryDao.replacePeople` and `replacePlaces`, which the memory side
+  already had. Both are whole-set replaces inside a transaction, so removing a
+  name in the editor really removes it.
+
+### Added
+
 - People and places now synchronise, which they never did. Until now both tables
   were local-only, so reinstalling the app - or signing in on a second device -
   silently lost every name the user had built up. Room moves to version 3, which

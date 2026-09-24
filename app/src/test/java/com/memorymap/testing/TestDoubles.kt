@@ -6,6 +6,15 @@ import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Person
 import com.memorymap.domain.model.Place
 import com.memorymap.domain.model.User
+import com.memorymap.data.remote.EntryPersonLink
+import com.memorymap.data.remote.EntryPlaceLink
+import com.memorymap.data.remote.EntryRecord
+import com.memorymap.data.remote.MemoryPersonLink
+import com.memorymap.data.remote.MemoryPlaceLink
+import com.memorymap.data.remote.MemoryRecord
+import com.memorymap.data.remote.PersonRecord
+import com.memorymap.data.remote.PlaceRecord
+import com.memorymap.data.remote.SyncApi
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import kotlinx.coroutines.flow.Flow
@@ -97,4 +106,81 @@ class FakeReferenceRepository(
     override suspend fun entriesAtPlace(placeId: String): List<DailyEntry> = emptyList()
 
     override suspend fun memoriesAtPlace(placeId: String): List<Memory> = emptyList()
+}
+
+/**
+ * A sync double that records what it was asked to send and serves back whatever
+ * a test queued for it.
+ *
+ * Keeping the two halves separate is what makes a test able to say "the phone
+ * had this, the server had that" without a network anywhere near it.
+ */
+class RecordingSyncApi : SyncApi {
+
+    val memoriesSent = mutableListOf<MemoryRecord>()
+    val entriesSent = mutableListOf<EntryRecord>()
+    val peopleSent = mutableListOf<PersonRecord>()
+    val placesSent = mutableListOf<PlaceRecord>()
+
+    /** Each replace call, so a test can tell an unlink from a no-op. */
+    val memoryPeopleReplacements = mutableListOf<Pair<List<String>, List<MemoryPersonLink>>>()
+    val memoryPlaceReplacements = mutableListOf<Pair<List<String>, List<MemoryPlaceLink>>>()
+    val entryPeopleReplacements = mutableListOf<Pair<List<String>, List<EntryPersonLink>>>()
+    val entryPlaceReplacements = mutableListOf<Pair<List<String>, List<EntryPlaceLink>>>()
+
+    /** What the server is meant to hand back on the next fetch. */
+    var memoriesToReturn: List<MemoryRecord> = emptyList()
+    var entriesToReturn: List<EntryRecord> = emptyList()
+    var memoryPeopleToReturn: List<MemoryPersonLink> = emptyList()
+    var memoryPlacesToReturn: List<MemoryPlaceLink> = emptyList()
+    var entryPeopleToReturn: List<EntryPersonLink> = emptyList()
+    var entryPlacesToReturn: List<EntryPlaceLink> = emptyList()
+
+    override suspend fun upsertMemories(rows: List<MemoryRecord>) {
+        memoriesSent += rows
+    }
+
+    override suspend fun upsertEntries(rows: List<EntryRecord>) {
+        entriesSent += rows
+    }
+
+    override suspend fun fetchMemories(userId: String, since: String?) = memoriesToReturn
+
+    override suspend fun fetchEntries(userId: String, since: String?) = entriesToReturn
+
+    override suspend fun upsertPeople(rows: List<PersonRecord>) {
+        peopleSent += rows
+    }
+
+    override suspend fun upsertPlaces(rows: List<PlaceRecord>) {
+        placesSent += rows
+    }
+
+    override suspend fun fetchPeople(userId: String, since: String?) = emptyList<PersonRecord>()
+
+    override suspend fun fetchPlaces(userId: String, since: String?) = emptyList<PlaceRecord>()
+
+    override suspend fun replaceMemoryPeople(memoryIds: List<String>, links: List<MemoryPersonLink>) {
+        memoryPeopleReplacements += memoryIds to links
+    }
+
+    override suspend fun replaceMemoryPlaces(memoryIds: List<String>, links: List<MemoryPlaceLink>) {
+        memoryPlaceReplacements += memoryIds to links
+    }
+
+    override suspend fun replaceEntryPeople(entryIds: List<String>, links: List<EntryPersonLink>) {
+        entryPeopleReplacements += entryIds to links
+    }
+
+    override suspend fun replaceEntryPlaces(entryIds: List<String>, links: List<EntryPlaceLink>) {
+        entryPlaceReplacements += entryIds to links
+    }
+
+    override suspend fun fetchMemoryPeople(memoryIds: List<String>) = memoryPeopleToReturn
+
+    override suspend fun fetchMemoryPlaces(memoryIds: List<String>) = memoryPlacesToReturn
+
+    override suspend fun fetchEntryPeople(entryIds: List<String>) = entryPeopleToReturn
+
+    override suspend fun fetchEntryPlaces(entryIds: List<String>) = entryPlacesToReturn
 }

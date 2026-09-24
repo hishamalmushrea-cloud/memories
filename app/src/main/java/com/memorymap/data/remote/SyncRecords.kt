@@ -80,6 +80,38 @@ data class PlaceRecord(
 )
 
 /**
+ * The four link tables.
+ *
+ * These carry no timestamps and no status of their own: a link is not a row
+ * with a history, it is a fact about its record. So they travel with the record
+ * that owns them and are replaced wholesale, which is what makes an unlink
+ * reach another device instead of being merged back in.
+ */
+@Serializable
+data class MemoryPersonLink(
+    @SerialName("memory_id") val memoryId: String,
+    @SerialName("person_id") val personId: String,
+)
+
+@Serializable
+data class MemoryPlaceLink(
+    @SerialName("memory_id") val memoryId: String,
+    @SerialName("place_id") val placeId: String,
+)
+
+@Serializable
+data class EntryPersonLink(
+    @SerialName("entry_id") val entryId: String,
+    @SerialName("person_id") val personId: String,
+)
+
+@Serializable
+data class EntryPlaceLink(
+    @SerialName("entry_id") val entryId: String,
+    @SerialName("place_id") val placeId: String,
+)
+
+/**
  * The remote half of synchronisation.
  *
  * An interface so the engine and the tables can be tested against a fake that
@@ -104,4 +136,27 @@ interface SyncApi {
     suspend fun fetchPeople(userId: String, since: String?): List<PersonRecord>
 
     suspend fun fetchPlaces(userId: String, since: String?): List<PlaceRecord>
+
+    /**
+     * Replaces the links of the given records in one step.
+     *
+     * The ids are passed alongside the links because a record whose links have
+     * all been removed still has to be in the list, or its old links would
+     * survive on the server forever.
+     */
+    suspend fun replaceMemoryPeople(memoryIds: List<String>, links: List<MemoryPersonLink>)
+
+    suspend fun replaceMemoryPlaces(memoryIds: List<String>, links: List<MemoryPlaceLink>)
+
+    suspend fun replaceEntryPeople(entryIds: List<String>, links: List<EntryPersonLink>)
+
+    suspend fun replaceEntryPlaces(entryIds: List<String>, links: List<EntryPlaceLink>)
+
+    suspend fun fetchMemoryPeople(memoryIds: List<String>): List<MemoryPersonLink>
+
+    suspend fun fetchMemoryPlaces(memoryIds: List<String>): List<MemoryPlaceLink>
+
+    suspend fun fetchEntryPeople(entryIds: List<String>): List<EntryPersonLink>
+
+    suspend fun fetchEntryPlaces(entryIds: List<String>): List<EntryPlaceLink>
 }

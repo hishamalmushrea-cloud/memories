@@ -17,6 +17,15 @@ import kotlinx.coroutines.flow.Flow
 /** A (ISO date -> count) pair, the shape every per-day aggregation returns. */
 data class DateCount(val date: String, val count: Int)
 
+/**
+ * One row of a link table, read as a pair.
+ *
+ * Shared by both owners - memories and diary events - because a link is the
+ * same shape either way, and one type lets the sync tables treat the four link
+ * tables alike.
+ */
+data class LinkRow(val ownerId: String, val refId: String)
+
 /** One row of the emotion distribution used by the life statistics screen. */
 data class EmotionCountRow(val emotion: String, val count: Int)
 
@@ -146,6 +155,22 @@ interface MemoryDao {
 
     @Query("SELECT place_id FROM memory_place WHERE memory_id = :memoryId")
     suspend fun placesOf(memoryId: String): List<String>
+
+    // --- Batch link reads, for synchronisation ---
+    // One query for a whole batch: the sync engine pushes and pulls in batches,
+    // and asking per record would be one round trip to the database each.
+
+    @Query(
+        "SELECT memory_id AS ownerId, person_id AS refId " +
+            "FROM memory_person WHERE memory_id IN (:memoryIds)",
+    )
+    suspend fun personLinks(memoryIds: List<String>): List<LinkRow>
+
+    @Query(
+        "SELECT memory_id AS ownerId, place_id AS refId " +
+            "FROM memory_place WHERE memory_id IN (:memoryIds)",
+    )
+    suspend fun placeLinks(memoryIds: List<String>): List<LinkRow>
 
     @Upsert
     suspend fun upsertShare(share: MemoryShareEntity)

@@ -10,12 +10,38 @@ import com.memorymap.data.local.entities.PersonEntity
 import com.memorymap.data.local.entities.PlaceEntity
 import com.memorymap.data.remote.EntryRecord
 import com.memorymap.data.remote.MemoryRecord
+import com.memorymap.data.remote.EntryPersonLink
+import com.memorymap.data.remote.EntryPlaceLink
+import com.memorymap.data.remote.MemoryPersonLink
+import com.memorymap.data.remote.MemoryPlaceLink
 import com.memorymap.data.remote.PersonRecord
 import com.memorymap.data.remote.PlaceRecord
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.util.SyncTime
 import java.time.LocalDateTime
+
+/**
+ * A server record together with the people and places it mentions.
+ *
+ * The link tables have no timestamps of their own, so there is nothing to
+ * resolve a conflict with and no queue of their own to keep. They travel with
+ * the record that owns them: that record already carries `updated_at`, it is
+ * already queued when its links change, and replacing the whole set is what
+ * makes an unlink reach another device instead of being merged back in.
+ */
+data class MemoryWithLinks(
+    val record: MemoryRecord,
+    val personIds: List<String> = emptyList(),
+    val placeIds: List<String> = emptyList(),
+)
+
+/** The same, for a diary event. */
+data class EntryWithLinks(
+    val record: EntryRecord,
+    val personIds: List<String> = emptyList(),
+    val placeIds: List<String> = emptyList(),
+)
 
 /**
  * Synchronises the `memories` table.
@@ -28,7 +54,7 @@ class MemorySyncTable(
     private val dao: MemoryDao,
     private val api: SyncApi,
     private val clock: () -> String = { LocalDateTime.now().toString() },
-) : SyncTable<MemoryRecord> {
+) : SyncTable<MemoryWithLinks> {
 
     override val name = "memories"
 
@@ -50,32 +76,67 @@ class MemorySyncTable(
         if (ids.isNotEmpty()) dao.markSyncError(ids)
     }
 
-    override suspend fun fetchChanged(userId: String, since: String?): List<MemoryRecord> =
-        api.fetchMemories(userId, since)
+    override suspend fun fetchChanged(userId: String, since: String?): List<MemoryWithLinks> {
+        val records = api.fetchMemories(userId, since)
+        if (records.isEmpty()) return emptyList()
+        val ids = records.map { it.id }
+        // Fetched here rather than at store time, so a network failure is
+        // reported as the read failure it is and not as a failed write.
+        val people = api.fetchMemoryPeople(ids).groupBy({ it.memoryId }, { it.personId })
+        val places = api.fetchMemoryPlaces(ids).groupBy({ it.memoryId }, { it.placeId })
+        return records.map { record ->
+            MemoryWithLinks(
+                record = record,
+                personIds = people[record.id].orEmpty(),
+                placeIds = places[record.id].orEmpty(),
+            )
+        }
+    }
 
-    override fun remoteInfo(row: MemoryRecord): RemoteRow = RemoteRow(
-        id = row.id,
+    override fun remoteInfo(row: MemoryWithLinks): RemoteRow = RemoteRow(
+        id = row.record.id,
         // Converted to the naive local text Room uses, so it can be compared
         // against a local row without a timezone shifting the answer.
-        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
-        deleted = row.deletedAt != null,
+        updatedAt = SyncTime.toLocalText(row.record.updatedAt) ?: row.record.updatedAt,
+        deleted = row.record.deletedAt != null,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
         if (ids.isEmpty()) emptyMap() else dao.syncSnapshot(ids).associateBy { it.id }
 
-    override suspend fun storeRemote(rows: List<MemoryRecord>) {
+    override suspend fun storeRemote(rows: List<MemoryWithLinks>) {
         if (rows.isEmpty()) return
         val now = clock()
-        dao.upsertAll(rows.map { it.toEntity(now) })
+        dao.upsertAll(rows.map { it.record.toEntity(now) })
+        // Replaced rather than merged: a link removed on another device has to
+        // disappear here too, and only a whole-set replace can express that.
+        rows.forEach { row ->
+            dao.replacePeople(row.record.id, row.personIds)
+            dao.replacePlaces(row.record.id, row.placeIds)
+        }
     }
 
     /** Both directions send the row whole; a tombstone simply carries a date. */
     private suspend fun push(rows: List<PendingRow>) {
         if (rows.isEmpty()) return
         val now = clock()
-        val records = rows.mapNotNull { dao.getById(it.id) }.map { it.toRecord(now) }
-        if (records.isNotEmpty()) api.upsertMemories(records)
+        val stored = rows.mapNotNull { dao.getById(it.id) }
+        if (stored.isEmpty()) return
+        api.upsertMemories(stored.map { it.toRecord(now) })
+
+        // The record has to exist on the server before its links can point at
+        // it, which is why the links go second.
+        val ids = stored.map { it.id }
+        val people = dao.personLinks(ids).groupBy({ it.ownerId }, { it.refId })
+        val places = dao.placeLinks(ids).groupBy({ it.ownerId }, { it.refId })
+        api.replaceMemoryPeople(
+            memoryIds = ids,
+            links = ids.flatMap { id -> (people[id].orEmpty()).map { MemoryPersonLink(id, it) } },
+        )
+        api.replaceMemoryPlaces(
+            memoryIds = ids,
+            links = ids.flatMap { id -> (places[id].orEmpty()).map { MemoryPlaceLink(id, it) } },
+        )
     }
 
     private fun MemoryEntity.toRecord(now: String) = MemoryRecord(
@@ -121,7 +182,7 @@ class EntrySyncTable(
     private val dao: DailyEntryDao,
     private val api: SyncApi,
     private val clock: () -> String = { LocalDateTime.now().toString() },
-) : SyncTable<EntryRecord> {
+) : SyncTable<EntryWithLinks> {
 
     override val name = "daily_entries"
 
@@ -143,29 +204,58 @@ class EntrySyncTable(
         if (ids.isNotEmpty()) dao.markSyncError(ids)
     }
 
-    override suspend fun fetchChanged(userId: String, since: String?): List<EntryRecord> =
-        api.fetchEntries(userId, since)
+    override suspend fun fetchChanged(userId: String, since: String?): List<EntryWithLinks> {
+        val records = api.fetchEntries(userId, since)
+        if (records.isEmpty()) return emptyList()
+        val ids = records.map { it.id }
+        val people = api.fetchEntryPeople(ids).groupBy({ it.entryId }, { it.personId })
+        val places = api.fetchEntryPlaces(ids).groupBy({ it.entryId }, { it.placeId })
+        return records.map { record ->
+            EntryWithLinks(
+                record = record,
+                personIds = people[record.id].orEmpty(),
+                placeIds = places[record.id].orEmpty(),
+            )
+        }
+    }
 
-    override fun remoteInfo(row: EntryRecord): RemoteRow = RemoteRow(
-        id = row.id,
-        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
-        deleted = row.deletedAt != null,
+    override fun remoteInfo(row: EntryWithLinks): RemoteRow = RemoteRow(
+        id = row.record.id,
+        updatedAt = SyncTime.toLocalText(row.record.updatedAt) ?: row.record.updatedAt,
+        deleted = row.record.deletedAt != null,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
         if (ids.isEmpty()) emptyMap() else dao.syncSnapshot(ids).associateBy { it.id }
 
-    override suspend fun storeRemote(rows: List<EntryRecord>) {
+    override suspend fun storeRemote(rows: List<EntryWithLinks>) {
         if (rows.isEmpty()) return
         val now = clock()
-        dao.upsertAll(rows.map { it.toEntity(now) })
+        dao.upsertAll(rows.map { it.record.toEntity(now) })
+        rows.forEach { row ->
+            dao.replacePeople(row.record.id, row.personIds)
+            dao.replacePlaces(row.record.id, row.placeIds)
+        }
     }
 
     private suspend fun push(rows: List<PendingRow>) {
         if (rows.isEmpty()) return
         val now = clock()
-        val records = rows.mapNotNull { dao.getById(it.id) }.map { it.toRecord(now) }
-        if (records.isNotEmpty()) api.upsertEntries(records)
+        val stored = rows.mapNotNull { dao.getById(it.id) }
+        if (stored.isEmpty()) return
+        api.upsertEntries(stored.map { it.toRecord(now) })
+
+        val ids = stored.map { it.id }
+        val people = dao.personLinks(ids).groupBy({ it.ownerId }, { it.refId })
+        val places = dao.placeLinks(ids).groupBy({ it.ownerId }, { it.refId })
+        api.replaceEntryPeople(
+            entryIds = ids,
+            links = ids.flatMap { id -> (people[id].orEmpty()).map { EntryPersonLink(id, it) } },
+        )
+        api.replaceEntryPlaces(
+            entryIds = ids,
+            links = ids.flatMap { id -> (places[id].orEmpty()).map { EntryPlaceLink(id, it) } },
+        )
     }
 
     private fun DailyEntryEntity.toRecord(now: String) = EntryRecord(

@@ -2,6 +2,7 @@ package com.memorymap.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import com.memorymap.data.sync.LocalRow
 import com.memorymap.data.sync.PendingRow
@@ -175,6 +176,37 @@ interface DailyEntryDao {
 
     @Query("SELECT place_id FROM daily_entry_place WHERE entry_id = :entryId")
     suspend fun placesOf(entryId: String): List<String>
+
+    /**
+     * Replaces the whole set of people linked to one event.
+     *
+     * Not additive on purpose: a link removed in the editor has to be gone
+     * afterwards, and the same whole-set replace is what lets a download from
+     * another device take an unlink with it.
+     */
+    @Transaction
+    suspend fun replacePeople(entryId: String, personIds: List<String>) {
+        clearPeople(entryId)
+        personIds.forEach { linkPerson(DailyEntryPersonCrossRef(entryId, it)) }
+    }
+
+    @Transaction
+    suspend fun replacePlaces(entryId: String, placeIds: List<String>) {
+        clearPlaces(entryId)
+        placeIds.forEach { linkPlace(DailyEntryPlaceCrossRef(entryId, it)) }
+    }
+
+    @Query(
+        "SELECT entry_id AS ownerId, person_id AS refId " +
+            "FROM daily_entry_person WHERE entry_id IN (:entryIds)",
+    )
+    suspend fun personLinks(entryIds: List<String>): List<LinkRow>
+
+    @Query(
+        "SELECT entry_id AS ownerId, place_id AS refId " +
+            "FROM daily_entry_place WHERE entry_id IN (:entryIds)",
+    )
+    suspend fun placeLinks(entryIds: List<String>): List<LinkRow>
 
     @Query(
         """

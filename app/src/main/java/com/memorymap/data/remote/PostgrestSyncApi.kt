@@ -79,6 +79,68 @@ class PostgrestSyncApi @Inject constructor(
             }
             .decodeList()
 
+    override suspend fun replaceMemoryPeople(memoryIds: List<String>, links: List<MemoryPersonLink>) {
+        replace(TABLE_MEMORY_PERSON, "memory_id", memoryIds, links)
+    }
+
+    override suspend fun replaceMemoryPlaces(memoryIds: List<String>, links: List<MemoryPlaceLink>) {
+        replace(TABLE_MEMORY_PLACE, "memory_id", memoryIds, links)
+    }
+
+    override suspend fun replaceEntryPeople(entryIds: List<String>, links: List<EntryPersonLink>) {
+        replace(TABLE_ENTRY_PERSON, "entry_id", entryIds, links)
+    }
+
+    override suspend fun replaceEntryPlaces(entryIds: List<String>, links: List<EntryPlaceLink>) {
+        replace(TABLE_ENTRY_PLACE, "entry_id", entryIds, links)
+    }
+
+    override suspend fun fetchMemoryPeople(memoryIds: List<String>): List<MemoryPersonLink> =
+        fetchLinks(TABLE_MEMORY_PERSON, "memory_id", memoryIds)
+
+    override suspend fun fetchMemoryPlaces(memoryIds: List<String>): List<MemoryPlaceLink> =
+        fetchLinks(TABLE_MEMORY_PLACE, "memory_id", memoryIds)
+
+    override suspend fun fetchEntryPeople(entryIds: List<String>): List<EntryPersonLink> =
+        fetchLinks(TABLE_ENTRY_PERSON, "entry_id", entryIds)
+
+    override suspend fun fetchEntryPlaces(entryIds: List<String>): List<EntryPlaceLink> =
+        fetchLinks(TABLE_ENTRY_PLACE, "entry_id", entryIds)
+
+    /**
+     * Deletes the old links of these records and writes the new set.
+     *
+     * Done in that order because the link tables have a composite primary key:
+     * inserting first would collide with the row it is meant to replace. An
+     * empty new set is a real state, not a no-op - it is how an unlink is sent.
+     */
+    private suspend inline fun <reified T : Any> replace(
+        table: String,
+        ownerColumn: String,
+        ownerIds: List<String>,
+        links: List<T>,
+    ) {
+        if (ownerIds.isEmpty()) return
+        table(table).delete {
+            filter { isIn(ownerColumn, ownerIds) }
+        }
+        if (links.isEmpty()) return
+        table(table).upsert(links)
+    }
+
+    private suspend inline fun <reified T : Any> fetchLinks(
+        table: String,
+        ownerColumn: String,
+        ownerIds: List<String>,
+    ): List<T> {
+        if (ownerIds.isEmpty()) return emptyList()
+        return table(table)
+            .select {
+                filter { isIn(ownerColumn, ownerIds) }
+            }
+            .decodeList()
+    }
+
     private fun table(name: String): PostgrestQueryBuilder {
         val client = provider.get()
             ?: throw IllegalStateException("Cloud sync is not configured on this device")
@@ -90,5 +152,9 @@ class PostgrestSyncApi @Inject constructor(
         const val TABLE_ENTRIES = "daily_entries"
         const val TABLE_PEOPLE = "people"
         const val TABLE_PLACES = "places"
+        const val TABLE_MEMORY_PERSON = "memory_person"
+        const val TABLE_MEMORY_PLACE = "memory_place"
+        const val TABLE_ENTRY_PERSON = "daily_entry_person"
+        const val TABLE_ENTRY_PLACE = "daily_entry_place"
     }
 }

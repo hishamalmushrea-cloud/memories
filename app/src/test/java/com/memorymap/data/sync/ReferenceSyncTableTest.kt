@@ -5,11 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.local.entities.PersonEntity
 import com.memorymap.data.local.entities.PlaceEntity
-import com.memorymap.data.remote.EntryRecord
-import com.memorymap.data.remote.MemoryRecord
 import com.memorymap.data.remote.PersonRecord
-import com.memorymap.data.remote.PlaceRecord
-import com.memorymap.data.remote.SyncApi
+import com.memorymap.testing.RecordingSyncApi
 import java.time.LocalDateTime
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.util.SyncTime
@@ -185,25 +182,4 @@ class ReferenceSyncTableTest {
         syncStatus = SyncStatus.PENDING_CREATE.name,
     )
 
-    /** Records what was sent; the memory and entry halves are unused here. */
-    private class RecordingSyncApi : SyncApi {
-        val peopleSent = mutableListOf<PersonRecord>()
-        val placesSent = mutableListOf<PlaceRecord>()
-
-        override suspend fun upsertMemories(rows: List<MemoryRecord>) = Unit
-        override suspend fun upsertEntries(rows: List<EntryRecord>) = Unit
-        override suspend fun fetchMemories(userId: String, since: String?) = emptyList<MemoryRecord>()
-        override suspend fun fetchEntries(userId: String, since: String?) = emptyList<EntryRecord>()
-
-        override suspend fun upsertPeople(rows: List<PersonRecord>) {
-            peopleSent += rows
-        }
-
-        override suspend fun upsertPlaces(rows: List<PlaceRecord>) {
-            placesSent += rows
-        }
-
-        override suspend fun fetchPeople(userId: String, since: String?) = emptyList<PersonRecord>()
-        override suspend fun fetchPlaces(userId: String, since: String?) = emptyList<PlaceRecord>()
-    }
 }
