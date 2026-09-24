@@ -22,6 +22,10 @@ interface MemoryRepository {
     fun watchBetween(userId: String, from: LocalDate, to: LocalDate): Flow<List<Memory>>
     suspend fun getById(id: String): Memory?
     suspend fun save(memory: Memory, personIds: List<String> = emptyList(), placeIds: List<String> = emptyList())
+
+    /** The people and places already linked to one memory, so an edit can show them. */
+    suspend fun peopleOf(memoryId: String): List<String>
+    suspend fun placesOf(memoryId: String): List<String>
     suspend fun delete(id: String)
     suspend fun search(userId: String, query: String): List<Memory>
     suspend fun count(userId: String): Int
@@ -37,6 +41,10 @@ interface DiaryRepository {
     /** One event, used by the editor to load what it is editing. */
     suspend fun getEntry(id: String): DailyEntry?
     suspend fun saveEntry(entry: DailyEntry, personIds: List<String> = emptyList(), placeIds: List<String> = emptyList())
+
+    /** The people and places already linked to one event, so an edit can show them. */
+    suspend fun peopleOf(entryId: String): List<String>
+    suspend fun placesOf(entryId: String): List<String>
     suspend fun deleteEntry(id: String)
     suspend fun getDiaryNote(userId: String, date: LocalDate): String?
     suspend fun saveDiaryNote(userId: String, date: LocalDate, text: String)

@@ -7,7 +7,10 @@ import com.memorymap.R
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.repository.AuthRepository
+import com.memorymap.domain.model.Person
+import com.memorymap.domain.model.Place
 import com.memorymap.domain.repository.DiaryRepository
+import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.util.MmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
@@ -16,6 +19,11 @@ import java.time.LocalTime
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -31,6 +39,12 @@ data class EntryEditorUiState(
     val hour: Int = LocalTime.now().hour,
     val minute: Int = 0,
     val emotion: Emotion? = null,
+    /** Every name this user has, so the picker can offer them. */
+    val people: List<Person> = emptyList(),
+    val places: List<Place> = emptyList(),
+    /** The subset actually linked to the event being edited. */
+    val personIds: Set<String> = emptySet(),
+    val placeIds: Set<String> = emptySet(),
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val errorRes: Int? = null,
@@ -50,6 +64,7 @@ class EntryEditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val diaryRepository: DiaryRepository,
     private val authRepository: AuthRepository,
+    private val referenceRepository: ReferenceRepository,
 ) : ViewModel() {
 
     private val entryId: String = savedStateHandle.get<String>("entryId")
@@ -66,10 +81,32 @@ class EntryEditorViewModel @Inject constructor(
     val state: StateFlow<EntryEditorUiState> = _state.asStateFlow()
 
     init {
+        authRepository.currentUserId
+            .flatMapLatest { userId ->
+                if (userId == null) {
+                    flowOf(emptyList<Person>() to emptyList<Place>())
+                } else {
+                    combine(
+                        referenceRepository.watchPeople(userId),
+                        referenceRepository.watchPlaces(userId),
+                    ) { people, places -> people to places }
+                }
+            }
+            .onEach { (people, places) ->
+                _state.update { it.copy(people = people, places = places) }
+            }
+            .launchIn(viewModelScope)
+
         // Only an edit has something to load; a new event starts from its day.
         // `return` is not allowed in an initializer block, so the guard wraps.
         if (!savedStateHandle.get<String>("entryId").isNullOrBlank()) {
             viewModelScope.launch {
+                runCatching {
+                    diaryRepository.peopleOf(entryId) to diaryRepository.placesOf(entryId)
+                }.getOrNull()?.let { (people, places) ->
+                    _state.update { it.copy(personIds = people.toSet(), placeIds = places.toSet()) }
+                }
+
                 val existing = runCatching { diaryRepository.getEntry(entryId) }
                     .onFailure { MmLog.e("Unable to load the event", it) }
                     .getOrNull()
@@ -104,6 +141,29 @@ class EntryEditorViewModel @Inject constructor(
         it.copy(emotion = if (it.emotion == value) null else value)
     }
 
+    fun togglePerson(id: String) = _state.update {
+        it.copy(personIds = if (id in it.personIds) it.personIds - id else it.personIds + id)
+    }
+
+    fun togglePlace(id: String) = _state.update {
+        it.copy(placeIds = if (id in it.placeIds) it.placeIds - id else it.placeIds + id)
+    }
+
+    /**
+     * Creates a person from the name typed in the editor and links it at once.
+     *
+     * Finding rather than creating keeps one person per name, so `كل الأحداث مع
+     * أحمد` keeps returning one person rather than several spellings of the same one.
+     */
+    fun createPerson(name: String) {
+        val userId = authRepository.currentUserId.value ?: return
+        viewModelScope.launch {
+            runCatching { referenceRepository.findOrCreatePerson(userId, name) }
+                .onSuccess { person -> _state.update { it.copy(personIds = it.personIds + person.id) } }
+                .onFailure { MmLog.e("Could not add the person", it) }
+        }
+    }
+
     fun clearError() = _state.update { it.copy(errorRes = null) }
 
     fun save() {
@@ -131,6 +191,8 @@ class EntryEditorViewModel @Inject constructor(
                         text = current.text.trim(),
                         emotion = current.emotion,
                     ),
+                    personIds = current.personIds.toList(),
+                    placeIds = current.placeIds.toList(),
                 )
             }
                 .onSuccess { _state.update { it.copy(isSaving = false, isSaved = true) } }

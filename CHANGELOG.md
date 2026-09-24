@@ -6,6 +6,21 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- People and places can now actually be linked to a record. The database layer
+  and the repositories had accepted `personIds` and `placeIds` since Phase 7,
+  but no editor ever passed them, so `كل الأحداث مع أحمد` could only ever return
+  a person with zero records. Both the memory editor and the event editor now
+  show every name the user has as a chip, toggle the link on tap, and create a
+  person from a typed name — finding rather than creating, so one spelling of a
+  name stays one person. Links are loaded on edit and replaced on save, which is
+  what makes unlinking a name actually unlink it.
+- Creating a *place* from an editor is deliberately narrower: a place needs
+  coordinates, so the memory editor offers it only once the memory has a pin,
+  and the event editor — which has no map picker — links to existing places
+  rather than inventing one with no location.
+
 ### Added — Phase 10: Testing and Release
 
 - A tag-triggered release workflow. Pushing `v1.0.0` runs the security gate, the

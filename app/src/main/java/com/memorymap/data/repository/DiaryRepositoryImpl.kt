@@ -54,6 +54,10 @@ class DiaryRepositoryImpl @Inject constructor(
         placeIds.forEach { entryDao.linkPlace(com.memorymap.data.local.entities.DailyEntryPlaceCrossRef(entry.id, it)) }
     }
 
+    override suspend fun peopleOf(entryId: String): List<String> = entryDao.peopleOf(entryId)
+
+    override suspend fun placesOf(entryId: String): List<String> = entryDao.placesOf(entryId)
+
     override suspend fun deleteEntry(id: String) {
         entryDao.softDelete(id, LocalDateTime.now().toString())
     }

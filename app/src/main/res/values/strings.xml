@@ -256,4 +256,16 @@
     <string name="wipe_confirm_action">حذف نهائي</string>
     <string name="wipe_done_title">تم الحذف</string>
     <string name="wipe_done_body">حُذف %1$d سجلًا و%2$d ملف وسائط من هذا الجهاز.</string>
+
+    <!-- Linking a record to people and places -->
+    <string name="editor_people_label">الأشخاص</string>
+    <string name="editor_people_empty">لا أشخاص بعد. أضف اسمًا لربطه بهذا السجل.</string>
+    <string name="editor_person_add">اسم الشخص</string>
+    <string name="editor_add_action">أضف</string>
+    <string name="editor_places_label">الأماكن</string>
+    <string name="editor_places_empty">لا أماكن بعد. أضف اسمًا لربطه بهذا السجل.</string>
+    <string name="editor_place_add">اسم المكان</string>
+    <string name="editor_places_needs_location">لا أماكن بعد. حدد موقع السجل أولًا ليصبح إضافة مكان ممكنة.</string>
+    <string name="editor_place_needs_location">لا يمكن إضافة مكان دون تحديد الموقع أولًا.</string>
+    <string name="editor_places_pick_elsewhere">لا أماكن بعد. تُنشأ الأماكن من الخريطة أو من ذكرى لها موقع.</string>
 </resources>

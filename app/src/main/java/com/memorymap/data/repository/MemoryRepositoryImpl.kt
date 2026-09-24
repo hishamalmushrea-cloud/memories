@@ -54,6 +54,10 @@ class MemoryRepositoryImpl @Inject constructor(
         memoryDao.replacePlaces(memory.id, placeIds)
     }
 
+    override suspend fun peopleOf(memoryId: String): List<String> = memoryDao.peopleOf(memoryId)
+
+    override suspend fun placesOf(memoryId: String): List<String> = memoryDao.placesOf(memoryId)
+
     override suspend fun delete(id: String) {
         // Soft delete only: the tombstone is what tells the server to remove its
         // copy, so a memory deleted offline stays deleted after reconnecting.

@@ -11,11 +11,14 @@ import com.memorymap.domain.model.GeoPoint
 import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
+import com.memorymap.domain.model.Person
+import com.memorymap.domain.model.Place
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Visibility
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.navigation.Routes
 import com.memorymap.domain.repository.MediaRepository
+import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.util.MediaImporter
 import com.memorymap.util.MmLog
@@ -30,6 +33,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -45,6 +51,12 @@ data class MemoryEditorUiState(
     val emotion: Emotion = Emotion.NOSTALGIA,
     val visibility: Visibility = Visibility.PRIVATE,
     val placeName: String = "",
+    /** Every name this user has, so the picker can offer them. */
+    val people: List<Person> = emptyList(),
+    val places: List<Place> = emptyList(),
+    /** The subset actually linked to the record being edited. */
+    val personIds: Set<String> = emptySet(),
+    val placeIds: Set<String> = emptySet(),
     /** Chosen on the map, or carried over from the memory being edited. */
     val location: GeoPoint? = null,
     /** Attachments already stored for this memory. */
@@ -73,6 +85,7 @@ class MemoryEditorViewModel @Inject constructor(
     private val memoryRepository: MemoryRepository,
     private val mediaRepository: MediaRepository,
     private val authRepository: AuthRepository,
+    private val referenceRepository: ReferenceRepository,
 ) : ViewModel() {
 
     private val memoryId: String = savedStateHandle.get<String>("memoryId")
@@ -94,7 +107,30 @@ class MemoryEditorViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        authRepository.currentUserId
+            .flatMapLatest { userId ->
+                if (userId == null) {
+                    flowOf(emptyList<Person>() to emptyList<Place>())
+                } else {
+                    combine(
+                        referenceRepository.watchPeople(userId),
+                        referenceRepository.watchPlaces(userId),
+                    ) { people, places -> people to places }
+                }
+            }
+            .onEach { (people, places) ->
+                _state.update { it.copy(people = people, places = places) }
+            }
+            .launchIn(viewModelScope)
+
         viewModelScope.launch {
+            // Links are loaded before the body so an edit shows what is already there.
+            runCatching {
+                memoryRepository.peopleOf(memoryId) to memoryRepository.placesOf(memoryId)
+            }.getOrNull()?.let { (people, places) ->
+                _state.update { it.copy(personIds = people.toSet(), placeIds = places.toSet()) }
+            }
+
             val existing = runCatching { memoryRepository.getById(memoryId) }.getOrNull()
             if (existing == null) return@launch
             val attachments = runCatching {
@@ -128,6 +164,53 @@ class MemoryEditorViewModel @Inject constructor(
     fun onVisibilityChange(value: Visibility) = _state.update { it.copy(visibility = value) }
 
     fun onPlaceNameChange(value: String) = _state.update { it.copy(placeName = value) }
+
+    fun togglePerson(id: String) = _state.update {
+        it.copy(personIds = if (id in it.personIds) it.personIds - id else it.personIds + id)
+    }
+
+    fun togglePlace(id: String) = _state.update {
+        it.copy(placeIds = if (id in it.placeIds) it.placeIds - id else it.placeIds + id)
+    }
+
+    /**
+     * Creates a person from the name typed in the editor and links it at once.
+     *
+     * Finding rather than creating keeps one person per name, so `كل الأحداث مع
+     * أحمد` keeps returning one person rather than several spellings of the same one.
+     */
+    fun createPerson(name: String) {
+        val userId = authRepository.currentUserId.value ?: return
+        viewModelScope.launch {
+            runCatching { referenceRepository.findOrCreatePerson(userId, name) }
+                .onSuccess { person -> _state.update { it.copy(personIds = it.personIds + person.id) } }
+                .onFailure { MmLog.e("Could not add the person", it) }
+        }
+    }
+
+    /**
+     * Creates a place from the name and the memory's own pin.
+     *
+     * A place without coordinates cannot be shown on the map, which is why this
+     * is only offered once the memory has a location.
+     */
+    fun createPlace(name: String) {
+        val userId = authRepository.currentUserId.value ?: return
+        val location = _state.value.location
+        if (location == null) {
+            _state.update { it.copy(errorRes = R.string.memory_error_place_needs_location) }
+            return
+        }
+        viewModelScope.launch {
+            runCatching {
+                referenceRepository.savePlace(
+                    Place(userId = userId, name = name, location = location),
+                )
+            }
+                .onSuccess { place -> _state.update { it.copy(placeIds = it.placeIds + place.id) } }
+                .onFailure { MmLog.e("Could not add the place", it) }
+        }
+    }
 
     /** Drops the pin; the memory then simply has no location. */
     fun clearLocation() = _state.update { it.copy(location = null) }
@@ -207,6 +290,8 @@ class MemoryEditorViewModel @Inject constructor(
                         placeName = current.placeName.trim().ifBlank { null },
                         location = current.location,
                     ),
+                    personIds = current.personIds.toList(),
+                    placeIds = current.placeIds.toList(),
                 )
                 current.pendingAttachments.forEach { mediaRepository.attach(it) }
             }

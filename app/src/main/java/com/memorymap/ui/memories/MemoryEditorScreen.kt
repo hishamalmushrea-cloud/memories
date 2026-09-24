@@ -35,6 +35,8 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import com.memorymap.ui.common.LinkOption
+import com.memorymap.ui.common.LinkPicker
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -228,6 +230,35 @@ fun MemoryEditorScreen(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = { Text(stringResource(R.string.memory_field_place)) },
+        )
+
+        // --- People and places ---
+        LinkPicker(
+            label = stringResource(R.string.editor_people_label),
+            options = state.people.map { LinkOption(it.id, it.name) },
+            selectedIds = state.personIds,
+            onToggle = viewModel::togglePerson,
+            canCreate = true,
+            onCreate = viewModel::createPerson,
+            emptyLabel = stringResource(R.string.editor_people_empty),
+            createFieldLabel = stringResource(R.string.editor_person_add),
+            createActionLabel = stringResource(R.string.editor_add_action),
+        )
+
+        LinkPicker(
+            label = stringResource(R.string.editor_places_label),
+            options = state.places.map { LinkOption(it.id, it.name) },
+            selectedIds = state.placeIds,
+            onToggle = viewModel::togglePlace,
+            // A place needs coordinates, which only the memory's own pin can supply.
+            canCreate = state.location != null,
+            onCreate = viewModel::createPlace,
+            emptyLabel = stringResource(
+                if (state.location == null) R.string.editor_places_needs_location
+                else R.string.editor_places_empty,
+            ),
+            createFieldLabel = stringResource(R.string.editor_place_add),
+            createActionLabel = stringResource(R.string.editor_add_action),
         )
 
         // --- Location ---

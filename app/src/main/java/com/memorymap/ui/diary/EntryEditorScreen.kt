@@ -51,6 +51,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.memorymap.R
 import com.memorymap.domain.model.Emotion
+import com.memorymap.ui.common.LinkOption
+import com.memorymap.ui.common.LinkPicker
 import com.memorymap.ui.common.emotionLabel
 import com.memorymap.ui.common.formatLong
 import com.memorymap.ui.common.rememberLocale
@@ -157,6 +159,33 @@ fun EntryEditorScreen(
             text = stringResource(R.string.entry_emotion_optional),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        // --- People and places ---
+        LinkPicker(
+            label = stringResource(R.string.editor_people_label),
+            options = state.people.map { LinkOption(it.id, it.name) },
+            selectedIds = state.personIds,
+            onToggle = viewModel::togglePerson,
+            canCreate = true,
+            onCreate = viewModel::createPerson,
+            emptyLabel = stringResource(R.string.editor_people_empty),
+            createFieldLabel = stringResource(R.string.editor_person_add),
+            createActionLabel = stringResource(R.string.editor_add_action),
+        )
+
+        LinkPicker(
+            label = stringResource(R.string.editor_places_label),
+            options = state.places.map { LinkOption(it.id, it.name) },
+            selectedIds = state.placeIds,
+            onToggle = viewModel::togglePlace,
+            // This editor has no map picker, so a new place could not be given
+            // coordinates. Existing ones stay linkable.
+            canCreate = false,
+            onCreate = {},
+            emptyLabel = stringResource(R.string.editor_places_pick_elsewhere),
+            createFieldLabel = "",
+            createActionLabel = "",
         )
 
         Button(
