@@ -11,6 +11,7 @@ import com.memorymap.data.remote.PersonRecord
 import com.memorymap.data.remote.PlaceRecord
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.domain.model.SyncStatus
+import com.memorymap.util.SyncTime
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -100,7 +101,10 @@ class ReferenceSyncTableTest {
 
         table.pushDeletes(pending)
 
-        assertEquals(now, api.peopleSent.single().deletedAt)
+        val sent = api.peopleSent.single()
+        // Timestamps travel as instants, so this is not the naive text Room
+        // holds; converting it back is what proves the moment survived.
+        assertEquals(now, SyncTime.toLocalText(sent.deletedAt))
     }
 
     @Test

@@ -155,7 +155,17 @@ class BackupRecordsTest {
 
     @Test
     fun `people and places round trip`() {
-        val person = PersonEntity(id = "p1", userId = "u1", name = "أحمد", createdAt = "2024-01-01T00:00:00")
+        // The format stores no updated_at for these two, and a restore derives
+        // it from created_at, so the round trip is exact for a row whose
+        // updated_at already is its created_at - which is what a row that has
+        // never been edited looks like.
+        val person = PersonEntity(
+            id = "p1",
+            userId = "u1",
+            name = "أحمد",
+            createdAt = "2024-01-01T00:00:00",
+            updatedAt = "2024-01-01T00:00:00",
+        )
         val place = PlaceEntity(
             id = "pl1",
             userId = "u1",
@@ -163,6 +173,7 @@ class BackupRecordsTest {
             latitude = 14.796,
             longitude = 42.954,
             createdAt = "2024-01-01T00:00:00",
+            updatedAt = "2024-01-01T00:00:00",
         )
 
         assertEquals(person, person.toBackup().toEntity())
