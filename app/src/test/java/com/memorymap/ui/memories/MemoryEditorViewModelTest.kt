@@ -252,7 +252,7 @@ class MemoryEditorViewModelTest {
         // advanceUntilIdle rather than turbine: nothing here waits on Room, so
         // there is no real executor to wait for, and a timeout would hide
         // whether the picker is genuinely empty.
-        advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
         assertEquals(listOf("p1"), state.people.map { it.id })
@@ -300,7 +300,7 @@ class MemoryEditorViewModelTest {
 
         viewModel.onTitleChange("لقاء جديد")
         viewModel.createPerson("سعاد")
-        advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(1, viewModel.state.value.personIds.size)
         // Finding rather than creating is what keeps one person per name.
