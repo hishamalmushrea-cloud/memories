@@ -10,6 +10,7 @@ import com.memorymap.data.remote.MemoryRecord
 import com.memorymap.data.remote.PersonRecord
 import com.memorymap.data.remote.PlaceRecord
 import com.memorymap.data.remote.SyncApi
+import java.time.LocalDateTime
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.util.SyncTime
 import kotlinx.coroutines.test.runTest
@@ -103,8 +104,10 @@ class ReferenceSyncTableTest {
 
         val sent = api.peopleSent.single()
         // Timestamps travel as instants, so this is not the naive text Room
-        // holds; converting it back is what proves the moment survived.
-        assertEquals(now, SyncTime.toLocalText(sent.deletedAt))
+        // holds. Compared as parsed values rather than as text, because
+        // LocalDateTime renders a whole minute without its ":00" seconds and two
+        // spellings of one moment are not a failure.
+        assertEquals(LocalDateTime.parse(now), LocalDateTime.parse(SyncTime.toLocalText(sent.deletedAt)))
     }
 
     @Test
