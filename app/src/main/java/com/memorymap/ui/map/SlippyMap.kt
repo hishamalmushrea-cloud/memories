@@ -113,7 +113,7 @@ fun SlippyMap(
         if (viewportWidth <= 0f || viewportHeight <= 0f) return@BoxWithConstraints
 
         val camera = cameraOf(center, zoom, provider)
-        val tilePx = WebMercator.TILE_SIZE * camera.scale
+        val tilePx = (WebMercator.TILE_SIZE * camera.scale).toFloat()
 
         val originX = camera.centerWorldX - viewportWidth / 2f
         val originY = camera.centerWorldY - viewportHeight / 2f
@@ -171,14 +171,14 @@ fun SlippyMap(
 private fun MapPin(
     worldX: Double,
     worldY: Double,
-    originX: Float,
-    originY: Float,
+    originX: Double,
+    originY: Double,
     color: Color,
     label: String?,
     onClick: (() -> Unit)?,
 ) {
-    val left = (worldX - originX).toFloat().roundToInt()
-    val top = (worldY - originY).toFloat().roundToInt()
+    val left = (worldX - originX).roundToInt()
+    val top = (worldY - originY).roundToInt()
     Box(
         modifier = Modifier
             .offset { IntOffset(left, top) },
