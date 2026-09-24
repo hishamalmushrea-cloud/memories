@@ -66,22 +66,25 @@ class EntryEditorViewModel @Inject constructor(
     val state: StateFlow<EntryEditorUiState> = _state.asStateFlow()
 
     init {
-        if (savedStateHandle.get<String>("entryId").isNullOrBlank()) return
-        viewModelScope.launch {
-            val existing = runCatching { diaryRepository.getEntry(entryId) }
-                .onFailure { MmLog.e("Unable to load the event", it) }
-                .getOrNull()
-                ?: return@launch
-            _state.update {
-                it.copy(
-                    isNew = false,
-                    title = existing.title,
-                    text = existing.text,
-                    date = existing.date,
-                    hour = existing.time.hour,
-                    minute = existing.time.minute,
-                    emotion = existing.emotion,
-                )
+        // Only an edit has something to load; a new event starts from its day.
+        // `return` is not allowed in an initializer block, so the guard wraps.
+        if (!savedStateHandle.get<String>("entryId").isNullOrBlank()) {
+            viewModelScope.launch {
+                val existing = runCatching { diaryRepository.getEntry(entryId) }
+                    .onFailure { MmLog.e("Unable to load the event", it) }
+                    .getOrNull()
+                    ?: return@launch
+                _state.update {
+                    it.copy(
+                        isNew = false,
+                        title = existing.title,
+                        text = existing.text,
+                        date = existing.date,
+                        hour = existing.time.hour,
+                        minute = existing.time.minute,
+                        emotion = existing.emotion,
+                    )
+                }
             }
         }
     }
