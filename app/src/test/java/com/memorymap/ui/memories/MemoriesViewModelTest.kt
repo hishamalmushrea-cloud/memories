@@ -128,8 +128,18 @@ class MemoriesViewModelTest {
         val viewModel = viewModel(FakeAuthRepository(userId))
         dispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.delete(target.id)
-        dispatcher.scheduler.advanceUntilIdle()
+        // Room writes run on Room's own executor, which the test scheduler does
+        // not drive, so advanceUntilIdle does not cover them. Wait until the list
+        // has actually lost the memory before reading the row back, otherwise
+        // this asserts against a delete that has not landed yet.
+        viewModel.state.test {
+            awaitWhere { !it.isLoading && it.memories.size == 1 }
+
+            viewModel.delete(target.id)
+
+            awaitWhere { it.memories.isEmpty() }
+            cancelAndIgnoreRemainingEvents()
+        }
 
         val stored = db.memoryDao().getById(target.id)
         assertEquals("the row must survive as a tombstone", target.id, stored?.id)
