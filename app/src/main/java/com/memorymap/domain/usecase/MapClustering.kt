@@ -1,7 +1,11 @@
 package com.memorymap.domain.usecase
 
 import com.memorymap.util.geo.WebMercator
+import kotlin.math.atan2
+import kotlin.math.ceil
+import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.sin
 
 /** One thing that can be pinned to the map: a memory or a located event. */
 data class MapMarker(
@@ -31,72 +35,72 @@ data class MapCluster(
  * Grid clustering in screen space.
  *
  * Markers are projected to pixels at the current zoom and everything landing in
- * the same grid cell merges into one pin at the group's average position. The
- * grid is fixed in screen pixels rather than in degrees, so the same cluster
- * breaks apart as you zoom in — which is the behaviour a user expects from a
- * map.
+ * the same grid square merges into one pin at the group's average position. The
+ * square is measured in screen pixels, not degrees, so the same group breaks
+ * apart as you zoom in — the behaviour a user expects from a map.
+ *
+ * There is no "too few markers to bother" special case: the grid decides
+ * everything, so two pins far apart stay two pins no matter how empty the map is.
  *
  * Pure, so the merging rules are tested on the JVM.
  */
 object MapClustering {
 
-    /** Cells per axis. Smaller means fewer, fatter clusters. */
-    const val DEFAULT_GRID_CELLS = 24
-
     /**
-     * At or below this many markers clustering is not worth doing: every pin is
-     * returned on its own, so a sparse map never hides anything behind a bubble.
+     * The side of a grouping square, in screen pixels.
+     *
+     * Roughly the width of a cluster bubble, so two markers that would overlap on
+     * screen merge and two that would not are left alone.
      */
-    const val CLUSTERING_THRESHOLD = 3
+    const val CLUSTER_CELL_PIXELS = 64.0
 
     fun cluster(
         markers: List<MapMarker>,
         zoom: Int,
-        gridCells: Int = DEFAULT_GRID_CELLS,
+        cellPixels: Double = CLUSTER_CELL_PIXELS,
     ): List<MapCluster> {
-        if (markers.size <= CLUSTERING_THRESHOLD || gridCells <= 0) {
-            return markers.map { MapCluster(it.latitude, it.longitude, listOf(it)) }
-        }
+        if (markers.isEmpty()) return emptyList()
+        if (markers.size == 1) return listOf(asCluster(markers))
 
-        val world = WebMercator.worldSize(zoom)
-        val cell = world / gridCells
+        val cells = ceil(WebMercator.worldSize(zoom) / cellPixels).toInt().coerceAtLeast(1)
+        val cellWidth = WebMercator.worldSize(zoom).toDouble() / cells
 
-        // Keyed by cell so the order of the input cannot change the result.
+        // Keyed by cell, so the order of the input cannot change the result.
         val buckets = LinkedHashMap<Long, MutableList<MapMarker>>()
         markers.forEach { marker ->
             val x = WebMercator.longitudeToX(marker.longitude, zoom)
             val y = WebMercator.latitudeToY(marker.latitude, zoom)
-            val key = cellKey(floor(x / cell).toLong(), floor(y / cell).toLong())
+            val key = cellKey(floor(x / cellWidth).toLong(), floor(y / cellWidth).toLong())
             buckets.getOrPut(key) { mutableListOf() }.add(marker)
         }
 
-        return buckets.values.map { group ->
-            MapCluster(
-                latitude = group.sumOf { it.latitude } / group.size,
-                longitude = averageLongitude(group),
-                markers = group,
-            )
-        }
+        return buckets.values.map(::asCluster)
     }
 
+    private fun asCluster(group: List<MapMarker>): MapCluster = MapCluster(
+        latitude = group.sumOf { it.latitude } / group.size,
+        longitude = averageLongitude(group),
+        markers = group,
+    )
+
     /**
-     * Averages longitudes across the antimeridian.
+     * Averages longitudes, which are circular.
      *
-     * A plain mean of `179` and `-179` is `0`, which is on the other side of the
-     * planet. Averaging the unit vectors and converting back puts the cluster
-     * where the markers actually are.
+     * A plain mean of `179` and `-179` is `0`, on the other side of the planet.
+     * Averaging the unit vectors and converting back is correct for every group,
+     * including one that happens to straddle the date line.
      */
     private fun averageLongitude(group: List<MapMarker>): Double {
         var x = 0.0
         var y = 0.0
         group.forEach { marker ->
             val radians = Math.toRadians(marker.longitude)
-            x += kotlin.math.cos(radians)
-            y += kotlin.math.sin(radians)
+            x += cos(radians)
+            y += sin(radians)
         }
-        return Math.toDegrees(kotlin.math.atan2(y, x))
+        return Math.toDegrees(atan2(y, x))
     }
 
-    /** Packs two cell indices into one key; `x` is wrapped so the seam merges. */
+    /** Packs two cell indices into one key. */
     private fun cellKey(x: Long, y: Long): Long = (x shl 32) or (y and 0xFFFFFFFFL)
 }
