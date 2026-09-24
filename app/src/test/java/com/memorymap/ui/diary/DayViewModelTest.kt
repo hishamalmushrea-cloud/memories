@@ -96,8 +96,23 @@ class DayViewModelTest {
         val viewModel = viewModel()
         dispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.deleteEntry(event.id)
-        dispatcher.scheduler.advanceUntilIdle()
+        // Room writes run on their own executor, so advanceUntilIdle does not
+        // cover them. Wait for the day to actually empty before reading the row
+        // back, otherwise this asserts against a write that has not landed yet.
+        viewModel.state.test {
+            var state = awaitItem()
+            while (state.isLoading || state.entries.size < 1) {
+                state = awaitItem()
+            }
+
+            viewModel.deleteEntry(event.id)
+
+            state = awaitItem()
+            while (state.entries.isNotEmpty()) {
+                state = awaitItem()
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
 
         val stored = db.dailyEntryDao().getById(event.id)
         assertEquals("the row must stay until the server confirms the delete", event.id, stored?.id)
