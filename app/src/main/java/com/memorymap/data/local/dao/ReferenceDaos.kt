@@ -46,6 +46,8 @@ interface PersonDao {
         "SELECT * FROM people WHERE user_id = :userId AND name = :name COLLATE NOCASE "
             "AND deleted_at IS NULL LIMIT 1",
     )
+    suspend fun findByName(userId: String, name: String): PersonEntity?
+
     /**
      * Finds a name including its tombstone.
      *
@@ -57,7 +59,6 @@ interface PersonDao {
         "SELECT * FROM people WHERE user_id = :userId AND name = :name COLLATE NOCASE LIMIT 1",
     )
     suspend fun findByNameIncludingDeleted(userId: String, name: String): PersonEntity?
-    suspend fun findByName(userId: String, name: String): PersonEntity?
 
     @Query(
         "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL "
