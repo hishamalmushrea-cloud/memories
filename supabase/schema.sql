@@ -53,6 +53,10 @@ create table public.places (
     latitude   double precision not null,
     longitude  double precision not null,
     created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    deleted_at timestamptz,
+    sync_status text not null default 'SYNCED',
+    last_synced_at timestamptz,
     unique (user_id, name)
 );
 
@@ -61,6 +65,12 @@ create table public.people (
     user_id    uuid not null references public.profiles (id) on delete cascade,
     name       text not null,
     created_at timestamptz not null default now(),
+    -- Sync columns. A deleted person stays as a tombstone so the deletion
+    -- reaches every device instead of silently reappearing on the next pull.
+    updated_at timestamptz not null default now(),
+    deleted_at timestamptz,
+    sync_status text not null default 'SYNCED',
+    last_synced_at timestamptz,
     unique (user_id, name)
 );
 

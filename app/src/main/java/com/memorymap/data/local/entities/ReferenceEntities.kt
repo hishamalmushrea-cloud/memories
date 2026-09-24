@@ -23,6 +23,18 @@ data class PersonEntity(
 
     @ColumnInfo(name = "created_at")
     val createdAt: String,
+
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: String = "",
+
+    @ColumnInfo(name = "deleted_at")
+    val deletedAt: String? = null,
+
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "PENDING_CREATE",
+
+    @ColumnInfo(name = "last_synced_at")
+    val lastSyncedAt: String? = null,
 )
 
 /** A named, reusable location pinned to the map. */
@@ -49,6 +61,18 @@ data class PlaceEntity(
 
     @ColumnInfo(name = "created_at")
     val createdAt: String,
+
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: String = "",
+
+    @ColumnInfo(name = "deleted_at")
+    val deletedAt: String? = null,
+
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "PENDING_CREATE",
+
+    @ColumnInfo(name = "last_synced_at")
+    val lastSyncedAt: String? = null,
 )
 
 /**

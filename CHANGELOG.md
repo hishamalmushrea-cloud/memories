@@ -6,6 +6,27 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- People and places now synchronise, which they never did. Until now both tables
+  were local-only, so reinstalling the app - or signing in on a second device -
+  silently lost every name the user had built up. Room moves to version 3, which
+  gives `people` and `places` the four columns synchronisation reads, and a
+  migration backfills `updated_at` from `created_at` so an installed archive is
+  queued for one upload rather than assumed to be on the server already.
+- They are pushed *before* memories and events. The server's link tables carry a
+  foreign key to them, so a memory that mentions a person can only be accepted
+  once that person exists there; sending the referenced rows first is what keeps
+  a first sync from failing on the very link it is trying to store.
+
+### Changed
+
+- Deleting a person or a place is now a tombstone rather than a removal, so the
+  deletion reaches other devices instead of the name quietly reappearing on the
+  next download. Every read path excludes tombstones, and typing a deleted name
+  again revives the old row - keeping its id, so the records already linked to it
+  are not orphaned, and staying clear of the unique `(user_id, name)` index.
+
 ### Fixed
 
 - People and places can now actually be linked to a record. The database layer

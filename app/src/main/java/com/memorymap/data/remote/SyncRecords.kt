@@ -53,6 +53,32 @@ data class EntryRecord(
     @SerialName("last_synced_at") val lastSyncedAt: String? = null,
 )
 
+@Serializable
+data class PersonRecord(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val name: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    @SerialName("sync_status") val syncStatus: String = "SYNCED",
+    @SerialName("last_synced_at") val lastSyncedAt: String? = null,
+)
+
+@Serializable
+data class PlaceRecord(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    @SerialName("sync_status") val syncStatus: String = "SYNCED",
+    @SerialName("last_synced_at") val lastSyncedAt: String? = null,
+)
+
 /**
  * The remote half of synchronisation.
  *
@@ -70,4 +96,12 @@ interface SyncApi {
     suspend fun fetchMemories(userId: String, since: String?): List<MemoryRecord>
 
     suspend fun fetchEntries(userId: String, since: String?): List<EntryRecord>
+
+    suspend fun upsertPeople(rows: List<PersonRecord>)
+
+    suspend fun upsertPlaces(rows: List<PlaceRecord>)
+
+    suspend fun fetchPeople(userId: String, since: String?): List<PersonRecord>
+
+    suspend fun fetchPlaces(userId: String, since: String?): List<PlaceRecord>
 }

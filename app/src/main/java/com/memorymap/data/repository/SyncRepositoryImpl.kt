@@ -2,12 +2,16 @@ package com.memorymap.data.repository
 
 import com.memorymap.data.local.dao.DailyEntryDao
 import com.memorymap.data.local.dao.MemoryDao
+import com.memorymap.data.local.dao.PersonDao
+import com.memorymap.data.local.dao.PlaceDao
 import com.memorymap.data.local.dao.SyncMetaDao
 import com.memorymap.data.local.entities.SyncMetaEntity
 import com.memorymap.data.remote.SupabaseClientProvider
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.data.sync.EntrySyncTable
 import com.memorymap.data.sync.MemorySyncTable
+import com.memorymap.data.sync.PersonSyncTable
+import com.memorymap.data.sync.PlaceSyncTable
 import com.memorymap.data.sync.SyncEngine
 import com.memorymap.data.sync.SyncReport
 import com.memorymap.data.sync.SyncTable
@@ -36,6 +40,8 @@ import kotlinx.coroutines.flow.flowOf
 class SyncRepositoryImpl @Inject constructor(
     private val memoryDao: MemoryDao,
     private val entryDao: DailyEntryDao,
+    private val personDao: PersonDao,
+    private val placeDao: PlaceDao,
     private val metaDao: SyncMetaDao,
     private val api: SyncApi,
     private val supabase: SupabaseClientProvider,
@@ -96,7 +102,17 @@ class SyncRepositoryImpl @Inject constructor(
         return currentState(userId).copy(lastOutcome = outcome)
     }
 
+    /**
+     * People and places go first.
+     *
+     * The server's link tables carry a foreign key to them, so a memory that
+     * mentions a person can only be accepted once that person exists there.
+     * Sending the referenced rows before the rows that reference them is what
+     * keeps a first sync from failing on the very link it is trying to store.
+     */
     private fun tables(): List<SyncTable<*>> = listOf(
+        PersonSyncTable(personDao, api),
+        PlaceSyncTable(placeDao, api),
         MemorySyncTable(memoryDao, api),
         EntrySyncTable(entryDao, api),
     )

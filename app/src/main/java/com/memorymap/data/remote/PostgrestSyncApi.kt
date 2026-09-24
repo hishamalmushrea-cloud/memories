@@ -49,6 +49,36 @@ class PostgrestSyncApi @Inject constructor(
             }
             .decodeList()
 
+    override suspend fun upsertPeople(rows: List<PersonRecord>) {
+        if (rows.isEmpty()) return
+        table(TABLE_PEOPLE).upsert(rows)
+    }
+
+    override suspend fun upsertPlaces(rows: List<PlaceRecord>) {
+        if (rows.isEmpty()) return
+        table(TABLE_PLACES).upsert(rows)
+    }
+
+    override suspend fun fetchPeople(userId: String, since: String?): List<PersonRecord> =
+        table(TABLE_PEOPLE)
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    if (since != null) gt("updated_at", since)
+                }
+            }
+            .decodeList()
+
+    override suspend fun fetchPlaces(userId: String, since: String?): List<PlaceRecord> =
+        table(TABLE_PLACES)
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    if (since != null) gt("updated_at", since)
+                }
+            }
+            .decodeList()
+
     private fun table(name: String): PostgrestQueryBuilder {
         val client = provider.get()
             ?: throw IllegalStateException("Cloud sync is not configured on this device")
@@ -58,5 +88,7 @@ class PostgrestSyncApi @Inject constructor(
     private companion object {
         const val TABLE_MEMORIES = "memories"
         const val TABLE_ENTRIES = "daily_entries"
+        const val TABLE_PEOPLE = "people"
+        const val TABLE_PLACES = "places"
     }
 }

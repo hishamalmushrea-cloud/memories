@@ -11,6 +11,7 @@ import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Person
 import com.memorymap.domain.model.Place
+import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.ReferenceRepository
 import java.time.LocalDateTime
 import java.util.UUID
@@ -40,24 +41,63 @@ class ReferenceRepositoryImpl @Inject constructor(
     override suspend fun findOrCreatePerson(userId: String, name: String): Person {
         val trimmed = name.trim()
         require(trimmed.isNotEmpty()) { "A person needs a name" }
-        personDao.findByName(userId, trimmed)?.let { return it.toDomain() }
+        val existing = personDao.findByNameIncludingDeleted(userId, trimmed)
+        if (existing != null && existing.deletedAt == null) return existing.toDomain()
+
+        val now = LocalDateTime.now()
         val created = Person(
             id = UUID.randomUUID().toString(),
             userId = userId,
             name = trimmed,
-            createdAt = LocalDateTime.now(),
+            createdAt = now,
         )
-        personDao.upsert(PersonEntity(created.id, created.userId, created.name, created.createdAt.toString()))
-        return created
+        val stamp = now.toString()
+        personDao.upsert(
+            // A revived name keeps its old id and creation time: the links other
+            // records hold point at that id, and a fresh row would orphan them.
+            PersonEntity(
+                id = existing?.id ?: created.id,
+                userId = created.userId,
+                name = created.name,
+                createdAt = existing?.createdAt ?: stamp,
+                updatedAt = stamp,
+                deletedAt = null,
+                syncStatus = if (existing == null) {
+                    SyncStatus.PENDING_CREATE.name
+                } else {
+                    SyncStatus.PENDING_UPDATE.name
+                },
+            ),
+        )
+        return if (existing == null) created else existing.toDomain().copy(name = created.name)
     }
 
     override suspend fun savePlace(place: Place) {
-        placeDao.upsert(place.toEntity())
+        val now = LocalDateTime.now().toString()
+        val existing = placeDao.getById(place.id)
+        placeDao.upsert(
+            place.toEntity().copy(
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now,
+                syncStatus = if (existing == null) {
+                    SyncStatus.PENDING_CREATE.name
+                } else {
+                    SyncStatus.PENDING_UPDATE.name
+                },
+            ),
+        )
     }
 
-    override suspend fun deletePerson(id: String) = personDao.deleteById(id)
+    /**
+     * Deletes as a tombstone rather than removing the row.
+     *
+     * A hard delete would simply never reach the server, so the name would
+     * reappear on the next download and the deletion would look like it had
+     * been ignored.
+     */
+    override suspend fun deletePerson(id: String) = personDao.softDelete(id, LocalDateTime.now().toString())
 
-    override suspend fun deletePlace(id: String) = placeDao.deleteById(id)
+    override suspend fun deletePlace(id: String) = placeDao.softDelete(id, LocalDateTime.now().toString())
 
     override suspend fun entriesWithPerson(personId: String): List<DailyEntry> =
         entryDao.entriesWithPerson(personId).map { it.toDomain() }

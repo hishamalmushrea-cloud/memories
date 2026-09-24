@@ -179,6 +179,8 @@ object BackupMappers {
         userId = userId,
         name = name,
         createdAt = createdAt,
+        updatedAt = createdAt,
+        syncStatus = SyncStatus.PENDING_CREATE.name,
     )
 
     fun PlaceEntity.toBackup() = PlaceBackup(
@@ -197,6 +199,8 @@ object BackupMappers {
         latitude = latitude,
         longitude = longitude,
         createdAt = createdAt,
+        updatedAt = createdAt,
+        syncStatus = SyncStatus.PENDING_CREATE.name,
     )
 
     fun MediaEntity.toBackup(archivePath: String) = MediaBackup(

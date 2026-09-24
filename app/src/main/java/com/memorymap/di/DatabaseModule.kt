@@ -28,7 +28,10 @@ object DatabaseModule {
         Room.databaseBuilder(context, MemoryMapDatabase::class.java, MemoryMapDatabase.NAME)
             // No destructive migration: a diary must never be dropped silently.
             // Every schema change ships with an explicit Migration.
-            .addMigrations(MemoryMapDatabase.MIGRATION_1_2)
+            .addMigrations(
+                MemoryMapDatabase.MIGRATION_1_2,
+                MemoryMapDatabase.MIGRATION_2_3,
+            )
             .fallbackToDestructiveMigrationOnDowngrade()
             .build()
 
