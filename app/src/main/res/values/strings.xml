@@ -170,4 +170,16 @@
     <string name="calendar_previous_month">الشهر السابق</string>
     <string name="calendar_next_month">الشهر التالي</string>
     <string name="calendar_go_to_today">الذهاب إلى اليوم</string>
+    <!-- Map -->
+    <string name="action_search">بحث</string>
+    <string name="map_my_location">موقعي</string>
+    <string name="map_location_unavailable">تعذّر تحديد موقعك. تحقّق من تفعيل خدمة الموقع.</string>
+    <string name="map_no_pins">لا توجد نقاط بعد؛ أضف موقعًا إلى ذكرى لتظهر هنا.</string>
+    <string name="map_add_memory_here">ذكرى هنا</string>
+    <string name="location_picker_title">اختر الموقع</string>
+    <string name="location_picker_coordinates">%1$s، %2$s</string>
+    <string name="location_picker_confirm">تأكيد الموقع</string>
+    <string name="memory_pick_location">اختيار الموقع على الخريطة</string>
+    <string name="memory_location_set">الموقع: %1$s، %2$s</string>
+    <string name="memory_clear_location">إزالة الموقع</string>
 </resources>

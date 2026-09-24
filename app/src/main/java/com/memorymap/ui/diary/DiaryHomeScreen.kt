@@ -36,7 +36,6 @@ import com.memorymap.R
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.navigation.Routes
 import java.time.LocalDate
-import java.util.Locale
 
 /**
  * Entry point of the diary. It answers one question: how far back do you want to

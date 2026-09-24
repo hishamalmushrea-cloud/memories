@@ -10,7 +10,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import java.util.Locale
 import com.memorymap.ui.common.rememberLocale
 
 private val LightColors = lightColorScheme(

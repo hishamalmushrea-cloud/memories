@@ -1,6 +1,8 @@
 package com.memorymap.di
 
 import com.memorymap.data.remote.SecureSessionStore
+import com.memorymap.BuildConfig
+import com.memorymap.data.map.MapProviders
 import com.memorymap.data.remote.SupabaseConfig
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.SupabaseAuthRepository
@@ -9,6 +11,7 @@ import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
+import com.memorymap.domain.map.MapProvider
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.MediaRepository
@@ -66,6 +69,18 @@ abstract class RepositoryModule {
         @Provides
         @Singleton
         fun provideSupabaseConfig(): SupabaseConfig = SupabaseConfig.fromBuildConfig()
+
+        /**
+         * The tile source. It comes from the build settings so the app is never
+         * hard-wired to one host, and a malformed setting falls back to
+         * OpenStreetMap instead of drawing nothing.
+         */
+        @Provides
+        @Singleton
+        fun provideMapProvider(): MapProvider = MapProviders.fromConfig(
+            tileTemplate = BuildConfig.MAP_TILE_SERVER,
+            attribution = BuildConfig.MAP_ATTRIBUTION,
+        )
 
         @Provides
         @Singleton

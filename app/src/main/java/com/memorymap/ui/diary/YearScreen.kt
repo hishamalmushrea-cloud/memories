@@ -27,7 +27,6 @@ import com.memorymap.ui.common.rememberLocale
 import com.memorymap.R
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.navigation.Routes
-import java.util.Locale
 
 /**
  * The year page: twelve months with their counters, each opening the month view.

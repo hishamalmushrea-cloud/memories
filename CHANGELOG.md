@@ -6,6 +6,34 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 5: Map
+
+- The home screen is now an interactive map. It shows every memory that has a
+  location and every event that has one, with an "I am here" button, an add
+  button and a way into search.
+- `MapProvider`, the abstraction the spec asks for: the app depends only on that
+  interface, so the tile host can be swapped, or the renderer replaced with an
+  SDK later, without touching a screen.
+- A Compose slippy-tile renderer. It draws only the tiles inside the viewport,
+  wraps columns across the antimeridian and skips rows past the projection, so
+  panning has no blank edge. No map SDK is added, so nothing here can be stranded
+  by an abandoned upstream library.
+- `WebMercator`: the projection maths, pure and tested, shared by the tiles, the
+  pins and the picker.
+- Marker clustering in screen space (`MapClustering`). A sparse map shows every
+  pin; a dense city collapses into countable bubbles that break apart as you zoom
+  in. Cluster longitudes are averaged on the unit circle, so a group spanning the
+  antimeridian is not thrown to Greenwich.
+- Manual location picking: move the map until the centred pin is where you mean.
+  A memory can now be pinned to a place while it is being created, and an
+  existing pin survives editing anything else.
+- Tiles are cached on disk through the same Coil image loader that serves photos,
+  and every request carries a real user agent, which the OpenStreetMap tile usage
+  policy requires. The tile host and its credit come from the build settings.
+- `LocationReader` reads a position without Google Play services, one shot, only
+  when the user presses for it, and always removes its listener.
+- Tests: `WebMercatorTest`, `MapClusteringTest`, `TileServerMapProviderTest`.
+
 ### Added — Phase 4: Diary
 
 - Diary event CRUD. A day's event now has a real editor: title, details, date,
@@ -130,6 +158,5 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Explicitly not in this phase
 
 The following are placeholders that state which phase implements them instead of
-showing fake data: the map and nearby (Phase 5), the sync upload pipeline
-(Phase 6), search/people/places filters (Phase 7), and backup export/import
-(Phase 8).
+showing fake data: nearby and search/people/places filters (Phase 7), the sync
+upload pipeline (Phase 6), and backup export/import (Phase 8).

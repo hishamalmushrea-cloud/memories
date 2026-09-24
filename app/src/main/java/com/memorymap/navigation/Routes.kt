@@ -52,6 +52,7 @@ object Routes {
     const val MEMORY_EDITOR = "memory-editor?memoryId={memoryId}"
     const val ENTRY_EDITOR = "entry-editor?date={date}&entryId={entryId}"
     const val PLACE_DETAIL = "place/{placeId}"
+    const val LOCATION_PICKER = "location-picker?lat={lat}&lon={lon}"
     const val PERSON_DETAIL = "person/{personId}"
 
     fun day(date: String) = "day/$date"
@@ -61,4 +62,20 @@ object Routes {
     fun memoryDetail(memoryId: String) = "memory/$memoryId"
     fun memoryEditor(memoryId: String? = null) = "memory-editor?memoryId=${memoryId.orEmpty()}"
     fun entryEditor(date: String, entryId: String? = null) = "entry-editor?date=$date&entryId=${entryId.orEmpty()}"
+
+    /** Manual location pick; the caller's coordinates pre-centre the map. */
+    fun locationPicker(latitude: Double? = null, longitude: Double? = null) =
+        "location-picker?lat=${latitude?.toString().orEmpty()}&lon=${longitude?.toString().orEmpty()}"
+
+    /** Key the location picker writes its result under. */
+    const val RESULT_LOCATION = "pickedLocation"
+
+    /** Decodes a `lat,lon` result written by the location picker. */
+    fun parseLocation(raw: String?): Pair<Double, Double>? {
+        val parts = raw?.split(",") ?: return null
+        if (parts.size != 2) return null
+        val lat = parts[0].trim().toDoubleOrNull() ?: return null
+        val lon = parts[1].trim().toDoubleOrNull() ?: return null
+        return lat to lon
+    }
 }

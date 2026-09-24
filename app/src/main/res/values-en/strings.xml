@@ -169,4 +169,16 @@
     <string name="calendar_previous_month">Previous month</string>
     <string name="calendar_next_month">Next month</string>
     <string name="calendar_go_to_today">Go to today</string>
+    <!-- Map -->
+    <string name="action_search">Search</string>
+    <string name="map_my_location">My location</string>
+    <string name="map_location_unavailable">Could not get your location. Check that location is turned on.</string>
+    <string name="map_no_pins">No pins yet. Add a location to a memory to see it here.</string>
+    <string name="map_add_memory_here">Memory here</string>
+    <string name="location_picker_title">Pick location</string>
+    <string name="location_picker_coordinates">%1$s, %2$s</string>
+    <string name="location_picker_confirm">Use this location</string>
+    <string name="memory_pick_location">Pick location on the map</string>
+    <string name="memory_location_set">Location: %1$s, %2$s</string>
+    <string name="memory_clear_location">Remove location</string>
 </resources>

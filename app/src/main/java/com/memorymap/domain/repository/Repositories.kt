@@ -30,6 +30,8 @@ interface MemoryRepository {
 interface DiaryRepository {
     fun watchDay(userId: String, date: LocalDate): Flow<List<DailyEntry>>
     fun watchRange(userId: String, from: LocalDate, to: LocalDate): Flow<List<DailyEntry>>
+    /** Events that carry a location, which is what the map can show. */
+    fun watchLocated(userId: String): Flow<List<DailyEntry>>
     fun watchDayCounts(userId: String, from: LocalDate, to: LocalDate): Flow<List<DayContentCounts>>
     /** One event, used by the editor to load what it is editing. */
     suspend fun getEntry(id: String): DailyEntry?

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -64,6 +65,7 @@ import com.memorymap.R
 import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaType
+import com.memorymap.navigation.Routes
 import com.memorymap.domain.model.Visibility
 import com.memorymap.ui.common.CAMERA_PERMISSION
 import com.memorymap.ui.common.RECORD_AUDIO_PERMISSION
@@ -77,6 +79,7 @@ import com.memorymap.util.MediaImporter
 import com.memorymap.util.MediaStore
 import java.io.File
 import java.time.Instant
+import java.util.Locale
 import java.time.ZoneOffset
 
 /**
@@ -226,6 +229,34 @@ fun MemoryEditorScreen(
             singleLine = true,
             label = { Text(stringResource(R.string.memory_field_place)) },
         )
+
+        // --- Location ---
+        OutlinedButton(
+            onClick = {
+                navController.navigate(
+                    Routes.locationPicker(state.location?.latitude, state.location?.longitude),
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Outlined.Place, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = state.location?.let {
+                    stringResource(
+                        R.string.memory_location_set,
+                        String.format(Locale.US, "%.5f", it.latitude),
+                        String.format(Locale.US, "%.5f", it.longitude),
+                    )
+                } ?: stringResource(R.string.memory_pick_location),
+                maxLines = 1,
+            )
+        }
+        if (state.location != null) {
+            TextButton(onClick = viewModel::clearLocation, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.memory_clear_location))
+            }
+        }
 
         // --- Attachments ---
         Text(

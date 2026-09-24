@@ -42,7 +42,6 @@ import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.navigation.Routes
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * The day screen: "what did I do today?" at the top, the ordered log of the

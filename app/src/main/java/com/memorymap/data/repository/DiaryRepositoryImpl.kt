@@ -35,6 +35,9 @@ class DiaryRepositoryImpl @Inject constructor(
             rows.map { it.toDomain() }
         }
 
+    override fun watchLocated(userId: String): Flow<List<DailyEntry>> =
+        entryDao.watchLocated(userId).map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun getEntry(id: String): DailyEntry? = entryDao.getById(id)?.toDomain()
 
     override suspend fun saveEntry(entry: DailyEntry, personIds: List<String>, placeIds: List<String>) {

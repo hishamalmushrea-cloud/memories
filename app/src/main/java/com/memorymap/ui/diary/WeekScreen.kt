@@ -31,7 +31,6 @@ import com.memorymap.domain.model.DayContentCounts
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.navigation.Routes
 import java.time.LocalDate
-import java.util.Locale
 
 /**
  * The week page: seven rows, Sunday first, each with the day's counters, and a

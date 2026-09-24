@@ -7,12 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.memorymap.R
 import com.memorymap.domain.model.Emotion
+import com.memorymap.domain.model.GeoPoint
 import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Visibility
 import com.memorymap.domain.repository.AuthRepository
+import com.memorymap.navigation.Routes
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.util.MediaImporter
@@ -28,6 +30,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -41,6 +45,8 @@ data class MemoryEditorUiState(
     val emotion: Emotion = Emotion.NOSTALGIA,
     val visibility: Visibility = Visibility.PRIVATE,
     val placeName: String = "",
+    /** Chosen on the map, or carried over from the memory being edited. */
+    val location: GeoPoint? = null,
     /** Attachments already stored for this memory. */
     val savedAttachments: List<MediaItem> = emptyList(),
     /** Files copied into the archive but not written to the database yet. */
@@ -77,6 +83,17 @@ class MemoryEditorViewModel @Inject constructor(
     val state: StateFlow<MemoryEditorUiState> = _state.asStateFlow()
 
     init {
+        // The picker hands its result back through the saved state of the entry
+        // that opened it, so it is read here and cleared to avoid re-applying it.
+        savedStateHandle.getStateFlow<String?>(Routes.RESULT_LOCATION, null)
+            .onEach { raw ->
+                Routes.parseLocation(raw)?.let { (latitude, longitude) ->
+                    _state.update { it.copy(location = GeoPoint(latitude, longitude)) }
+                }
+                savedStateHandle[Routes.RESULT_LOCATION] = null
+            }
+            .launchIn(viewModelScope)
+
         viewModelScope.launch {
             val existing = runCatching { memoryRepository.getById(memoryId) }.getOrNull()
             if (existing == null) return@launch
@@ -92,6 +109,8 @@ class MemoryEditorViewModel @Inject constructor(
                     emotion = existing.emotion,
                     visibility = existing.visibility,
                     placeName = existing.placeName.orEmpty(),
+                    // A pinned location survives an edit of anything else.
+                    location = it.location ?: existing.location,
                     savedAttachments = attachments,
                 )
             }
@@ -109,6 +128,9 @@ class MemoryEditorViewModel @Inject constructor(
     fun onVisibilityChange(value: Visibility) = _state.update { it.copy(visibility = value) }
 
     fun onPlaceNameChange(value: String) = _state.update { it.copy(placeName = value) }
+
+    /** Drops the pin; the memory then simply has no location. */
+    fun clearLocation() = _state.update { it.copy(location = null) }
 
     fun clearError() = _state.update { it.copy(errorRes = null) }
 
@@ -183,6 +205,7 @@ class MemoryEditorViewModel @Inject constructor(
                         emotion = current.emotion,
                         visibility = current.visibility,
                         placeName = current.placeName.trim().ifBlank { null },
+                        location = current.location,
                     ),
                 )
                 current.pendingAttachments.forEach { mediaRepository.attach(it) }

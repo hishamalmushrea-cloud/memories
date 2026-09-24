@@ -12,6 +12,7 @@ import com.memorymap.ui.diary.EntryEditorScreen
 import com.memorymap.ui.diary.MonthScreen
 import com.memorymap.ui.diary.WeekScreen
 import com.memorymap.ui.diary.YearScreen
+import com.memorymap.ui.map.LocationPickerScreen
 import com.memorymap.ui.map.MapScreen
 import com.memorymap.ui.memories.MemoriesScreen
 import com.memorymap.ui.memories.MemoryDetailScreen
@@ -96,6 +97,20 @@ fun MemoryMapNavHost(
         ) { EntryEditorScreen(navController) }
 
         composable(Routes.CALENDAR) { CalendarScreen(navController) }
+
+        composable(
+            route = Routes.LOCATION_PICKER,
+            arguments = listOf(
+                navArgument("lat") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("lon") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+        ) { LocationPickerScreen(navController) }
     }
 }
 
