@@ -6,7 +6,24 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### Added — Phase 10: Testing and Release (in progress)
+### Added — Phase 10: Testing and Release
+
+- A tag-triggered release workflow. Pushing `v1.0.0` runs the security gate, the
+  unit tests and `lintRelease`, builds both an APK and an AAB, and creates the
+  GitHub Release with the changelog as the notes. Signing comes from four
+  repository secrets; without them the workflow still builds but marks the
+  artifact debug-signed in bold, because a half-configured release should be
+  obviously unusable rather than quietly distributed.
+- Scale tests for the two hot paths §47 names. A twenty-year archive — 7,300
+  events plus 3,650 memories — still builds a correct newest-first timeline,
+  10,000 map pins cluster without losing a marker, and clustering work follows
+  the pin count rather than their spread. The bounds are loose on purpose: a
+  shared CI runner is slow and variable, and a flaky performance test teaches
+  everybody to ignore the build. Exact timings are printed so a real slowdown is
+  still visible inside the bound.
+- `docs/RELEASE.md` now matches what exists: the security gate and the release
+  build are pre-release requirements, and the tag flow and its secrets are
+  documented.
 
 - Account deletion, which the privacy policy already promised but no code path
   delivered. One action on the profile screen now removes every memory, event,
