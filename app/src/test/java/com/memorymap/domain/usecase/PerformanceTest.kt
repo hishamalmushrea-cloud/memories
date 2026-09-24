@@ -120,26 +120,25 @@ class PerformanceTest {
     }
 
     @Test
-    fun `clustering cost grows with the number of pins, not with their spread`() {
-        val dense = timed("clustering 5000 dense") {
-            MapClustering.cluster(markers(5_000), zoom = 14)
-        }
-        val sparse = timed("clustering 5000 sparse") {
-            MapClustering.cluster(List(5_000) { index ->
-                MapMarker(
-                    id = "s$index",
-                    title = "s$index",
-                    latitude = 12.0 + (index % 50) * 0.2,
-                    longitude = 42.5 + (index / 50) * 0.2,
-                    isMemory = true,
-                )
-            }, zoom = 3)
+    fun `zooming in splits clusters apart without losing a pin`() {
+        // The same 5,000 pins at four zoom levels. This is the behaviour a user
+        // feels on the map: a country view is a handful of bubbles, a street view
+        // is individual pins.
+        val pins = markers(5_000)
+
+        val counts = timed("clustering 5000 markers at four zooms") {
+            listOf(3, 8, 12, 14).map { zoom -> MapClustering.cluster(pins, zoom) }
         }
 
-        assertEquals(5_000, dense.sumOf { it.markers.size })
-        assertEquals(5_000, sparse.sumOf { it.markers.size })
-        // A wide map produces more, smaller clusters; the work is still per pin.
-        assertTrue(sparse.size > dense.size)
+        // Nothing is ever lost: every zoom accounts for all 5,000 pins.
+        counts.forEach { clusters ->
+            assertEquals(5_000, clusters.sumOf { it.markers.size })
+        }
+        // And each zoom in strictly separates more of them.
+        assertTrue(
+            "expected clusters to increase with zoom, got ${counts.map { it.size }}",
+            counts.zipWithNext().all { (coarse, fine) -> fine.size > coarse.size },
+        )
     }
 
     @Test
