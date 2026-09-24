@@ -10,7 +10,6 @@ import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Visibility
 import java.time.LocalDate
-import java.time.LocalDateTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -151,7 +150,7 @@ class RecordLinkingTest {
     private fun entry(title: String) = DailyEntry(
         userId = userId,
         date = date,
-        time = LocalDateTime.of(date, 10, 0),
+        time = date.atTime(10, 0),
         title = title,
     )
 

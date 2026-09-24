@@ -10,6 +10,7 @@ import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Emotion
 import com.memorymap.testing.FakeAuthRepository
+import com.memorymap.testing.FakeReferenceRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -195,6 +196,7 @@ class EntryEditorViewModelTest {
         ),
         diaryRepository = diary,
         authRepository = FakeAuthRepository(userId),
+        referenceRepository = FakeReferenceRepository(),
     )
 
     /** Waits on the real state stream until [predicate] holds, then returns it. */

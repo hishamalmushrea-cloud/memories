@@ -12,9 +12,13 @@ import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
+import com.memorymap.domain.model.Person
+import com.memorymap.domain.model.Place
+import com.memorymap.domain.model.GeoPoint
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Visibility
 import com.memorymap.testing.FakeAuthRepository
+import com.memorymap.testing.FakeReferenceRepository
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -203,12 +207,16 @@ class MemoryEditorViewModelTest {
         assertTrue(state.memoryId.isNotBlank())
     }
 
-    private fun editor(memoryId: String?) = MemoryEditorViewModel(
+    private fun editor(
+        memoryId: String?,
+        references: FakeReferenceRepository = FakeReferenceRepository(),
+    ) = MemoryEditorViewModel(
         context = ApplicationProvider.getApplicationContext(),
         savedStateHandle = SavedStateHandle(mapOf("memoryId" to memoryId.orEmpty())),
         memoryRepository = memories,
         mediaRepository = media,
         authRepository = FakeAuthRepository(userId),
+        referenceRepository = references,
     )
 
     /** Waits on the real state stream until [predicate] holds, then returns it. */
@@ -226,5 +234,73 @@ class MemoryEditorViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         return result
+    }
+
+    @Test
+    fun `saving links the people and places the user picked`() = runTest {
+        val ahmed = Person(id = "p1", userId = userId, name = "أحمد")
+        val ipp = Place(id = "pl1", userId = userId, name = "إب", location = GeoPoint(13.97, 44.17))
+        val viewModel = editor("link-1", FakeReferenceRepository(listOf(ahmed), listOf(ipp)))
+
+        // The picker offers what the user already has.
+        val offered = awaitState(viewModel) { it.people.isNotEmpty() && it.places.isNotEmpty() }
+        assertEquals(listOf("p1"), offered.people.map { it.id })
+        assertEquals(listOf("pl1"), offered.places.map { it.id })
+
+        viewModel.onTitleChange("رحلة إلى إب")
+        viewModel.togglePerson("p1")
+        viewModel.togglePlace("pl1")
+        viewModel.save()
+
+        val state = awaitState(viewModel) { it.isSaved }
+        assertTrue(state.isSaved)
+        // The links reached the database, not just the editor's own state.
+        assertEquals(setOf("p1"), memories.peopleOf("link-1").toSet())
+        assertEquals(setOf("pl1"), memories.placesOf("link-1").toSet())
+    }
+
+    @Test
+    fun `tapping a picked name again unlinks it`() = runTest {
+        val ahmed = Person(id = "p1", userId = userId, name = "أحمد")
+        val viewModel = editor("link-2", FakeReferenceRepository(listOf(ahmed)))
+
+        awaitState(viewModel) { it.people.isNotEmpty() }
+        viewModel.togglePerson("p1")
+        viewModel.togglePerson("p1")
+
+        assertTrue(viewModel.state.value.personIds.isEmpty())
+    }
+
+    @Test
+    fun `a name typed in the editor becomes a person and is linked at once`() = runTest {
+        val references = FakeReferenceRepository()
+        val viewModel = editor("link-3", references)
+
+        viewModel.onTitleChange("لقاء جديد")
+        viewModel.createPerson("سعاد")
+
+        val state = awaitState(viewModel) { it.personIds.isNotEmpty() }
+        assertEquals(1, state.personIds.size)
+        // Finding rather than creating is what keeps one person per name.
+        assertEquals("سعاد", references.createdPeople.single().name)
+    }
+
+    @Test
+    fun `an edit shows the links that are already stored`() = runTest {
+        val ahmed = Person(id = "p1", userId = userId, name = "أحمد")
+        val stored = Memory(
+            id = "link-4",
+            userId = userId,
+            title = "رحلة إلى إب",
+            memoryDate = day,
+            emotion = Emotion.NOSTALGIA,
+            visibility = Visibility.PRIVATE,
+        )
+        memories.save(stored, personIds = listOf("p1"))
+
+        val viewModel = editor("link-4", FakeReferenceRepository(listOf(ahmed)))
+
+        val state = awaitState(viewModel) { !it.isNew }
+        assertEquals(setOf("p1"), state.personIds)
     }
 }
