@@ -6,6 +6,49 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 9: Security and Privacy
+
+- A CI gate, `ci/check-security.sh`, that fails the build when a documented
+  guarantee stops holding in the source: a `service_role` key in the client, a
+  log call that bypasses `MmLog`, an OS backup switched back on, cleartext
+  traffic, a background location permission, release minification turned off, or
+  a log-stripping rule that no longer matches. Every check names the file and
+  line it objects to. All nine were verified to fail on a deliberately broken
+  tree, not just to pass on a clean one.
+- Tests that hold the Row Level Security contract against the SQL that will be
+  applied: every guarded table has a policy, the diary has no public or shared
+  read path at all, a public memory requires an explicit `PUBLIC` and a live
+  row, a shared one requires a grant, every write policy is owner-scoped, the
+  media bucket is private and folder-scoped, and the owner can delete their own
+  avatar. A policy dropped by a later edit now fails the build.
+- Tests for the client-side guarantees: `allowBackup=false`, no cleartext, the
+  exact permission set, release shrinking on, and the shape of the stripping
+  rule.
+- Privacy defaults are tested rather than assumed: a new memory is `PRIVATE`
+  unless the user says otherwise, and `DailyEntry` has no visibility property at
+  all, so §46's "never public by default" holds because the diary cannot be made
+  public in the first place.
+- `SupabaseConfig` now requires HTTPS. A project configured over plain HTTP is
+  treated as not configured, so the app stays offline instead of putting the
+  session token and the archive on the wire in the clear.
+- An owner-delete policy for the `avatars` bucket, which had public read and
+  owner write but no way to remove a file.
+- The privacy policy (AR + EN) now states both new guarantees.
+
+### Fixed
+
+- `allowBackup` was `true`, and `data_extraction_rules.xml` listed the diary
+  database and the whole media folder under `<cloud-backup>`. Android was
+  therefore uploading the user's diary and every photo to a third party's
+  servers, which nothing in the app or the policy disclosed and the user could
+  not turn off from inside the app. Backup is now off and those rule files are
+  gone; the export flow is how a copy gets made.
+- The ProGuard rule that strips debug logs declared `public static void d(...)`.
+  `MmLog` is a Kotlin `object`, so those are instance methods on the singleton
+  and the rule matched nothing — the documented guarantee that `d()` and `v()`
+  are stripped from release builds was not in fact true. The rule is now written
+  without `static`, and a test keeps it that way.
+
 ### Added — Phase 8: Local Backup
 
 - Export writes the whole archive to a folder the user picks, through the

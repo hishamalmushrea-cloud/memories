@@ -14,7 +14,12 @@
 -dontwarn org.openjsse.**
 
 # Never log user content or coordinates in release builds.
+#
+# MmLog is a Kotlin `object`, so d() and v() compile to *instance* methods on
+# the singleton rather than to statics. A `public static void d(...)` signature
+# therefore matches nothing and strips nothing; the rules below are written
+# without `static` on purpose. SecurityRegressionTest asserts they stay that way.
 -assumenosideeffects class com.memorymap.util.MmLog {
-    public static void d(...);
-    public static void v(...);
+    public *** d(...);
+    public *** v(...);
 }

@@ -62,6 +62,16 @@ cloud service is temporarily unavailable.
 - **Deletion**: you can delete an event, a memory, a photo, a video, a recording,
   your local data, and your account together with its cloud data. A clear
   confirmation always precedes a permanent deletion of sensitive data.
+- **No operating-system backup**: the app opts out of Android's automatic
+  backup, so your database and your media are never copied to a third party's
+  servers by the system. If you want a copy, you take one yourself with
+  **Export**, to a folder you choose. This is a deliberate trade: an automatic
+  backup would be convenient, and it would also mean your diary leaving your
+  device without the app ever telling you.
+- **Encrypted in transit**: any connection to a Supabase project is required to
+  be HTTPS. A project configured over plain HTTP is treated as not configured at
+  all, and the app simply stays offline rather than sending your session or your
+  archive where it could be read on the way.
 
 ## 8) Children
 

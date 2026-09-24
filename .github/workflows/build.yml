@@ -62,6 +62,9 @@ jobs:
       - name: Verify every dependency coordinate resolves
         run: bash ci/verify-dependencies.sh gradle/libs.versions.toml
 
+      - name: Check the security and privacy guarantees
+        run: bash ci/check-security.sh 2>&1 | tee /tmp/security.log || true
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 
@@ -109,6 +112,13 @@ jobs:
 
           {
             echo "### Stages"
+            if [ -f /tmp/security.log ]; then
+              if grep -q "security check: PASS" /tmp/security.log; then
+                echo "- security.log: SUCCESS"
+              else
+                echo "- security.log: FAILED"
+              fi
+            fi
             for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
               [ -f "$f" ] || continue
               if grep -qE "BUILD SUCCESSFUL" "$f"; then verdict="SUCCESS"
@@ -232,6 +242,10 @@ jobs:
 
       - name: Fail the job if any stage failed
         run: |
+          if [ -f /tmp/security.log ] && ! grep -q "security check: PASS" /tmp/security.log; then
+            echo "::error::the security check failed"
+            exit 1
+          fi
           for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
             [ -f "$f" ] || continue
             if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then

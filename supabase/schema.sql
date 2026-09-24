@@ -372,6 +372,12 @@ create policy "avatars: owner writes own file" on storage.objects
         and (storage.foldername(name))[1] = auth.uid()::text
     );
 
+create policy "avatars: owner deletes own file" on storage.objects
+    for delete using (
+        bucket_id = 'avatars'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
 -- =============================================================================
 -- Account deletion
 -- =============================================================================
