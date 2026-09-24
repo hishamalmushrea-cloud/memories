@@ -37,13 +37,13 @@ interface PersonDao {
     suspend fun getById(id: String): PersonEntity?
 
     @Query(
-        "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL "
+        "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL " +
             "ORDER BY name COLLATE NOCASE ASC",
     )
     fun watchAll(userId: String): Flow<List<PersonEntity>>
 
     @Query(
-        "SELECT * FROM people WHERE user_id = :userId AND name = :name COLLATE NOCASE "
+        "SELECT * FROM people WHERE user_id = :userId AND name = :name COLLATE NOCASE " +
             "AND deleted_at IS NULL LIMIT 1",
     )
     suspend fun findByName(userId: String, name: String): PersonEntity?
@@ -61,7 +61,7 @@ interface PersonDao {
     suspend fun findByNameIncludingDeleted(userId: String, name: String): PersonEntity?
 
     @Query(
-        "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL "
+        "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL " +
             "AND name LIKE '%' || :query || '%' ORDER BY name COLLATE NOCASE ASC",
     )
     suspend fun search(userId: String, query: String): List<PersonEntity>
@@ -71,7 +71,7 @@ interface PersonDao {
 
     /** Every living row for one account, for backup export. */
     @Query(
-        "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL "
+        "SELECT * FROM people WHERE user_id = :userId AND deleted_at IS NULL " +
             "ORDER BY name COLLATE NOCASE ASC",
     )
     suspend fun allForUser(userId: String): List<PersonEntity>
@@ -120,13 +120,13 @@ interface PlaceDao {
     suspend fun getById(id: String): PlaceEntity?
 
     @Query(
-        "SELECT * FROM places WHERE user_id = :userId AND deleted_at IS NULL "
+        "SELECT * FROM places WHERE user_id = :userId AND deleted_at IS NULL " +
             "ORDER BY name COLLATE NOCASE ASC",
     )
     fun watchAll(userId: String): Flow<List<PlaceEntity>>
 
     @Query(
-        "SELECT * FROM places WHERE user_id = :userId AND deleted_at IS NULL "
+        "SELECT * FROM places WHERE user_id = :userId AND deleted_at IS NULL " +
             "AND name LIKE '%' || :query || '%' ORDER BY name COLLATE NOCASE ASC",
     )
     suspend fun search(userId: String, query: String): List<PlaceEntity>
@@ -136,7 +136,7 @@ interface PlaceDao {
 
     /** Every living row for one account, for backup export. */
     @Query(
-        "SELECT * FROM places WHERE user_id = :userId AND deleted_at IS NULL "
+        "SELECT * FROM places WHERE user_id = :userId AND deleted_at IS NULL " +
             "ORDER BY name COLLATE NOCASE ASC",
     )
     suspend fun allForUser(userId: String): List<PlaceEntity>
