@@ -22,7 +22,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.memorymap.R
 import com.memorymap.domain.model.AuthState
+import com.memorymap.domain.model.SyncOutcome
+import com.memorymap.domain.model.SyncState
 import com.memorymap.ui.common.emotionLabel
+import com.memorymap.ui.common.formatDateTime
+import com.memorymap.ui.common.rememberLocale
 import com.memorymap.domain.model.LifeStats
 
 /**
@@ -64,6 +68,10 @@ fun ProfileScreen(
                     modifier = Modifier.padding(16.dp),
                 )
             }
+        }
+
+        if (state.cloudConfigured) {
+            SyncCard(sync = state.sync, onSyncNow = viewModel::syncNow)
         }
 
         state.stats?.let { stats -> StatsCard(stats, state.peopleCount) }
@@ -110,3 +118,53 @@ private fun StatRow(label: String, value: String) {
     }
 }
 
+/**
+ * Where the offline queue stands.
+ *
+ * This is the only place the user can see synchronisation at all, so it says
+ * plainly how much is waiting and whether the last attempt worked — a silent
+ * sync is indistinguishable from a broken one.
+ */
+@Composable
+private fun SyncCard(sync: SyncState, onSyncNow: () -> Unit) {
+    val locale = rememberLocale()
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.profile_sync_title), style = MaterialTheme.typography.titleMedium)
+
+            Text(
+                text = stringResource(R.string.sync_pending_count, sync.pending),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            sync.lastOutcome?.let { outcome ->
+                Text(
+                    text = when (outcome) {
+                        SyncOutcome.OK -> stringResource(R.string.sync_last_ok)
+                        SyncOutcome.NOTHING_TO_DO -> stringResource(R.string.sync_last_nothing)
+                        else -> stringResource(R.string.sync_last_error)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            formatDateTime(sync.lastRunAt, locale)?.let { stamp ->
+                Text(
+                    text = stringResource(R.string.sync_last_run_at, stamp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            OutlinedButton(
+                onClick = onSyncNow,
+                enabled = !sync.isRunning,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(if (sync.isRunning) R.string.sync_running else R.string.sync_action_now))
+            }
+        }
+    }
+}

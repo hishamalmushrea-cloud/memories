@@ -3,6 +3,8 @@ package com.memorymap.data.local.dao
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import com.memorymap.data.sync.LocalRow
+import com.memorymap.data.sync.PendingRow
 import com.memorymap.data.local.entities.DailyEntryEntity
 import com.memorymap.data.local.entities.DailyEntryPersonCrossRef
 import com.memorymap.data.local.entities.DailyEntryPlaceCrossRef
@@ -213,6 +215,32 @@ interface DailyEntryDao {
 
     @Query("DELETE FROM daily_entries WHERE user_id = :userId")
     suspend fun hardDeleteAll(userId: String)
+
+    // --- Synchronisation (Phase 6) ---------------------------------------
+    // Everything that is not SYNCED still needs work: the three pending states
+    // and SYNC_ERROR, which is how a failed row is retried on the next run.
+
+    @Query(
+        "SELECT id AS id, updated_at AS updatedAt, (deleted_at IS NOT NULL) AS deleted " +
+            "FROM daily_entries WHERE user_id = :userId AND sync_status != 'SYNCED' " +
+            "ORDER BY updated_at ASC",
+    )
+    suspend fun pendingForSync(userId: String): List<PendingRow>
+
+    @Query(
+        "SELECT id AS id, updated_at AS updatedAt, (deleted_at IS NOT NULL) AS deleted " +
+            "FROM daily_entries WHERE id IN (:ids)",
+    )
+    suspend fun syncSnapshot(ids: List<String>): List<LocalRow>
+
+    @Query("SELECT COUNT(*) FROM daily_entries WHERE user_id = :userId AND sync_status != 'SYNCED'")
+    fun watchPendingSyncCount(userId: String): Flow<Int>
+
+    @Query("UPDATE daily_entries SET sync_status = 'SYNCED', last_synced_at = :at WHERE id IN (:ids)")
+    suspend fun markSynced(ids: List<String>, at: String)
+
+    @Query("UPDATE daily_entries SET sync_status = 'SYNC_ERROR' WHERE id IN (:ids)")
+    suspend fun markSyncError(ids: List<String>)
 }
 
 @Dao

@@ -9,6 +9,7 @@ import com.memorymap.data.local.dao.MediaDao
 import com.memorymap.data.local.dao.MemoryDao
 import com.memorymap.data.local.dao.PersonDao
 import com.memorymap.data.local.dao.PlaceDao
+import com.memorymap.data.local.dao.SyncMetaDao
 import com.memorymap.data.local.dao.UserDao
 import dagger.Module
 import dagger.Provides
@@ -26,7 +27,8 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): MemoryMapDatabase =
         Room.databaseBuilder(context, MemoryMapDatabase::class.java, MemoryMapDatabase.NAME)
             // No destructive migration: a diary must never be dropped silently.
-            // Schema changes ship with an explicit Migration in a later phase.
+            // Every schema change ships with an explicit Migration.
+            .addMigrations(MemoryMapDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigrationOnDowngrade()
             .build()
 
@@ -37,4 +39,5 @@ object DatabaseModule {
     @Provides fun provideMediaDao(db: MemoryMapDatabase): MediaDao = db.mediaDao()
     @Provides fun providePersonDao(db: MemoryMapDatabase): PersonDao = db.personDao()
     @Provides fun providePlaceDao(db: MemoryMapDatabase): PlaceDao = db.placeDao()
+    @Provides fun provideSyncMetaDao(db: MemoryMapDatabase): SyncMetaDao = db.syncMetaDao()
 }

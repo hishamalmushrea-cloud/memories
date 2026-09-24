@@ -10,6 +10,7 @@ import com.memorymap.data.repository.MediaRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
+import com.memorymap.data.repository.SyncRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
 import com.memorymap.domain.map.MapProvider
 import com.memorymap.domain.repository.AuthRepository
@@ -18,6 +19,7 @@ import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
 import dagger.Binds
 import dagger.Module
@@ -59,6 +61,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepository
 
     @Binds
     @Singleton

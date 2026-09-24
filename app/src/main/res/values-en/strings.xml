@@ -181,4 +181,14 @@
     <string name="memory_pick_location">Pick location on the map</string>
     <string name="memory_location_set">Location: %1$s, %2$s</string>
     <string name="memory_clear_location">Remove location</string>
+
+    <!-- Synchronisation (Phase 6) -->
+    <string name="profile_sync_title">Synchronisation</string>
+    <string name="sync_pending_count">Waiting to sync: %1$d</string>
+    <string name="sync_last_ok">Last run: uploaded and downloaded successfully</string>
+    <string name="sync_last_nothing">Last run: nothing to synchronise</string>
+    <string name="sync_last_error">The last run failed and will be retried automatically</string>
+    <string name="sync_last_run_at">Last synchronised: %1$s</string>
+    <string name="sync_running">Synchronising…</string>
+    <string name="sync_action_now">Synchronise now</string>
 </resources>

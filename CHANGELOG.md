@@ -6,6 +6,36 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 6: Sync
+
+- The offline queue now drains. `SyncWorker` became a `CoroutineWorker` that
+  restores the session, finds the signed-in account and runs one synchronisation;
+  a run that tried and failed returns `retry`, so WorkManager backs off and tries
+  again on its own.
+- `SyncEngine`: push what changed locally, then pull what changed elsewhere.
+  Pushing first means a row this device just sent cannot come back as somebody
+  else's change and overwrite itself.
+- `ConflictResolver`, the whole policy in one pure, tested place: last write
+  wins on `updated_at`, **except** that a local delete always beats a live server
+  copy. That single rule is what stops a record deleted on a plane from returning
+  when the phone finds a network.
+- Deletions are sent as tombstones rather than as server-side deletes. A hard
+  delete would simply vanish from the next download, so another device would keep
+  its copy forever and the deletion would never spread.
+- Download uses a per-account watermark (`sync_meta`, Room schema version 2, an
+  additive migration), so a phone that syncs every fifteen minutes does not
+  re-read the whole archive each time.
+- `SyncTime` converts timestamps at the Room/server boundary. Room keeps naive
+  local text; the server column is `timestamptz` and would otherwise read every
+  record as UTC, shifting it by the device's offset.
+- The profile screen shows how much is waiting, what the last run did and when,
+  with a button to run one immediately.
+- Failures are contained per table and per direction, and never reach the caller:
+  a row that could not be sent is marked `SYNC_ERROR` and retried, and nothing is
+  ever deleted locally because a request failed.
+- Tests: `ConflictResolverTest`, `SyncEngineTest`, `SyncTimeTest`,
+  `SyncMetaMigrationTest`.
+
 ### Added — Phase 5: Map
 
 - The home screen is now an interactive map. It shows every memory that has a
@@ -158,5 +188,5 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Explicitly not in this phase
 
 The following are placeholders that state which phase implements them instead of
-showing fake data: nearby and search/people/places filters (Phase 7), the sync
-upload pipeline (Phase 6), and backup export/import (Phase 8).
+showing fake data: nearby and search/people/places filters (Phase 7) and backup
+export/import (Phase 8).

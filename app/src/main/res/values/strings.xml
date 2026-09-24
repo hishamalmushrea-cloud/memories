@@ -182,4 +182,14 @@
     <string name="memory_pick_location">اختيار الموقع على الخريطة</string>
     <string name="memory_location_set">الموقع: %1$s، %2$s</string>
     <string name="memory_clear_location">إزالة الموقع</string>
+
+    <!-- Synchronisation (Phase 6) -->
+    <string name="profile_sync_title">المزامنة</string>
+    <string name="sync_pending_count">في الانتظار: %1$d</string>
+    <string name="sync_last_ok">آخر محاولة: تم الرفع والتنزيل بنجاح</string>
+    <string name="sync_last_nothing">آخر محاولة: لا جديد للمزامنة</string>
+    <string name="sync_last_error">آخر محاولة فشلت، وستُعاد تلقائيًا</string>
+    <string name="sync_last_run_at">وقت آخر مزامنة: %1$s</string>
+    <string name="sync_running">جارٍ المزامنة…</string>
+    <string name="sync_action_now">زامِن الآن</string>
 </resources>
