@@ -138,13 +138,21 @@ object MediaImporter {
         }
     }.getOrNull()
 
-    /** Duration in milliseconds for an audio or video file. */
+    /**
+     * Duration in milliseconds for an audio or video file.
+     *
+     * Released by hand rather than with `use`, because MediaMetadataRetriever
+     * only implements AutoCloseable from API 29 and the app supports 26.
+     */
     private fun durationMs(file: File): Long? = runCatching {
-        MediaMetadataRetriever().use { retriever ->
+        val retriever = MediaMetadataRetriever()
+        try {
             retriever.setDataSource(file.absolutePath)
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                 ?.toLongOrNull()
                 ?.takeIf { it > 0L }
+        } finally {
+            runCatching { retriever.release() }
         }
     }.getOrNull()
 

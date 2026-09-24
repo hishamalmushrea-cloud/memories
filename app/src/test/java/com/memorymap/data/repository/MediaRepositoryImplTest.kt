@@ -8,7 +8,6 @@ import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.SyncStatus
 import java.io.File
-import java.util.UUID
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -155,8 +154,14 @@ class MediaRepositoryImplTest {
     }
 
     /** A real file on disk, so the delete assertions mean something. */
+    /**
+     * A real file on disk, so the delete assertions mean something. The name is
+     * used verbatim: the cover pick is `MIN(uri)`, which only selects the
+     * earliest photo because real names embed a timestamp after a constant
+     * owner prefix. A random prefix here would break that ordering.
+     */
     private fun file(name: String): File =
-        temporaryFolder.newFile("${UUID.randomUUID()}_$name").apply { writeText("x") }
+        temporaryFolder.newFile(name).apply { writeText("x") }
 
     private fun item(type: MediaType, file: File) = MediaItem(
         ownerId = memoryId,
