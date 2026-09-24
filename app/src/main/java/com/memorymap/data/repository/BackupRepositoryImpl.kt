@@ -28,7 +28,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 
 /**
  * Writes and reads the local backup archive.
@@ -41,15 +40,13 @@ import kotlinx.serialization.json.Json
 @Singleton
 class BackupRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val json: Json,
     private val memoryDao: MemoryDao,
     private val dailyEntryDao: DailyEntryDao,
     private val personDao: PersonDao,
     private val placeDao: PlaceDao,
     private val mediaDao: MediaDao,
+    private val archive: BackupArchive,
 ) : BackupRepository {
-
-    private val archive = BackupArchive(context, json)
 
     override suspend fun export(userId: String, treeUri: String): BackupOutcome =
         withContext(Dispatchers.IO) {

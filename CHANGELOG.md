@@ -8,6 +8,17 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- Tests for the backup repository, which had none. They run against a real
+  archive on a real disk: the one part that cannot run here is the Storage
+  Access Framework grant, so `BackupArchive.root` became a seam and the tests
+  point the archive at an ordinary directory. Everything below it - the
+  serialisation, the merge decision, the database - is the code under test.
+  What they pin down is the rule an import exists to keep: it never overwrites
+  a record this device edited more recently, and it never resurrects one the
+  user deleted.
+
+### Added
+
 - The links between records and the people and places they mention now
   synchronise. A link carries no timestamp of its own, so there is nothing to
   resolve a conflict with and no queue of its own to keep: it travels with the

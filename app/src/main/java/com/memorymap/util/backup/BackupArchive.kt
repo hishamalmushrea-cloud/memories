@@ -2,6 +2,9 @@ package com.memorymap.util.backup
 
 import android.content.Context
 import android.net.Uri
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import androidx.documentfile.provider.DocumentFile
 import com.memorymap.util.MmLog
 import java.io.File
@@ -22,13 +25,21 @@ import kotlinx.serialization.json.Json
  * written has to be *told* about, and an exception surfacing in a click handler
  * is not a way to tell anyone.
  */
-class BackupArchive(
-    private val context: Context,
+@Singleton
+open class BackupArchive @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val json: Json,
 ) {
 
-    /** The folder the user chose, or null if the permission is gone. */
-    fun root(treeUri: String): DocumentFile? = runCatching {
+    /**
+     * The folder the user chose, or null if the permission is gone.
+     *
+     * Open because it is the one part of this class that cannot be exercised
+     * without a real Storage Access Framework grant: everything below it works
+     * on any [DocumentFile], so a test can point the archive at an ordinary
+     * directory and still cover the writing, the reading and the merging.
+     */
+    open fun root(treeUri: String): DocumentFile? = runCatching {
         DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
     }.getOrNull()
 
