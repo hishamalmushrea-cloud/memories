@@ -198,16 +198,13 @@ class MemoryEditorViewModel @Inject constructor(
         val userId = authRepository.currentUserId.value ?: return
         val location = _state.value.location
         if (location == null) {
-            _state.update { it.copy(errorRes = R.string.memory_error_place_needs_location) }
+            _state.update { it.copy(errorRes = R.string.editor_place_needs_location) }
             return
         }
+        val place = Place(userId = userId, name = name, location = location)
         viewModelScope.launch {
-            runCatching {
-                referenceRepository.savePlace(
-                    Place(userId = userId, name = name, location = location),
-                )
-            }
-                .onSuccess { place -> _state.update { it.copy(placeIds = it.placeIds + place.id) } }
+            runCatching { referenceRepository.savePlace(place) }
+                .onSuccess { _state.update { it.copy(placeIds = it.placeIds + place.id) } }
                 .onFailure { MmLog.e("Could not add the place", it) }
         }
     }
