@@ -8,6 +8,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- A build guard that fails in under a second when a plain function calls a
+  suspend DAO method. Kotlin rejects that at compile time, which meant the
+  mistake cost a whole ten-minute build cycle to discover - three times over.
+  It runs before Gradle now, so it reports itself immediately.
+
+### Added
+
 - Tests for the backup repository, which had none. They run against a real
   archive on a real disk: the one part that cannot run here is the Storage
   Access Framework grant, so `BackupArchive.root` became a seam and the tests

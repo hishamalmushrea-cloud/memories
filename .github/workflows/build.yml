@@ -65,6 +65,12 @@ jobs:
       - name: Check the security and privacy guarantees
         run: bash ci/check-security.sh 2>&1 | tee /tmp/security.log || true
 
+      # Runs before Gradle on purpose: it is pure Python and answers in under a
+      # second, so a mistake that would otherwise die in the compiler and waste
+      # ten minutes of build reports itself immediately instead.
+      - name: Check that no plain function calls a suspend DAO method
+        run: python3 ci/check-suspend-calls.py
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 

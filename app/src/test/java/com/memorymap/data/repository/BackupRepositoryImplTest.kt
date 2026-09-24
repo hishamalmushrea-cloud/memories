@@ -225,7 +225,7 @@ class BackupRepositoryImplTest {
         assertEquals(1, outcome.mediaMissing)
     }
 
-    private fun seedArchive() {
+    private suspend fun seedArchive() {
         db.personDao().upsert(PersonEntity(id = "p1", userId = userId, name = "أحمد", createdAt = stamp))
         db.placeDao().upsert(
             PlaceEntity(id = "pl1", userId = userId, name = "إب", latitude = 13.97, longitude = 44.17, createdAt = stamp),
@@ -235,7 +235,7 @@ class BackupRepositoryImplTest {
         db.dailyEntryDao().upsert(entry("e1", userId, "زيارة أحمد"))
     }
 
-    private fun wipe() {
+    private suspend fun wipe() {
         db.memoryDao().hardDeleteAll(userId)
         db.dailyEntryDao().hardDeleteAll(userId)
         db.personDao().deleteAll(userId)
