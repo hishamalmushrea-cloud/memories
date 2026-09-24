@@ -88,7 +88,7 @@ class PerformanceTest {
 
     @Test
     fun `the whole archive rebuilds well inside a frame budget many times over`() {
-        val days = timed("timeline 7300 events + 3650 memories, best of five") {
+        val days = timed("timeline 7300 events + 3650 memories, five rebuilds") {
             var best = Long.MAX_VALUE
             repeat(5) {
                 val started = System.nanoTime()
@@ -103,7 +103,7 @@ class PerformanceTest {
         // A linear grouping over ten thousand records takes single-digit
         // milliseconds on a laptop. Five seconds is far outside anything the app
         // could feel, and far inside what a quadratic version would need.
-        assertTrue("the timeline rebuild took ${days}ms", days < 5_000)
+        assertTrue("the best of five rebuilds took ${days}ms", days < 5_000)
     }
 
     @Test
