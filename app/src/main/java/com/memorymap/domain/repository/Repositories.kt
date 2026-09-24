@@ -7,6 +7,7 @@ import com.memorymap.domain.model.OnThisDayItem
 import com.memorymap.domain.model.Person
 import com.memorymap.domain.model.Place
 import com.memorymap.domain.model.User
+import com.memorymap.domain.model.WipeSummary
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -66,5 +67,15 @@ interface UserRepository {
     fun watchCurrentUser(): Flow<User?>
     suspend fun getById(id: String): User?
     suspend fun save(user: User)
-    suspend fun clearLocal()
+
+    /**
+     * Deletes every trace of [userId] from this device: memories, events, diary
+     * notes, people, places, the attachment rows, the media files themselves and
+     * the sync bookmark.
+     *
+     * This is irreversible and cannot be undone from the app, which is why the
+     * caller has to confirm it explicitly. It touches this device only; cloud
+     * data is a separate step the user takes on the server.
+     */
+    suspend fun deleteLocalData(userId: String): WipeSummary
 }

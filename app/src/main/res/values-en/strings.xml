@@ -244,4 +244,15 @@
     <string name="backup_error_open">That folder could not be opened.</string>
     <string name="backup_error_write">That folder could not be written to.</string>
     <string name="backup_error_format">That folder does not hold a valid backup.</string>
+
+    <!-- Phase 10: account deletion -->
+    <string name="wipe_title">Delete local data</string>
+    <string name="wipe_intro">Removes everything on this device: memories, events, notes, people, places and the media files. This cannot be undone.</string>
+    <string name="wipe_action">Delete all my local data</string>
+    <string name="wipe_running">Deleting…</string>
+    <string name="wipe_confirm_title">Delete all local data?</string>
+    <string name="wipe_confirm_body">Your archive will be permanently removed from this device, together with every media file, and the session will end. Take a backup first if you want to keep a copy.</string>
+    <string name="wipe_confirm_action">Delete permanently</string>
+    <string name="wipe_done_title">Deleted</string>
+    <string name="wipe_done_body">Removed %1$d records and %2$d media files from this device.</string>
 </resources>

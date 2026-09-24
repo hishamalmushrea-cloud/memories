@@ -30,6 +30,22 @@ object MediaStore {
     /** Deletes a media file and reports whether anything was removed. */
     fun delete(file: File): Boolean = runCatching { file.takeIf { it.exists() }?.delete() ?: false }.getOrDefault(false)
 
+    /**
+     * Removes every media file on this device and reports how many went.
+     *
+     * Used by the account wipe. The rows are deleted separately; this only deals
+     * with the bytes, which is the part a database cannot reach.
+     */
+    fun clear(context: Context): Int {
+        val base = File(context.getExternalFilesDir(null) ?: context.filesDir, ROOT)
+        if (!base.exists()) return 0
+        val files = base.walkTopDown().filter { it.isFile }.toList()
+        // Deepest first, so the directories are empty by the time they are removed.
+        val removed = files.sortedByDescending { it.path.length }.count { it.delete() }
+        base.deleteRecursively()
+        return removed
+    }
+
     /** Total bytes used by the local archive, for the profile and backup screens. */
     fun usedBytes(context: Context): Long {
         val base = File(context.getExternalFilesDir(null) ?: context.filesDir, ROOT)

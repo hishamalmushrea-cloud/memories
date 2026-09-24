@@ -108,6 +108,19 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE owner_id IN (:ownerIds) AND deleted_at IS NULL ORDER BY created_at ASC")
     suspend fun activeForOwners(ownerIds: List<String>): List<MediaEntity>
 
+    /**
+     * Every attachment belonging to one account's records.
+     *
+     * Media rows point at a memory or an entry rather than at a user, so the
+     * account wipe reaches them through their owner. Deleting the owners alone
+     * would leave these behind as rows nothing can display.
+     */
+    @Query(
+        "DELETE FROM media WHERE owner_id IN (SELECT id FROM memories WHERE user_id = :userId) " +
+            "OR owner_id IN (SELECT id FROM daily_entries WHERE user_id = :userId)"
+    )
+    suspend fun deleteForUser(userId: String)
+
     @Query("SELECT media_type AS mediaType, COUNT(*) AS count FROM media WHERE deleted_at IS NULL GROUP BY media_type")
     suspend fun countByType(): List<MediaTypeCountRow>
 

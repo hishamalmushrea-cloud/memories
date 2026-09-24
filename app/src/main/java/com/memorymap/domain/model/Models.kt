@@ -155,6 +155,24 @@ data class LifeStats(
 /** How often one calendar month was used, e.g. September 2026 -> 12. */
 data class MonthCount(val year: Int, val month: Int, val count: Int)
 
+/**
+ * What an account deletion removed from this device.
+ *
+ * Counted before the rows go, so the confirmation can tell the user what was
+ * actually destroyed rather than only that something was.
+ */
+data class WipeSummary(
+    val memories: Int = 0,
+    val entries: Int = 0,
+    val people: Int = 0,
+    val places: Int = 0,
+    val mediaFiles: Int = 0,
+) {
+    val totalRecords: Int get() = memories + entries + people + places
+
+    val isEmpty: Boolean get() = totalRecords == 0 && mediaFiles == 0
+}
+
 /** Converts an epoch-millis timestamp to the device zone. */
 fun Instant.toLocal(zone: ZoneId = ZoneId.systemDefault()): LocalDateTime =
     LocalDateTime.ofInstant(this, zone)

@@ -6,6 +6,32 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 10: Testing and Release (in progress)
+
+- Account deletion, which the privacy policy already promised but no code path
+  delivered. One action on the profile screen now removes every memory, event,
+  diary note, person, place, attachment row and the media files themselves, plus
+  the sync bookmark and the account row. It asks first, and afterwards reports
+  how many records and files went rather than only that something did.
+- The link tables cascade from their parent through foreign keys, but `media` has
+  no foreign key, so `MediaDao.deleteForUser` reaches attachments through their
+  owner. Without it the wipe would leave rows nothing can display.
+- `MediaStore.clear` removes the bytes, which is the part a database cannot
+  reach, and recreates the folders on demand so a wipe does not break the next
+  photo.
+- CI now assembles a **release** APK as well as a debug one. That is the only
+  build that runs R8, so until now nothing had ever checked that the shrinker
+  rules are valid or that minification keeps everything the app needs. The gate
+  requires a release APK to exist, not merely for Gradle to exit zero.
+
+### Fixed
+
+- The privacy policy claimed the user could delete "your account together with
+  its cloud data". The app cannot delete a Supabase account and never could.
+  Both language versions now say plainly what the in-app deletion does — clears
+  this device — and that cloud rows stay on the connected project's server until
+  they are deleted there.
+
 ### Added — Phase 9: Security and Privacy
 
 - A CI gate, `ci/check-security.sh`, that fails the build when a documented

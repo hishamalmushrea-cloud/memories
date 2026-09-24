@@ -1,11 +1,13 @@
 package com.memorymap.data.repository
 
+import android.content.Context
 import com.memorymap.data.local.Mappers.toDomain
 import com.memorymap.data.local.Mappers.toEntity
 import com.memorymap.data.local.dao.DailyEntryDao
 import com.memorymap.data.local.dao.DiaryNoteDao
 import com.memorymap.data.local.dao.MediaDao
 import com.memorymap.data.local.dao.MemoryDao
+import com.memorymap.data.local.dao.SyncMetaDao
 import com.memorymap.data.local.dao.PersonDao
 import com.memorymap.data.local.dao.PlaceDao
 import com.memorymap.data.local.dao.UserDao
@@ -14,18 +16,31 @@ import com.memorymap.domain.model.LifeStats
 import com.memorymap.domain.model.MonthCount
 import com.memorymap.domain.model.OnThisDayItem
 import com.memorymap.domain.model.User
+import com.memorymap.domain.model.WipeSummary
 import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.domain.repository.UserRepository
 import com.memorymap.domain.usecase.DiaryTime
+import com.memorymap.util.MediaStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val userDao: UserDao,
+    private val memoryDao: MemoryDao,
+    private val entryDao: DailyEntryDao,
+    private val noteDao: DiaryNoteDao,
+    private val personDao: PersonDao,
+    private val placeDao: PlaceDao,
+    private val mediaDao: MediaDao,
+    private val syncMetaDao: SyncMetaDao,
 ) : UserRepository {
 
     override fun watchCurrentUser(): Flow<User?> = userDao.watchFirst().map { it?.toDomain() }
@@ -34,7 +49,35 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun save(user: User) = userDao.upsert(user.toEntity())
 
-    override suspend fun clearLocal() = userDao.deleteAll()
+    /**
+     * Removes everything belonging to one account from this device.
+     *
+     * Order matters. The media files go last, after the rows that point at them
+     * have been counted and removed, so a failure part way through leaves
+     * records without attachments rather than files nothing can reach.
+     */
+    override suspend fun deleteLocalData(userId: String): WipeSummary = withContext(Dispatchers.IO) {
+        val summary = WipeSummary(
+            memories = memoryDao.count(userId),
+            entries = entryDao.count(userId),
+            people = personDao.count(userId),
+            places = placeDao.count(userId),
+        )
+
+        // The link tables (memory_person, memory_place, the daily_entry pairs and
+        // memory_shares) cascade from their parent, so they need no query here.
+        // Media has no foreign key, so it is removed explicitly.
+        mediaDao.deleteForUser(userId)
+        memoryDao.hardDeleteAll(userId)
+        entryDao.hardDeleteAll(userId)
+        noteDao.deleteAll(userId)
+        personDao.deleteAll(userId)
+        placeDao.deleteAll(userId)
+        syncMetaDao.delete(userId)
+        userDao.deleteAll()
+
+        summary.copy(mediaFiles = MediaStore.clear(context))
+    }
 }
 
 @Singleton

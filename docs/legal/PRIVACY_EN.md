@@ -59,9 +59,17 @@ cloud service is temporarily unavailable.
 
 - **Export**: you can export your whole archive locally (JSON plus a media folder).
 - **Import**: you can restore that archive.
-- **Deletion**: you can delete an event, a memory, a photo, a video, a recording,
-  your local data, and your account together with its cloud data. A clear
-  confirmation always precedes a permanent deletion of sensitive data.
+- **Deletion**: you can delete an event, a memory, a photo, a video or a
+  recording one at a time, and you can delete **everything on the device at
+  once** from the profile screen. A clear confirmation always precedes a
+  permanent deletion, and the app tells you afterwards how many records and how
+  many media files it removed.
+- **What the in-app deletion does not do**: it clears this device only. If you
+  connected a Supabase project, the rows already uploaded stay on that server
+  until you delete them there. The app cannot delete a Supabase account for you
+  and does not pretend to; account deletion happens in the Supabase dashboard of
+  the project you connected. Deleting the auth user there removes the profile row
+  and, through the schema's cascade, every row that belonged to it.
 - **No operating-system backup**: the app opts out of Android's automatic
   backup, so your database and your media are never copied to a third party's
   servers by the system. If you want a copy, you take one yourself with

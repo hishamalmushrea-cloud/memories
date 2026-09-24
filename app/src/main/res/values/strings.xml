@@ -245,4 +245,15 @@
     <string name="backup_error_open">تعذّر فتح هذا المجلد.</string>
     <string name="backup_error_write">تعذّر الكتابة في هذا المجلد.</string>
     <string name="backup_error_format">هذا المجلد لا يحتوي نسخة احتياطية صالحة.</string>
+
+    <!-- Phase 10: account deletion -->
+    <string name="wipe_title">حذف البيانات المحلية</string>
+    <string name="wipe_intro">يحذف كل ما على هذا الجهاز: الذكريات والأحداث والملاحظات والأشخاص والأماكن وملفات الوسائط. لا يمكن التراجع.</string>
+    <string name="wipe_action">حذف كل بياناتي المحلية</string>
+    <string name="wipe_running">جارٍ الحذف…</string>
+    <string name="wipe_confirm_title">حذف كل البيانات المحلية؟</string>
+    <string name="wipe_confirm_body">سيُحذف أرشيفك من هذا الجهاز نهائيًا مع كل ملفات الوسائط، وستُغلق الجلسة. خذ نسخة احتياطية أولًا إن كنت تريد الاحتفاظ بنسخة.</string>
+    <string name="wipe_confirm_action">حذف نهائي</string>
+    <string name="wipe_done_title">تم الحذف</string>
+    <string name="wipe_done_body">حُذف %1$d سجلًا و%2$d ملف وسائط من هذا الجهاز.</string>
 </resources>

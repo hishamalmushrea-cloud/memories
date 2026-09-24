@@ -80,6 +80,13 @@ jobs:
       - name: Assemble the debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace --continue 2>&1 | tee /tmp/assemble.log || true
 
+      # A release build is the only thing that runs R8, so it is the only thing
+      # that can prove the shrinker rules are valid and that minification does not
+      # strip something the app needs. It falls back to debug signing when no
+      # keystore is supplied, which is what makes it runnable here at all.
+      - name: Assemble the release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace --continue 2>&1 | tee /tmp/release.log || true
+
       - name: Show what was built
         run: |
           find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -printf "%p %s bytes\n" || true
@@ -119,7 +126,7 @@ jobs:
                 echo "- security.log: FAILED"
               fi
             fi
-            for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
+            for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
               [ -f "$f" ] || continue
               if grep -qE "BUILD SUCCESSFUL" "$f"; then verdict="SUCCESS"
               elif grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then verdict="FAILED"
@@ -246,7 +253,7 @@ jobs:
             echo "::error::the security check failed"
             exit 1
           fi
-          for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
+          for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
             [ -f "$f" ] || continue
             if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then
               echo "::error::$f reported a failed build"
@@ -255,6 +262,10 @@ jobs:
           done
           if ! find app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | grep -q .; then
             echo "::error::no debug APK was produced"
+            exit 1
+          fi
+          if ! find app/build/outputs/apk/release -name "*.apk" 2>/dev/null | grep -q .; then
+            echo "::error::no release APK was produced"
             exit 1
           fi
           if find app/build/test-results -name "*.xml" 2>/dev/null | grep -q .; then

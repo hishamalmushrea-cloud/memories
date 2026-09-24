@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -98,6 +100,67 @@ fun ProfileScreen(
         OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.auth_action_sign_out))
         }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.wipe_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Text(
+                    text = stringResource(R.string.wipe_intro),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = viewModel::requestDeleteLocalData,
+                    enabled = !state.isWiping,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(if (state.isWiping) R.string.wipe_running else R.string.wipe_action))
+                }
+            }
+        }
+    }
+
+    if (state.wipeConfirmationVisible) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDeleteLocalData,
+            title = { Text(stringResource(R.string.wipe_confirm_title)) },
+            text = { Text(stringResource(R.string.wipe_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeleteLocalData) {
+                    Text(stringResource(R.string.wipe_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelDeleteLocalData) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    state.wipeSummary?.let { summary ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissWipeSummary,
+            title = { Text(stringResource(R.string.wipe_done_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.wipe_done_body,
+                        summary.totalRecords,
+                        summary.mediaFiles,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::dismissWipeSummary) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 }
 

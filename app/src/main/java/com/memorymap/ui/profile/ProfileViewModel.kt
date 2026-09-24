@@ -6,8 +6,10 @@ import com.memorymap.data.repository.LifeStatsCalculator
 import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.LifeStats
 import com.memorymap.domain.model.SyncState
+import com.memorymap.domain.model.WipeSummary
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.SyncRepository
+import com.memorymap.domain.repository.UserRepository
 import com.memorymap.util.MmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -25,6 +27,11 @@ data class ProfileUiState(
     val cloudConfigured: Boolean = false,
     val peopleCount: Int = 0,
     val sync: SyncState = SyncState(),
+    /** True while the destructive confirmation is on screen. */
+    val wipeConfirmationVisible: Boolean = false,
+    val isWiping: Boolean = false,
+    /** Set once a wipe has finished, so the result can be reported. */
+    val wipeSummary: WipeSummary? = null,
 )
 
 /**
@@ -36,6 +43,7 @@ class ProfileViewModel @Inject constructor(
     private val statsCalculator: LifeStatsCalculator,
     private val authRepository: AuthRepository,
     private val syncRepository: SyncRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -98,5 +106,34 @@ class ProfileViewModel @Inject constructor(
     /** Ends the session. The local archive is kept on purpose. */
     fun signOut() {
         viewModelScope.launch { authRepository.signOut() }
+    }
+
+    fun requestDeleteLocalData() {
+        _state.update { it.copy(wipeConfirmationVisible = true) }
+    }
+
+    fun cancelDeleteLocalData() {
+        _state.update { it.copy(wipeConfirmationVisible = false) }
+    }
+
+    /**
+     * Destroys the local archive and ends the session.
+     *
+     * Irreversible, so it only runs from the confirmation, and the summary of
+     * what went is kept on screen afterwards: "everything is gone" is not the
+     * same information as "412 records and 38 files are gone".
+     */
+    fun confirmDeleteLocalData() {
+        val userId = authRepository.currentUserId.value ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(wipeConfirmationVisible = false, isWiping = true) }
+            val summary = userRepository.deleteLocalData(userId)
+            authRepository.signOut()
+            _state.update { it.copy(isWiping = false, wipeSummary = summary, stats = null, peopleCount = 0) }
+        }
+    }
+
+    fun dismissWipeSummary() {
+        _state.update { it.copy(wipeSummary = null) }
     }
 }
