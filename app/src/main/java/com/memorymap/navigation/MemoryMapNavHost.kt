@@ -6,8 +6,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.memorymap.ui.common.PhaseNote
+import com.memorymap.ui.diary.CalendarScreen
 import com.memorymap.ui.diary.DiaryHomeScreen
+import com.memorymap.ui.diary.EntryEditorScreen
 import com.memorymap.ui.diary.MonthScreen
 import com.memorymap.ui.diary.WeekScreen
 import com.memorymap.ui.diary.YearScreen
@@ -83,10 +84,6 @@ fun MemoryMapNavHost(
             }),
         ) { MemoryEditorScreen(navController) }
 
-        // The diary event editor is built in Phase 4; the destination exists now
-        // so the quick-add sheet can link to it.
-
-
         composable(
             route = Routes.ENTRY_EDITOR,
             arguments = listOf(
@@ -96,17 +93,10 @@ fun MemoryMapNavHost(
                     defaultValue = ""
                 },
             ),
-        ) { EditorPlaceholder(phase = "Phase 4") }
-    }
-}
+        ) { EntryEditorScreen(navController) }
 
-/**
- * Stands in for the diary event editor. It says which phase delivers the form
- * instead of pretending to save anything.
- */
-@Composable
-private fun EditorPlaceholder(phase: String) {
-    PhaseNote(phase = phase)
+        composable(Routes.CALENDAR) { CalendarScreen(navController) }
+    }
 }
 
 /**

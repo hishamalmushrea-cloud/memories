@@ -6,6 +6,33 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added — Phase 4: Diary
+
+- Diary event CRUD. A day's event now has a real editor: title, details, date,
+  clock time and an optional emotion. Tapping an event on the day screen opens
+  it, and deleting it keeps a tombstone for the next sync.
+- The life timeline tab, which was a placeholder. Diary events and memories are
+  merged into one chronological stream, newest day first; inside a day the timed
+  events run morning to evening and the day's memories follow.
+- The timeline reads a bounded window (60 days) and grows a window at a time on
+  request, so a ten-year archive is never loaded all at once.
+- The calendar browser on the previously dead `calendar` route: move between
+  months and open any day. It reuses the month grid, so a dot means the same
+  thing in both places.
+- `TimelineBuilder`, a pure domain use case for the merge and ordering rules, so
+  they are tested on the JVM with no database and no Android.
+- `DiaryRepository.getEntry` and `MemoryRepository.watchBetween`, the two reads
+  the editor and the timeline window needed.
+- Tests: `TimelineBuilderTest` (ordering, grouping, tombstones, window bounds),
+  `EntryEditorViewModelTest` and `TimelineViewModelTest`.
+
+### Changed — Phase 4
+
+- The month calendar grid moved to a shared `MonthCalendarGrid` used by both the
+  month page and the calendar browser, instead of being drawn twice.
+- Deleting an event on the day screen is now an explicit control, since the row
+  itself opens the editor.
+
 ### Added — Phase 3: Memories
 
 - Memory CRUD: create, read, update and soft-delete from the memories tab, with
@@ -103,6 +130,6 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Explicitly not in this phase
 
 The following are placeholders that state which phase implements them instead of
-showing fake data: the diary event editor (Phase 4), the map and nearby
-(Phase 5), the sync upload pipeline (Phase 6), search/people/places/timeline
-filters (Phase 7), and backup export/import (Phase 8).
+showing fake data: the map and nearby (Phase 5), the sync upload pipeline
+(Phase 6), search/people/places filters (Phase 7), and backup export/import
+(Phase 8).

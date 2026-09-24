@@ -144,4 +144,29 @@
     <string name="media_type_photo">Photo</string>
     <string name="media_type_audio">Recording</string>
     <string name="media_type_video">Video</string>
+    <!-- Diary: event editor -->
+    <string name="entry_editor_new">New event</string>
+    <string name="entry_editor_edit">Edit event</string>
+    <string name="entry_field_title">What happened?</string>
+    <string name="entry_field_text">Details</string>
+    <string name="entry_field_emotion">Emotion</string>
+    <string name="entry_emotion_optional">The emotion is optional; tap it again to clear it.</string>
+    <string name="entry_pick_time">Pick a time</string>
+    <string name="entry_delete_title">Delete event</string>
+    <string name="entry_delete_body">%1$s will be removed from this day.</string>
+    <string name="entry_error_title">Describe the event</string>
+    <string name="entry_error_save">The event could not be saved</string>
+
+    <!-- Life timeline -->
+    <string name="timeline_empty_title">The timeline is empty</string>
+    <string name="timeline_empty_body">Your diary events and memories appear here, newest first.</string>
+    <string name="timeline_load_earlier">Show earlier days</string>
+    <string name="timeline_day_count">%1$d items</string>
+
+    <!-- Calendar -->
+    <string name="diary_calendar">Calendar</string>
+    <string name="diary_calendar_hint">Browse months and open any day</string>
+    <string name="calendar_previous_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_go_to_today">Go to today</string>
 </resources>

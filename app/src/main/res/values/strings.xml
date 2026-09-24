@@ -145,4 +145,29 @@
     <string name="media_type_photo">صورة</string>
     <string name="media_type_audio">تسجيل صوتي</string>
     <string name="media_type_video">فيديو</string>
+    <!-- Diary: event editor -->
+    <string name="entry_editor_new">حدث جديد</string>
+    <string name="entry_editor_edit">تعديل الحدث</string>
+    <string name="entry_field_title">ماذا حدث؟</string>
+    <string name="entry_field_text">التفاصيل</string>
+    <string name="entry_field_emotion">الشعور</string>
+    <string name="entry_emotion_optional">الشعور اختياري؛ اضغط عليه مرة أخرى لإزالته.</string>
+    <string name="entry_pick_time">اختر الوقت</string>
+    <string name="entry_delete_title">حذف الحدث</string>
+    <string name="entry_delete_body">سيُحذف «%1$s» من هذا اليوم.</string>
+    <string name="entry_error_title">اكتب وصفًا للحدث</string>
+    <string name="entry_error_save">تعذّر حفظ الحدث</string>
+
+    <!-- Life timeline -->
+    <string name="timeline_empty_title">الخط الزمني فارغ</string>
+    <string name="timeline_empty_body">تظهر هنا أحداث يومياتك وذكرياتك مرتبة من الأحدث.</string>
+    <string name="timeline_load_earlier">عرض أيام أقدم</string>
+    <string name="timeline_day_count">%1$d عنصر</string>
+
+    <!-- Calendar -->
+    <string name="diary_calendar">التقويم</string>
+    <string name="diary_calendar_hint">تصفّح الشهور وافتح أي يوم</string>
+    <string name="calendar_previous_month">الشهر السابق</string>
+    <string name="calendar_next_month">الشهر التالي</string>
+    <string name="calendar_go_to_today">الذهاب إلى اليوم</string>
 </resources>

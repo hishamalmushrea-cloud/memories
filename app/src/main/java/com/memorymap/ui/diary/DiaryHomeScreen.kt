@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material3.Card
@@ -71,7 +72,7 @@ fun DiaryHomeScreen(navController: NavHostController) {
             onClick = { navController.navigate(Routes.day(DiaryTime.isoDate(today.minusDays(1)))) },
         )
         DiaryJumpCard(
-            icon = Icons.Outlined.DateRange,
+            icon = Icons.Outlined.Schedule,
             title = stringResource(R.string.diary_this_week),
             subtitle = DiaryTime.weekLabel(today, locale),
             onClick = { navController.navigate(Routes.week(DiaryTime.isoDate(today))) },
@@ -87,6 +88,12 @@ fun DiaryHomeScreen(navController: NavHostController) {
             title = stringResource(R.string.diary_this_year),
             subtitle = today.year.toString(),
             onClick = { navController.navigate(Routes.year(today.year)) },
+        )
+        DiaryJumpCard(
+            icon = Icons.Outlined.DateRange,
+            title = stringResource(R.string.diary_calendar),
+            subtitle = stringResource(R.string.diary_calendar_hint),
+            onClick = { navController.navigate(Routes.CALENDAR) },
         )
     }
 }

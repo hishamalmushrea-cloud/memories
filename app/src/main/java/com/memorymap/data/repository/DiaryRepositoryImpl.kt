@@ -35,6 +35,8 @@ class DiaryRepositoryImpl @Inject constructor(
             rows.map { it.toDomain() }
         }
 
+    override suspend fun getEntry(id: String): DailyEntry? = entryDao.getById(id)?.toDomain()
+
     override suspend fun saveEntry(entry: DailyEntry, personIds: List<String>, placeIds: List<String>) {
         val existing = entryDao.getById(entry.id)
         val toWrite = entry.copy(

@@ -17,6 +17,8 @@ interface MemoryRepository {
     fun watchOne(id: String): Flow<Memory?>
     fun watchLocated(userId: String): Flow<List<Memory>>
     fun watchByDate(userId: String, date: LocalDate): Flow<List<Memory>>
+    /** Inclusive date range, so the timeline can read a bounded window. */
+    fun watchBetween(userId: String, from: LocalDate, to: LocalDate): Flow<List<Memory>>
     suspend fun getById(id: String): Memory?
     suspend fun save(memory: Memory, personIds: List<String> = emptyList(), placeIds: List<String> = emptyList())
     suspend fun delete(id: String)
@@ -29,6 +31,8 @@ interface DiaryRepository {
     fun watchDay(userId: String, date: LocalDate): Flow<List<DailyEntry>>
     fun watchRange(userId: String, from: LocalDate, to: LocalDate): Flow<List<DailyEntry>>
     fun watchDayCounts(userId: String, from: LocalDate, to: LocalDate): Flow<List<DayContentCounts>>
+    /** One event, used by the editor to load what it is editing. */
+    suspend fun getEntry(id: String): DailyEntry?
     suspend fun saveEntry(entry: DailyEntry, personIds: List<String> = emptyList(), placeIds: List<String> = emptyList())
     suspend fun deleteEntry(id: String)
     suspend fun getDiaryNote(userId: String, date: LocalDate): String?

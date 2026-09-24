@@ -1,5 +1,6 @@
 package com.memorymap.ui.diary
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Schedule
@@ -18,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -93,7 +96,15 @@ fun DayScreen(
             )
         } else {
             state.entries.forEach { entry ->
-                EventRow(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+                EventRow(
+                    entry = entry,
+                    onClick = {
+                        navController.navigate(
+                            Routes.entryEditor(DiaryTime.isoDate(state.date), entry.id),
+                        )
+                    },
+                    onDelete = { viewModel.deleteEntry(entry.id) },
+                )
             }
         }
 
@@ -144,10 +155,11 @@ private fun DayNoteCard(
 }
 
 @Composable
-private fun EventRow(entry: DailyEntry, onDelete: () -> Unit) {
+private fun EventRow(entry: DailyEntry, onClick: () -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -167,6 +179,12 @@ private fun EventRow(entry: DailyEntry, onDelete: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Outlined.Delete,
+                contentDescription = stringResource(R.string.action_delete),
+            )
         }
     }
 }

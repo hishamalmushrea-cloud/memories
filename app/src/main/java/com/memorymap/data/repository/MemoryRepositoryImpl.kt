@@ -34,6 +34,10 @@ class MemoryRepositoryImpl @Inject constructor(
     override fun watchByDate(userId: String, date: LocalDate): Flow<List<Memory>> =
         memoryDao.watchByDate(userId, date.toString()).map { rows -> rows.map { it.toDomain() } }
 
+    override fun watchBetween(userId: String, from: LocalDate, to: LocalDate): Flow<List<Memory>> =
+        memoryDao.watchBetween(userId, from.toString(), to.toString())
+            .map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun getById(id: String): Memory? = memoryDao.getById(id)?.toDomain()
 
     override suspend fun save(memory: Memory, personIds: List<String>, placeIds: List<String>) {
