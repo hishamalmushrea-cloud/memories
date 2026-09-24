@@ -15,6 +15,7 @@ import com.memorymap.data.remote.MemoryPlaceLink
 import com.memorymap.data.remote.MemoryRecord
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.testing.RecordingSyncApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -45,7 +46,7 @@ class LinkSyncTest {
     private val stamp = "2024-01-01T00:00:00"
 
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             MemoryMapDatabase::class.java,
