@@ -85,7 +85,7 @@ class BackupRepositoryImplTest {
     }
 
     @Test
-    fun `a document written through the archive lands in the folder`() = runTest {
+    fun `a document written through the archive keeps the name the format defines`() = runTest {
         val archive = DirectoryArchive(appContext, json, archiveDir)
         val root = archive.root(treeUri)
         val wrote = archive.writeManifest(
@@ -113,6 +113,18 @@ class BackupRepositoryImplTest {
         // Created even with no attachments in it, so the folder on disk always
         // matches the documented shape.
         assertTrue(File(archiveDir, BackupLayout.MEDIA_DIR).isDirectory)
+    }
+
+    @Test
+    fun `an export writes the documents under the names the format defines`() = runTest {
+        seedArchive()
+
+        repository.export(userId, treeUri)
+
+        // The reader looks documents up by these names, so a provider that
+        // renames what it creates produces an archive that cannot be restored.
+        val names = archiveDir.listFiles()?.map { it.name }?.toSet() ?: emptySet()
+        assertTrue("archive holds $names", names.containsAll(BackupLayout.JSON_FILES))
     }
 
     @Test

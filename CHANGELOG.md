@@ -6,14 +6,26 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Backups were written but could never be read back. `DocumentFile.createFile`
+  appends the extension of the MIME type it is given, unconditionally, so
+  asking for `manifest.json` with `application/json` produced
+  `manifest.json.json`, and asking for an attachment with
+  `application/octet-stream` produced `name.jpg.bin`. The reader looks
+  documents up by the names the format defines, so every export was an archive
+  that could not be inspected or restored. Documents are now created with a
+  MIME type that has no extension, and the created name is checked afterwards,
+  because a provider is free to adjust it - a rename now fails the write and is
+  reported, instead of succeeding quietly and producing an unusable archive.
+  This was found by the first tests the backup repository has ever had.
+
 ### Added
 
 - A build guard that fails in under a second when a plain function calls a
   suspend DAO method. Kotlin rejects that at compile time, which meant the
   mistake cost a whole ten-minute build cycle to discover - three times over.
   It runs before Gradle now, so it reports itself immediately.
-
-### Added
 
 - Tests for the backup repository, which had none. They run against a real
   archive on a real disk: the one part that cannot run here is the Storage
@@ -23,8 +35,6 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   What they pin down is the rule an import exists to keep: it never overwrites
   a record this device edited more recently, and it never resurrects one the
   user deleted.
-
-### Added
 
 - The links between records and the people and places they mention now
   synchronise. A link carries no timestamp of its own, so there is nothing to

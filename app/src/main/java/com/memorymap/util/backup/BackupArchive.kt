@@ -26,7 +26,19 @@ import kotlinx.serialization.json.Json
  * is not a way to tell anyone.
  */
 @Singleton
-open class BackupArchive @Inject constructor(
+open /**
+ * A MIME type that no extension is registered against.
+ *
+ * `DocumentFile.createFile` appends the extension of whatever MIME type it is
+ * given, and it does so unconditionally - asking for `manifest.json` with
+ * `application/json` produces `manifest.json.json`. The names of the documents
+ * are the format, so anything that renames them makes an archive that is
+ * written and then cannot be read back. A MIME type with no extension is the
+ * only way to get the name through unchanged. See [createdNamed].
+ */
+private const val MIME_WITHOUT_EXTENSION = "application/x-memorymap"
+
+class BackupArchive @Inject constructor(
     @ApplicationContext private val context: Context,
     private val json: Json,
 ) {
@@ -99,8 +111,33 @@ open class BackupArchive @Inject constructor(
         // A re-export would otherwise stack `name (1)` documents on top of each
         // other and quietly double the archive.
         mediaDir.findFile(name)?.delete()
-        val target = mediaDir.createFile("application/octet-stream", name) ?: return false
+        // The attachment's real type is recorded in media.json; the document only
+        // has to keep the name the archive refers to it by.
+        val target = createdNamed(mediaDir, name) ?: return false
         return copy(Uri.fromFile(source), target.uri)
+    }
+
+    /**
+     * Creates a document whose name is exactly [name], or null if it could not.
+     *
+     * The name is checked rather than assumed: a provider is free to adjust what
+     * it creates, and an archive whose documents are called something else is an
+     * archive that cannot be restored. A rename is reported as a failed write,
+     * which the user sees, rather than as a silent one, which they would not.
+     */
+    private fun createdNamed(root: DocumentFile, name: String): DocumentFile? {
+        val file = root.createFile(MIME_WITHOUT_EXTENSION, name)
+        if (file == null) {
+            MmLog.e("Could not create $name in the archive", null)
+            return null
+        }
+        val actual = file.name
+        if (actual != name) {
+            file.delete()
+            MmLog.e("The backup folder renamed $name to $actual", null)
+            return null
+        }
+        return file
     }
 
     /** Copies a file out of the archive to a path on this device. */
@@ -137,11 +174,7 @@ open class BackupArchive @Inject constructor(
         // Replaced rather than merged, so an export never leaves a stale document
         // behind that a later import would read.
         root.findFile(name)?.delete()
-        val file = root.createFile("application/json", name)
-        if (file == null) {
-            MmLog.e("Could not create $name in the archive", null)
-            return false
-        }
+        val file = createdNamed(root, name) ?: return false
         return runCatching {
             context.contentResolver.openOutputStream(file.uri)?.use { output ->
                 output.write(content.toByteArray(Charsets.UTF_8))
