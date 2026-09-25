@@ -71,6 +71,9 @@ jobs:
       - name: Check that no plain function calls a suspend DAO method
         run: python3 ci/check-suspend-calls.py
 
+      - name: Check that no comment separates a modifier from what it modifies
+        run: python3 ci/check-detached-comments.py
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 

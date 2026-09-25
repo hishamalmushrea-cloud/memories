@@ -14,6 +14,18 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
+ * A MIME type that no extension is registered against.
+ *
+ * `DocumentFile.createFile` appends the extension of whatever MIME type it is
+ * given, and it does so unconditionally - asking for `manifest.json` with
+ * `application/json` produces `manifest.json.json`. The names of the documents
+ * are the format, so anything that renames them makes an archive that is
+ * written and then cannot be read back. A MIME type with no extension is the
+ * only way to get the name through unchanged. See [createdNamed].
+ */
+private const val MIME_WITHOUT_EXTENSION = "application/x-memorymap"
+
+/**
  * Reads and writes the backup folder through the Storage Access Framework.
  *
  * The user picks the folder, so the app never needs a storage permission and the
@@ -26,19 +38,7 @@ import kotlinx.serialization.json.Json
  * is not a way to tell anyone.
  */
 @Singleton
-open /**
- * A MIME type that no extension is registered against.
- *
- * `DocumentFile.createFile` appends the extension of whatever MIME type it is
- * given, and it does so unconditionally - asking for `manifest.json` with
- * `application/json` produces `manifest.json.json`. The names of the documents
- * are the format, so anything that renames them makes an archive that is
- * written and then cannot be read back. A MIME type with no extension is the
- * only way to get the name through unchanged. See [createdNamed].
- */
-private const val MIME_WITHOUT_EXTENSION = "application/x-memorymap"
-
-class BackupArchive @Inject constructor(
+open class BackupArchive @Inject constructor(
     @ApplicationContext private val context: Context,
     private val json: Json,
 ) {

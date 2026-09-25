@@ -27,6 +27,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   mistake cost a whole ten-minute build cycle to discover - three times over.
   It runs before Gradle now, so it reports itself immediately.
 
+- A second build guard, for a comment that separates a declaration's modifiers
+  from the declaration. It comes from anchoring a patch on a substring of a
+  declaration and splicing a documented block in front of it, which reads as
+  valid code and is rejected by the compiler a build cycle later - the same
+  shape of mistake the first guard exists for. Both run before Gradle.
+
 - Tests for the backup repository, which had none. They run against a real
   archive on a real disk: the one part that cannot run here is the Storage
   Access Framework grant, so `BackupArchive.root` became a seam and the tests
