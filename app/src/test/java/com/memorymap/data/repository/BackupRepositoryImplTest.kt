@@ -13,7 +13,9 @@ import com.memorymap.data.local.entities.PlaceEntity
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.BackupOutcome
 import com.memorymap.util.backup.BackupArchive
+import com.memorymap.util.backup.BackupCounts
 import com.memorymap.util.backup.BackupLayout
+import com.memorymap.util.backup.BackupManifest
 import java.io.File
 import java.time.LocalDateTime
 import kotlinx.coroutines.test.runTest
@@ -45,6 +47,7 @@ class BackupRepositoryImplTest {
     private lateinit var db: MemoryMapDatabase
     private lateinit var repository: BackupRepositoryImpl
     private lateinit var archiveDir: File
+    private lateinit var appContext: Context
 
     private val userId = "user-1"
     private val otherUser = "user-2"
@@ -59,6 +62,7 @@ class BackupRepositoryImplTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        appContext = context
         db = Room.inMemoryDatabaseBuilder(context, MemoryMapDatabase::class.java)
             .allowMainThreadQueries()
             .build()
@@ -78,6 +82,22 @@ class BackupRepositoryImplTest {
     fun tearDown() {
         db.close()
         archiveDir.deleteRecursively()
+    }
+
+    @Test
+    fun `a document written through the archive lands in the folder`() = runTest {
+        val archive = DirectoryArchive(appContext, json, archiveDir)
+        val root = archive.root(treeUri)
+        val wrote = archive.writeManifest(
+            root,
+            BackupManifest(appVersion = "test", createdAtEpochMs = 1L, counts = BackupCounts(memories = 2)),
+        )
+
+        val contents = archiveDir.listFiles()?.map { it.name }?.sorted()
+        val detail = "wrote=$wrote dirExists=${archiveDir.exists()} dir=${archiveDir.path} " +
+            "contents=$contents rootUri=${root.uri} readBack=${archive.readManifest(root)}"
+        assertTrue(detail, wrote)
+        assertEquals(detail, listOf(BackupLayout.MANIFEST), contents)
     }
 
     @Test
