@@ -10,8 +10,10 @@ import com.memorymap.data.local.entities.MediaEntity
 import com.memorymap.data.local.entities.MemoryEntity
 import com.memorymap.data.local.entities.PersonEntity
 import com.memorymap.data.local.entities.PlaceEntity
+import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.BackupOutcome
+import com.memorymap.util.MediaStore
 import com.memorymap.util.backup.BackupArchive
 import com.memorymap.util.backup.BackupCounts
 import com.memorymap.util.backup.BackupLayout
@@ -22,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -204,7 +207,10 @@ class BackupRepositoryImplTest {
         val outcome = repository.import(userId, treeUri) as BackupOutcome.Imported
 
         assertEquals("نسخة أحدث محليًا", db.memoryDao().getById("m1")!!.title)
-        assertEquals(1, outcome.skipped)
+        // Nothing was replaced at all: this device already holds every row the
+        // archive names, four of them in exactly the archived state and m1 newer.
+        assertEquals(BackupCounts(), outcome.counts)
+        assertEquals(5, outcome.skipped)
     }
 
     @Test
@@ -221,15 +227,19 @@ class BackupRepositoryImplTest {
     }
 
     @Test
-    fun `an import takes an archived record this device has never seen`() = runTest {
+    fun `an import adds a record this device has never seen and leaves the rest`() = runTest {
         seedArchive()
         repository.export(userId, treeUri)
+        // Only the memories are gone. The event, the person and the place are
+        // still here, which is what makes this a partial restore.
         db.memoryDao().hardDeleteAll(userId)
 
         val outcome = repository.import(userId, treeUri) as BackupOutcome.Imported
 
         assertEquals(2, outcome.counts.memories)
-        assertEquals(0, outcome.skipped)
+        assertEquals("رحلة إلى إب", db.memoryDao().getById("m1")!!.title)
+        // The three rows that were already here were not touched.
+        assertEquals(3, outcome.skipped)
     }
 
     @Test
@@ -255,6 +265,45 @@ class BackupRepositoryImplTest {
         assertEquals(2, outcome.manifest.counts.memories)
         assertEquals(0, outcome.mediaCopied)
         assertEquals(1, outcome.mediaMissing)
+    }
+
+    @Test
+    fun `an attachment survives a round trip through the archive`() = runTest {
+        seedArchive()
+        // A real file on this device, as an attachment would be.
+        val original = File(MediaStore.dir(appContext, MediaType.PHOTO), "m1_original.jpg")
+        original.writeBytes(byteArrayOf(1, 2, 3, 4, 5))
+        db.mediaDao().upsert(
+            MediaEntity(
+                id = "media-1",
+                ownerType = "MEMORY",
+                ownerId = "m1",
+                mediaType = MediaType.PHOTO.name,
+                uri = original.absolutePath,
+                mimeType = "image/jpeg",
+                createdAt = stamp,
+                syncStatus = SyncStatus.SYNCED.name,
+            ),
+        )
+
+        val outcome = repository.export(userId, treeUri) as BackupOutcome.Exported
+
+        assertEquals(1, outcome.mediaCopied)
+        assertEquals(1, outcome.manifest.counts.photos)
+
+        // The attachment and its file are gone from this device; the archive is not.
+        db.mediaDao().deleteById("media-1")
+        original.delete()
+        assertFalse("the original should be gone", original.exists())
+
+        val imported = repository.import(userId, treeUri) as BackupOutcome.Imported
+
+        assertEquals(1, imported.mediaRestored)
+        val restored = db.mediaDao().getById("media-1")
+        assertNotNull("the row did not come back", restored)
+        val file = File(restored!!.uri)
+        assertTrue("${restored.uri} was not restored", file.exists())
+        assertEquals(5L, file.length())
     }
 
     private suspend fun seedArchive() {

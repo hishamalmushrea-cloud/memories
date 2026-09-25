@@ -20,9 +20,10 @@ sealed interface BackupOutcome {
     ) : BackupOutcome
 
     /**
-     * [skipped] counts rows the archive held that this device already had a
-     * newer copy of, or had deliberately deleted. An import is a merge, never a
-     * wipe, so those rows survive.
+     * [skipped] counts rows the archive named that were left as they were:
+     * this device already held a newer copy, held exactly the same version, or
+     * had deliberately deleted the record. An import is a merge, never a wipe,
+     * so all of those rows survive.
      */
     data class Imported(
         val counts: BackupCounts,
