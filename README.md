@@ -244,8 +244,8 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
-استعلامات Room، ترتيب الاستيراد، قيود المتجر، نصوص الموارد، توازن الأقواس) →
-gradlew help → testDebugUnitTest → lintDebug → assembleDebug →
+استعلامات Room، ترتيب الاستيراد، قيود المتجر، نصوص الموارد، توازن الأقواس،
+إرجاع القيم) → gradlew help → testDebugUnitTest → lintDebug → assembleDebug →
 assembleRelease + bundleRelease
 ```
 
@@ -253,6 +253,12 @@ assembleRelease + bundleRelease
 
 عند الفشل ينشر CI تقريرًا كـ**Issue** في المستودع (لأن سجلات GitHub مخزّنة على
 نطاق لا يمكن لكل الشبكات الوصول إليه).
+
+> ملاحظة: دالة بجسم كتلة (`{ … }`) لا تُعيد قيمة آخر تعبير فيها؛ يلزمها `return`
+> صريح. نسيانه يعطي خطأ ترجمة واحدًا («Missing return statement») بعد دفع كامل،
+> ولهذا يقرأ `ci/check-returns.py` كل دالة معلَن لها نوع إرجاع غير `Unit` ويتأكد
+> أن آخر جملة فيها تُخرج من الدالة (`return`/`throw`/`error`/`TODO`/`if`/`when`…).
+> وهو يعدّ ما فحصه ويكتب العدد، لأن مُطابِقًا لا يرى شيئًا ينجح في كل اختبار.
 
 > ملاحظة: نصوص الواجهة تُفحص قبل Gradle بـ`ci/check-strings.py`، لأنه لا شيء
 > آخر يقرأ XML الموارد قبل aapt2: كل لغة تحمل أسماء الموارد نفسها، والجمع في

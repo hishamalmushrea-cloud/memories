@@ -181,17 +181,20 @@ class SupabaseAuthRepository @Inject constructor(
         // build must say so instead of reporting a deletion it did not make.
         if (!supabaseProvider.isAvailable) return AuthRepository.Deletion.NOT_CONFIGURED
 
-        runCatching { accountApi.deleteAccount() }.onFailure { error ->
-            MmLog.e("Deleting the account failed", error)
-        }.onSuccess {
-            // Best effort, and last: the account no longer exists, so a session
-            // that cannot be cleared here and now is a stale token, not data.
-            runCatching { supabaseProvider.get()?.auth?.signOut(SignOutScope.LOCAL) }
-                .onFailure { MmLog.w("The session could not be cleared after deleting the account", it) }
-            onSignedOut()
-        }.fold(
-            onSuccess = { AuthRepository.Deletion.DELETED },
-            onFailure = { AuthRepository.Deletion.FAILED },
+        return runCatching { accountApi.deleteAccount() }.fold(
+            onSuccess = {
+                // Best effort, and last: the account no longer exists, so a
+                // session that cannot be cleared here and now is a stale token,
+                // not data.
+                runCatching { supabaseProvider.get()?.auth?.signOut(SignOutScope.LOCAL) }
+                    .onFailure { MmLog.w("The session could not be cleared after deleting the account", it) }
+                onSignedOut()
+                AuthRepository.Deletion.DELETED
+            },
+            onFailure = { error ->
+                MmLog.e("Deleting the account failed", error)
+                AuthRepository.Deletion.FAILED
+            },
         )
     }
 

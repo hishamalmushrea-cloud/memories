@@ -24,7 +24,6 @@ import com.memorymap.data.remote.AccountApi
 import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.SyncState
 import com.memorymap.domain.model.WipeSummary
-import com.memorymap.domain.model.User
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
 import com.memorymap.domain.repository.AuthRepository

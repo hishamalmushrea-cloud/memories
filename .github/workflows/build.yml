@@ -87,6 +87,9 @@ jobs:
       - name: Check every Kotlin file is structurally balanced
         run: python3 ci/check-balance.py
 
+      - name: Check every function that declares a value returns it
+        run: python3 ci/check-returns.py
+
       - name: Check the store listing stays inside the store limits
         run: python3 ci/check-store-metadata.py
 

@@ -35,6 +35,14 @@ class SupabaseAuthRepositoryTest {
     private lateinit var db: MemoryMapDatabase
     private lateinit var repository: SupabaseAuthRepository
 
+    /**
+     * The two server-side deletions, recorded rather than sent.
+     *
+     * Nothing here reaches a server: the unconfigured tests below must be able to
+     * prove that a deletion with no project never asks the network for anything.
+     */
+    private val accountApi = RecordingAccountApi()
+
     @Before
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(
@@ -45,7 +53,7 @@ class SupabaseAuthRepositoryTest {
         // An unconfigured provider, so isCloudConfigured is false and every call
         // takes the local path.
         val provider = SupabaseClientProvider(SupabaseConfig(url = "", anonKey = ""), MemorySessionManager())
-        repository = SupabaseAuthRepository(provider, db)
+        repository = SupabaseAuthRepository(provider, db, accountApi)
     }
 
     @After
@@ -82,7 +90,7 @@ class SupabaseAuthRepositoryTest {
 
         // Simulate a fresh repository over the same database, as after a restart.
         val provider = SupabaseClientProvider(SupabaseConfig("", ""), MemorySessionManager())
-        val restored = SupabaseAuthRepository(provider, db)
+        val restored = SupabaseAuthRepository(provider, db, accountApi)
         restored.restoreSession()
 
         assertEquals(LOCAL_USER_ID, restored.currentUserId.value)
@@ -159,8 +167,10 @@ class SupabaseAuthRepositoryTest {
         val result = repository.deleteAccount()
 
         assertEquals(AuthRepository.Deletion.NOT_CONFIGURED, result)
-        // The claim would be false here: there is no server account to delete,
-        // and the offline account is the user's only archive.
+        // The server was never asked, and the claim would be false here: there is
+        // no server account to delete, and the offline account is the user's only
+        // archive.
+        assertEquals(0, accountApi.accountDeletions)
         assertEquals(LOCAL_USER_ID, repository.currentUserId.value)
         assertEquals(LOCAL_USER_ID, db.userDao().getById(LOCAL_USER_ID)?.id)
     }

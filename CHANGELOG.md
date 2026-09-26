@@ -21,6 +21,19 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- `SupabaseAuthRepository.deleteAccount` declared `AuthRepository.Deletion` and
+  ended with a `runCatching { ... }.fold(...)` chain, which reads as a return and
+  is not one: in a block body Kotlin throws the value of the last statement away.
+  The compiler said one line - `Missing return statement` - after a push, and
+  `ci/check-returns.py` now finds that shape before Gradle runs, by walking the
+  last statement of every function that declares a non-`Unit` value back to its
+  own beginning. It is deliberately quiet about anything it cannot prove: a
+  `throw` anywhere in the body, a `Nothing` return type, or a body ending in a
+  control-flow construct all pass, because a guard that fires on valid code costs
+  more than the mistake it prevents. It counts what it examined and fails if that
+  number is implausibly small - its first version matched nothing at all, and
+  passed.
+
 - Two English strings contained an unescaped apostrophe (`device's`), which aapt2
   refuses with "Invalid unicode escape sequence in string" - naming neither the
   character nor the reason, and failing the resource merge, and with it the unit
