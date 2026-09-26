@@ -75,12 +75,16 @@ object JpegMetadata {
      * colour profile in APP2, because dropping that would change how the photo
      * looks. The scan itself is copied over untouched, so no pixel can move.
      *
+     * A file with no scan is refused rather than rebuilt: there is no picture to
+     * keep, and rewriting a corrupt file would only make it differently corrupt.
+     *
      * The caller is responsible for having checked the orientation first. On a
      * file whose pixels are not upright, the Exif block is the only record of
      * which way up they go, and removing it would leave the photo on its side.
      */
     fun stripMetadata(bytes: ByteArray): ByteArray? {
         val layout = scan(bytes) ?: return null
+        if (!layout.hasScan) return null
         if (layout.segments.none { isMetadata(it.marker) }) return null
 
         val output = ByteArrayOutputStream(bytes.size)
@@ -152,8 +156,12 @@ private class Segment(val marker: Int, val start: Int, val length: Int) {
     }
 }
 
-/** The marker segments before the scan, and where the scan begins. */
-private class Layout(val segments: List<Segment>, val scanStart: Int)
+/**
+ * The marker segments before the scan, where the scan begins, and whether there
+ * is a scan at all: a file that runs from its header straight to an end marker
+ * is a header with no picture behind it.
+ */
+private class Layout(val segments: List<Segment>, val scanStart: Int, val hasScan: Boolean)
 
 /** TIFF is written in either byte order, and both are in the wild. */
 private enum class ByteOrder {
@@ -202,7 +210,8 @@ private fun scan(bytes: ByteArray): Layout? {
         when {
             // A fill byte: markers may be preceded by any number of them.
             marker == MARKER -> offset++
-            marker == SOS || marker == EOI -> return Layout(segments, offset)
+            marker == SOS -> return Layout(segments, offset, hasScan = true)
+            marker == EOI -> return Layout(segments, offset, hasScan = false)
             marker == TEM || marker in 0xD0..0xD7 -> offset += 2
             else -> {
                 if (offset + 4 > bytes.size) return null

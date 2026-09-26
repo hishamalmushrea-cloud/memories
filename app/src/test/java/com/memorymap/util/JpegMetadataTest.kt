@@ -188,6 +188,21 @@ class JpegMetadataTest {
     }
 
     @Test
+    fun `a file with metadata but no scan is not rebuilt`() {
+        // A header with no picture behind it. Nothing of the image can be lost
+        // because there is no image - but rewriting a corrupt file would only
+        // make it differently corrupt, so it is left alone as well.
+        val file = JpegFixtures.jpeg(
+            JpegFixtures.exif(1),
+            JpegFixtures.comment("nothing behind this"),
+            JpegFixtures.frame(width = 100, height = 80),
+        )
+
+        assertTrue(JpegMetadata.read(file)!!.metadata)
+        assertNull(JpegMetadata.stripMetadata(file))
+    }
+
+    @Test
     fun `a file that never reaches a scan or an end marker is refused`() {
         val file = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte(), 0x00, 0x02)
 

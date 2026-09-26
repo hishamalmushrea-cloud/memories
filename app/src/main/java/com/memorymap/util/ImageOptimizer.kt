@@ -3,6 +3,7 @@ package com.memorymap.util
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import androidx.core.graphics.scale
 import com.memorymap.domain.model.MediaType
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
@@ -127,7 +128,10 @@ class AndroidImageOptimizer @Inject constructor() : ImageOptimizer {
             if (width != null && height != null) {
                 val target = ImagePolicy.targetSize(width, height)
                 if (frame.width > target.first || frame.height > target.second) {
-                    val scaled = Bitmap.createScaledBitmap(frame, target.first, target.second, true)
+                    // The KTX wrapper over createScaledBitmap: it keeps the same
+                    // habit of handing back the instance it was given when the
+                    // size already matches, which is what the check below is for.
+                    val scaled = frame.scale(target.first, target.second, true)
                     if (scaled !== frame) frame.recycle()
                     frame = scaled
                 }
