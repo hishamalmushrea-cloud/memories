@@ -20,7 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,12 +98,17 @@ private fun WeekDayRow(
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    text = stringResource(R.string.week_events_count, counts?.entries ?: 0),
+                    text = pluralStringResource(
+                        R.plurals.week_events_count,
+                        counts?.entries ?: 0,
+                        counts?.entries ?: 0,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = stringResource(
-                        R.string.week_media_count,
+                    text = pluralStringResource(
+                        R.plurals.week_media_count,
+                        counts?.photos ?: 0,
                         counts?.photos ?: 0,
                         counts?.audio ?: 0,
                         counts?.videos ?: 0,

@@ -5,6 +5,7 @@ import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.memorymap.util.MmLog
 import java.io.File
@@ -52,7 +53,7 @@ open class BackupArchive @Inject constructor(
      * directory and still cover the writing, the reading and the merging.
      */
     open fun root(treeUri: String): DocumentFile? = runCatching {
-        DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
+        DocumentFile.fromTreeUri(context, treeUri.toUri())
     }.getOrNull()
 
     fun canWrite(root: DocumentFile): Boolean = root.exists() && root.canWrite()
@@ -114,7 +115,7 @@ open class BackupArchive @Inject constructor(
         // The attachment's real type is recorded in media.json; the document only
         // has to keep the name the archive refers to it by.
         val target = createdNamed(mediaDir, name) ?: return false
-        return copy(Uri.fromFile(source), target.uri)
+        return copy(source.toUri(), target.uri)
     }
 
     /**
@@ -143,7 +144,7 @@ open class BackupArchive @Inject constructor(
     /** Copies a file out of the archive to a path on this device. */
     fun copyFromArchive(source: DocumentFile, target: File): Boolean {
         target.parentFile?.mkdirs()
-        return copy(source.uri, Uri.fromFile(target))
+        return copy(source.uri, target.toUri())
     }
 
     private fun copy(from: Uri, to: Uri): Boolean = runCatching {

@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -142,7 +143,7 @@ private fun TimelineDayHeader(day: TimelineDay, dateText: String) {
     Column(Modifier.padding(top = 12.dp, bottom = 4.dp)) {
         Text(dateText, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         Text(
-            text = stringResource(R.string.timeline_day_count, day.rows.size),
+            text = pluralStringResource(R.plurals.timeline_day_count, day.rows.size, day.rows.size),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,7 +66,15 @@ fun MonthScreen(
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            text = stringResource(R.string.month_totals, totals.entries, totals.photos, totals.videos, totals.audio, totals.memories),
+            text = pluralStringResource(
+                R.plurals.month_totals,
+                totals.entries,
+                totals.entries,
+                totals.photos,
+                totals.videos,
+                totals.audio,
+                totals.memories,
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

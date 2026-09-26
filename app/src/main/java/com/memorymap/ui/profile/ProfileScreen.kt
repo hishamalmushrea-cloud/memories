@@ -250,8 +250,9 @@ fun ProfileScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        stringResource(
-                            R.string.wipe_done_body,
+                        pluralStringResource(
+                            R.plurals.wipe_done_body,
+                            summary.totalRecords,
                             summary.totalRecords,
                             summary.mediaFiles,
                         ),

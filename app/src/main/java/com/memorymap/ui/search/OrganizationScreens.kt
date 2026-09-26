@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,8 +85,9 @@ fun PeopleScreen(
                             Column(Modifier.weight(1f)) {
                                 Text(person.name, style = MaterialTheme.typography.bodyLarge)
                                 Text(
-                                    text = stringResource(
-                                        R.string.reference_record_count,
+                                    text = pluralStringResource(
+                                        R.plurals.reference_record_count,
+                                        state.personCounts[person.id] ?: 0,
                                         state.personCounts[person.id] ?: 0,
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
@@ -175,8 +177,9 @@ fun PlacesScreen(
                                 Text(
                                     text = listOf(
                                         formatCoordinates(place.location),
-                                        stringResource(
-                                            R.string.reference_record_count,
+                                        pluralStringResource(
+                                            R.plurals.reference_record_count,
+                                            state.placeCounts[place.id] ?: 0,
                                             state.placeCounts[place.id] ?: 0,
                                         ),
                                     ).joinToString("  ·  "),

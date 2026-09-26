@@ -40,12 +40,40 @@
     <string name="on_this_day">في مثل هذا اليوم</string>
 
     <!-- Week / month / year -->
-    <string name="week_events_count">%1$d حدث</string>
-    <string name="week_media_count">%1$d صورة · %2$d تسجيل · %3$d فيديو</string>
+    <plurals name="week_events_count">
+        <item quantity="zero">لا أحداث</item>
+        <item quantity="one">حدث واحد</item>
+        <item quantity="two">حدثان</item>
+        <item quantity="few">%1$d أحداث</item>
+        <item quantity="many">%1$d حدثًا</item>
+        <item quantity="other">%1$d حدث</item>
+    </plurals>
+    <plurals name="week_media_count">
+        <item quantity="zero">لا صور · %2$d تسجيل · %3$d فيديو</item>
+        <item quantity="one">صورة واحدة · %2$d تسجيل · %3$d فيديو</item>
+        <item quantity="two">صورتان · %2$d تسجيل · %3$d فيديو</item>
+        <item quantity="few">%1$d صور · %2$d تسجيل · %3$d فيديو</item>
+        <item quantity="many">%1$d صورة · %2$d تسجيل · %3$d فيديو</item>
+        <item quantity="other">%1$d صورة · %2$d تسجيل · %3$d فيديو</item>
+    </plurals>
     <string name="month_recorded_days">أيام مسجّلة: %1$d</string>
-    <string name="month_totals">%1$d حدث · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</string>
+    <plurals name="month_totals">
+        <item quantity="zero">لا أحداث · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</item>
+        <item quantity="one">حدث واحد · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</item>
+        <item quantity="two">حدثان · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</item>
+        <item quantity="few">%1$d أحداث · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</item>
+        <item quantity="many">%1$d حدثًا · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</item>
+        <item quantity="other">%1$d حدث · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</item>
+    </plurals>
     <string name="year_recorded_days">أيام مسجّلة خلال السنة: %1$d</string>
-    <string name="year_days_count">%1$d يوم</string>
+    <plurals name="year_days_count">
+        <item quantity="zero">لا أيام</item>
+        <item quantity="one">يوم واحد</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
 
     <!-- Profile -->
     <string name="profile_local_title">حساب محلي</string>
@@ -158,7 +186,14 @@
     <string name="timeline_empty_title">الخط الزمني فارغ</string>
     <string name="timeline_empty_body">تظهر هنا أحداث يومياتك وذكرياتك مرتبة من الأحدث.</string>
     <string name="timeline_load_earlier">عرض أيام أقدم</string>
-    <string name="timeline_day_count">%1$d عنصر</string>
+    <plurals name="timeline_day_count">
+        <item quantity="zero">لا عناصر</item>
+        <item quantity="one">عنصر واحد</item>
+        <item quantity="two">عنصران</item>
+        <item quantity="few">%1$d عناصر</item>
+        <item quantity="many">%1$d عنصرًا</item>
+        <item quantity="other">%1$d عنصر</item>
+    </plurals>
 
     <!-- Calendar -->
     <string name="diary_calendar">التقويم</string>
@@ -227,7 +262,14 @@
     <string name="places_pick_location">اختر الموقع</string>
     <string name="places_empty">لا أماكن بعد. أضف اسمًا وحدد موقعه ليظهر على الخريطة.</string>
     <string name="places_delete">حذف المكان</string>
-    <string name="reference_record_count">%1$d سجل</string>
+    <plurals name="reference_record_count">
+        <item quantity="zero">لا سجلات</item>
+        <item quantity="one">سجل واحد</item>
+        <item quantity="two">سجلان</item>
+        <item quantity="few">%1$d سجلات</item>
+        <item quantity="many">%1$d سجلًا</item>
+        <item quantity="other">%1$d سجل</item>
+    </plurals>
 
     <!-- Phase 8: local backup -->
     <string name="backup_title">النسخ الاحتياطي</string>
@@ -279,7 +321,14 @@
     <string name="account_failed_body">تعذّر الوصول إلى الخادم، ولا شيء حُذف: لا في حسابك ولا على هذا الجهاز. تحقّق من الاتصال ثم أعد المحاولة.</string>
     <string name="account_failed_not_configured">لا يوجد مشروع Supabase مربوط، فلا يوجد حساب على خادم ليُحذف. استخدم «حذف كل بياناتي المحلية».</string>
     <string name="account_failed_kept">أرشيفك على هذا الجهاز كما هو.</string>
-    <string name="wipe_done_body">حُذف %1$d سجلًا و%2$d ملف وسائط من هذا الجهاز.</string>
+    <plurals name="wipe_done_body">
+        <item quantity="zero">حُذف %2$d ملف وسائط من هذا الجهاز.</item>
+        <item quantity="one">حُذف سجل واحد و%2$d ملف وسائط من هذا الجهاز.</item>
+        <item quantity="two">حُذف سجلان و%2$d ملف وسائط من هذا الجهاز.</item>
+        <item quantity="few">حُذفت %1$d سجلات و%2$d ملف وسائط من هذا الجهاز.</item>
+        <item quantity="many">حُذف %1$d سجلًا و%2$d ملف وسائط من هذا الجهاز.</item>
+        <item quantity="other">حُذف %1$d سجل و%2$d ملف وسائط من هذا الجهاز.</item>
+    </plurals>
 
     <!-- Linking a record to people and places -->
     <string name="editor_people_label">الأشخاص</string>

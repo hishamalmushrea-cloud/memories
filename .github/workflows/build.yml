@@ -244,14 +244,25 @@ jobs:
                           where = "?"
                           if loc is not None:
                               where = loc.get("file", "?").split("/memories/")[-1] + ":" + loc.get("line", "?")
-                          entry = by_rule.setdefault(issue.get("id"), [0, where])
+                          # Up to six places per rule, so a rule with a count
+                          # higher than one says which lines the rest are on
+                          # instead of only where the first one is.
+                          entry = by_rule.setdefault(issue.get("id"), [0, [], issue.get("message", "")])
                           entry[0] += 1
+                          if len(entry[1]) < 6 and where not in entry[1]:
+                              entry[1].append(where)
               print("errors=%d warnings=%d" % (errors, warnings))
               if by_rule:
                   print()
                   print("Warnings by rule:")
-                  for rule, (count, where) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
-                      print("- %s x%d (first at %s)" % (rule, count, where))
+                  for rule, (count, places, message) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
+                      print("- %s x%d" % (rule, count))
+                      for place in places:
+                          print("    %s" % place)
+                      if count > len(places):
+                          print("    ... and %d more" % (count - len(places)))
+                      if message:
+                          print("    %s" % message[:150])
               if shown:
                   print()
                   print("\n".join(shown[:40]))

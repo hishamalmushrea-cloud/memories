@@ -13,7 +13,7 @@ stage, and the last stage cannot be done from this repository alone.
 |---|---|
 | Build | `assembleDebug`, `assembleRelease` and `bundleRelease` all pass in CI; debug APK ≈ 28.9 MB, release APK ≈ 4.5 MB, AAB ≈ 9.9 MB |
 | Tests | 431 unit tests, 0 failures, 0 ignored, 0 errors |
-| Lint | 0 errors, 51 warnings — 35 of them version advisories, 16 of them code |
+| Lint | 0 errors; what is left is version advice (`GradleDependency`, `NewerVersionAvailable`, `AndroidGradlePluginVersion`), which is stage 5 |
 | Guards | ten checks in `ci/` run before Gradle, plus `verify-dependencies` and `check-security` |
 | Database | `supabase/schema.sql` applies twice and passes 24 checks on a real PostgreSQL (stage 1) |
 | Store | Metadata text is inside the limits for `ar` and `en-US`; the images do not exist yet |
@@ -48,24 +48,34 @@ that stops being `security definer`, and a renamed RPC.
 **Still not covered.** GoTrue, PostgREST and the storage service are not part of
 this. The first run against a real project is still a first run.
 
-## Stage 2 — the sixteen code-level lint warnings
+## Stage 2 — the code-level lint warnings  ✅ done
 
-**Why.** The other 35 warnings are "a newer version exists", which is information
-rather than a defect. These 16 are things a reader of the code should not have to
-wonder about.
+**Why.** Of the 51 warnings, 35 were "a newer version exists", which is
+information rather than a defect. The rest were things a reader of the code should
+not have to wonder about, and one was a real gap: nothing was declared about
+backup extraction on Android 12 and later, where the platform reads
+`android:dataExtractionRules` rather than only `android:allowBackup`.
 
-| Rule | Count | What it means here |
-|---|---|---|
-| `PluralsCandidate` | 7 | a string with `%1$d` that should be a plural resource |
-| `UseKtx` | 3 | `Bitmap.createScaledBitmap` / `Uri.parse` with an `androidx.core` equivalent |
-| `AGP` warnings | 2 | build-file advice from the plugin |
-| `UnusedResources` | 2 | resources nothing references |
-| `DataExtractionRules` | 1 | `android:dataExtractionRules` missing on API 31+ |
-| `ObsoleteSdkInt` | 1 | a version check that can no longer be false at `minSdk = 26` |
-| `Icons.Outlined.Article` | 1 | a deprecated icon in `QuickAddSheet.kt` |
+| Rule | Count | What it meant here | What changed |
+|---|---|---|---|
+| `PluralsCandidate` | 7 | a count followed by a noun, in a plain string | seven `<plurals>` in both locales, six Arabic quantities each, and `pluralStringResource` at the call sites |
+| `UseKtx` | 3 | `Uri.parse` and two `Uri.fromFile` calls in the backup writer | the `androidx.core.net` extensions (`toUri`) |
+| `UnusedResources` | 2 | two colours left over from a theme now built in Kotlin | removed |
+| `DataExtractionRules` | 1 | no `android:dataExtractionRules`, which is what API 31+ reads | a rules file excluding every domain, for backup and for transfer |
+| `ObsoleteSdkInt` | 1 | `mipmap-anydpi-v26` at `minSdk = 26` | the directory is `mipmap-anydpi` |
+| `AndroidGradlePluginVersion` | 2 | the wrapper and AGP are behind | moved to stage 5 with the rest of the version work |
 
-**Verified by.** `lintDebug` warning count, printed by the report step, dropping
-from 51 to 35 with no new warnings, and the tests still at 431/0/0/0.
+**Verified by.** `lintDebug` warnings by rule in the run's report issue, and the
+unit tests still at 431 passing with nothing skipped.
+
+**Deliberately not touched.** `Icons.Outlined.Article` in `QuickAddSheet.kt` is
+deprecated, and it is a *compiler* warning rather than a lint one. The obvious
+rename does not work - the auto-mirrored package in the core artifact carries
+seven icons and `Article` is not one of them - and the library it comes from,
+`material-icons-extended`, is itself deprecated in favour of Material Symbols
+assets. Silencing one import would leave the dependency in place. The honest
+change is to move the handful of icons the app uses to vector assets, which is a
+change with a diff to review and screenshots to check, not a rename.
 
 ## Stage 3 — a guard for duplicate imports
 

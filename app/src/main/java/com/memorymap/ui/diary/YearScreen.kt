@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,7 +78,7 @@ fun YearScreen(
                 ) {
                     Text(name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                     Text(
-                        text = stringResource(R.string.year_days_count, count),
+                        text = pluralStringResource(R.plurals.year_days_count, count, count),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

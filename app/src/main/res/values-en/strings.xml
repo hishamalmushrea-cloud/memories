@@ -39,12 +39,24 @@
     <string name="on_this_day">On this day</string>
 
     <!-- Week / month / year -->
-    <string name="week_events_count">%1$d events</string>
-    <string name="week_media_count">%1$d photos · %2$d recordings · %3$d videos</string>
+    <plurals name="week_events_count">
+        <item quantity="one">%1$d event</item>
+        <item quantity="other">%1$d events</item>
+    </plurals>
+    <plurals name="week_media_count">
+        <item quantity="one">%1$d photo · %2$d recordings · %3$d videos</item>
+        <item quantity="other">%1$d photos · %2$d recordings · %3$d videos</item>
+    </plurals>
     <string name="month_recorded_days">Recorded days: %1$d</string>
-    <string name="month_totals">%1$d events · %2$d photos · %3$d videos · %4$d recordings · %5$d memories</string>
+    <plurals name="month_totals">
+        <item quantity="one">%1$d event · %2$d photos · %3$d videos · %4$d recordings · %5$d memories</item>
+        <item quantity="other">%1$d events · %2$d photos · %3$d videos · %4$d recordings · %5$d memories</item>
+    </plurals>
     <string name="year_recorded_days">Recorded days this year: %1$d</string>
-    <string name="year_days_count">%1$d days</string>
+    <plurals name="year_days_count">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
 
     <!-- Profile -->
     <string name="profile_local_title">Local account</string>
@@ -157,7 +169,10 @@
     <string name="timeline_empty_title">The timeline is empty</string>
     <string name="timeline_empty_body">Your diary events and memories appear here, newest first.</string>
     <string name="timeline_load_earlier">Show earlier days</string>
-    <string name="timeline_day_count">%1$d items</string>
+    <plurals name="timeline_day_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
 
     <!-- Calendar -->
     <string name="diary_calendar">Calendar</string>
@@ -227,7 +242,10 @@
     <string name="places_pick_location">Pick the location</string>
     <string name="places_empty">No places yet. Add a name and set its position so it can appear on the map.</string>
     <string name="places_delete">Delete the place</string>
-    <string name="reference_record_count">%1$d records</string>
+    <plurals name="reference_record_count">
+        <item quantity="one">%1$d record</item>
+        <item quantity="other">%1$d records</item>
+    </plurals>
 
     <!-- Phase 8: local backup -->
     <string name="backup_title">Backup</string>
@@ -279,7 +297,10 @@
     <string name="account_failed_body">The server could not be reached and nothing was deleted: neither in your account nor on this device. Check the connection and try again.</string>
     <string name="account_failed_not_configured">No Supabase project is connected, so there is no account on a server to delete. Use "Delete all my local data".</string>
     <string name="account_failed_kept">Your archive on this device is untouched.</string>
-    <string name="wipe_done_body">Removed %1$d records and %2$d media files from this device.</string>
+    <plurals name="wipe_done_body">
+        <item quantity="one">Removed %1$d record and %2$d media files from this device.</item>
+        <item quantity="other">Removed %1$d records and %2$d media files from this device.</item>
+    </plurals>
 
     <!-- Linking a record to people and places -->
     <string name="editor_people_label">People</string>

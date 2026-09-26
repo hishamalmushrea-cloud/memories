@@ -32,7 +32,44 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   halves untouched and says so in as many words. Both functions are
   `security definer`, act on `auth.uid()` only and are revoked from `public`.
 
+### Changed
+
+- Seven strings that carry a count became `<plurals>`, because the number and the
+  noun have to agree and Arabic does not have one form for that: "حدث واحد",
+  "حدثان", "٥ أحداث" and "١٥ حدثًا" are four different sentences. The week, month,
+  year, timeline, people and places screens called `stringResource` with a number
+  and always got the same wording, so one event read "1 حدث" and three read
+  "3 حدث". They now call `pluralStringResource`, and the Arabic file supplies all
+  six quantities for each. A sentence with two independent counts in it
+  (`wipe_done_body`, the month totals) is keyed on the first count: Android
+  plurals can only inflect one.
+
+- The launcher icons moved from `mipmap-anydpi-v26` to `mipmap-anydpi`. At
+  `minSdk = 26` every device that can install the app is past the version
+  qualifier, so it was a directory name that meant nothing.
+
+- `Uri.parse` and two `Uri.fromFile` calls in the backup writer became the
+  `androidx.core.net` extensions (`toUri`), which is the same code with one less
+  conversion to read.
+
+- The lint part of the CI report now lists up to six locations per rule and the
+  message of its first occurrence, instead of a count and one location. A count on
+  its own cannot say which six strings a rule wants turned into plurals.
+
 ### Fixed
+
+- On Android 12 and later nothing was declared about backup extraction, which is
+  what the `DataExtractionRules` lint check points at: the platform reads
+  `android:dataExtractionRules` from API 31 up, and `android:allowBackup="false"`
+  is no longer the whole statement. There is now a rules file that excludes every
+  domain by name, in both the cloud-backup and the device-transfer halves, so the
+  app's private storage - the memories, the diary, the media - is not part of a
+  platform backup or a phone-to-phone transfer. The app's own export folder in
+  Settings remains the one copy the user chooses to make.
+
+- Two colours nothing referenced (`memorymap_primary`, `memorymap_on_primary`)
+  were left over from a theme that is now built in Kotlin, and both were reported
+  as unused resources.
 
 - The migration could not be applied twice. `create type`, `create table`,
   `create index`, `create policy` and the six `updated_at` triggers all failed on
