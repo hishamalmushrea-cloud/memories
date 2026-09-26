@@ -1,8 +1,13 @@
 -- =============================================================================
 -- Memory Map — Supabase schema and Row Level Security
 --
--- Status: written in Phase 1 so the data contract is fixed before the client
--- code grows, and applied in Phase 9 when authentication lands.
+-- Apply it once, in the project's SQL Editor, before signing in on any device.
+--
+-- Status: the client has never been pointed at a running project, so this file
+-- is the contract and nothing more - it has not been executed against a server.
+-- `SupabaseContractTest` reads it together with the Kotlin records and fails the
+-- build when the two disagree about a table, a column, an enum or a key, which is
+-- what a server would otherwise have to tell a user.
 --
 -- Rules enforced here
 --   PRIVATE  -> the owner only
@@ -57,6 +62,11 @@ create table public.places (
     deleted_at timestamptz,
     sync_status text not null default 'SYNCED',
     last_synced_at timestamptz,
+    -- Names are unique per user here and in Room, so one device cannot create the
+    -- same name twice. Two devices can: the client merges on the primary key, and
+    -- the second name of a pair would collide on this constraint instead of
+    -- merging, leaving that row in SYNC_ERROR until the names differ. Worth
+    -- knowing before blaming the network for one stubborn place.
     unique (user_id, name)
 );
 
@@ -198,6 +208,45 @@ create table public.memory_shares (
     created_at          timestamptz not null default now(),
     primary key (memory_id, shared_with_user_id)
 );
+
+-- =============================================================================
+-- profiles: the row every other table's foreign key needs
+-- =============================================================================
+-- `user_id` on places, people, memories, daily_entries, diary_notes and media is
+-- a foreign key to public.profiles, so that row has to exist before the client
+-- can write anything at all. Without it the first insert from any device fails
+-- with "Key (user_id)=(...) is not present in table profiles" - for every table,
+-- for every user - which is not a bug any client-side test can see, because it
+-- needs a server with these constraints.
+--
+-- So the row is created here, when the auth user is created, which also covers a
+-- user added from the dashboard or by any other client. The Android app does not
+-- write to profiles on the normal path; it only fills in the display name it
+-- knows, and does so idempotently, so an existing project that predates this
+-- trigger still ends up with the row.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    insert into public.profiles (id, email, display_name)
+    values (
+        new.id,
+        coalesce(new.email, ''),
+        coalesce(new.raw_user_meta_data ->> 'display_name', '')
+    )
+    on conflict (id) do nothing;
+    return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+    after insert on auth.users
+    for each row execute function public.handle_new_user();
 
 -- =============================================================================
 -- Row Level Security

@@ -16,6 +16,17 @@ prompt asks for, in order, each one built, tested and reviewed before the next.
 
 ### Fixed
 
+- The account row in `profiles` now exists before anything is uploaded, which it
+  did not. Every table's `user_id` is a foreign key to `public.profiles`, nothing
+  in the app wrote that row, and the schema had no trigger creating it either:
+  the first real sync against a real Supabase project would have failed on that
+  foreign key for every table and every user, with a message about a key not being
+  present in a table the client never touches. The schema now creates the row when
+  the auth user is created, and the app writes it too when a session appears, so
+  a project whose schema predates the trigger still syncs and the display name the
+  user typed can reach the server. Both halves are pinned by a test that reads the
+  schema and the client source, because no local test can see a server constraint.
+
 - The end-of-day note now synchronises, which it never did. It was written into
   Room, `supabase/schema.sql` had a `diary_notes` table with its own policy
   waiting for it, and nothing carried it to the server: sign in on another device

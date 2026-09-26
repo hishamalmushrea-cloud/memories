@@ -2,6 +2,7 @@ package com.memorymap.data.repository
 
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.local.entities.UserEntity
+import com.memorymap.data.remote.ProfileRecord
 import com.memorymap.data.remote.SupabaseClientProvider
 import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.User
@@ -11,6 +12,7 @@ import com.memorymap.util.MmLog
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.postgrest.postgrest
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -190,7 +192,37 @@ class SupabaseAuthRepository @Inject constructor(
             createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: LocalDateTime.now(),
         )
         database.userDao().upsert(user.toEntityRow())
+        ensureProfileRow(user)
         publish(user, offlineAccount = false)
+    }
+
+    /**
+     * Makes sure the account has a row in `profiles` before anything is uploaded.
+     *
+     * Every table's `user_id` is a foreign key to that row, so without it the
+     * first sync of every table fails on it. The schema creates the row from a
+     * trigger on `auth.users`; this write is the second path, so a project whose
+     * schema predates that trigger still works, and it is the only place the
+     * display name the user typed can reach the server.
+     *
+     * A failure here is logged and swallowed on purpose: signing in must never
+     * fail because a profile row could not be written. If it did fail, the sync
+     * reports the foreign key error on the next run, which is where a user can
+     * see it.
+     */
+    private suspend fun ensureProfileRow(user: User) {
+        val client = supabaseProvider.get() ?: return
+        runCatching {
+            client.postgrest.from(PROFILE_TABLE).upsert(
+                ProfileRecord(
+                    id = user.id,
+                    email = user.email,
+                    displayName = user.displayName,
+                ),
+            )
+        }.onFailure { error ->
+            MmLog.w("Could not write the account's profile row", error)
+        }
     }
 
     private fun publish(user: User, offlineAccount: Boolean) {
@@ -265,5 +297,8 @@ class SupabaseAuthRepository @Inject constructor(
     private companion object {
         const val OFFLINE_DISPLAY_NAME = "حساب محلي"
         const val OFFLINE_EMAIL = "offline@local"
+
+        /** Not a sync table; see [ProfileRecord] and the schema's trigger. */
+        const val PROFILE_TABLE = "profiles"
     }
 }

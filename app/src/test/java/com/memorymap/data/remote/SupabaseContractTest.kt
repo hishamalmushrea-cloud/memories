@@ -169,6 +169,51 @@ class SupabaseContractTest {
     }
 
     @Test
+    fun `the account row exists before anything that points at it`() {
+        // Every table the client writes has `user_id references public.profiles`,
+        // so that one row has to exist first. Nothing here can be caught by a
+        // local test: it is a server constraint, and on a real project the
+        // symptom is every table failing to upload with a foreign key violation
+        // for every user.
+        val references = Regex("references public\\.profiles \\(id\\)").findAll(sql).count()
+        assertTrue("expected the schema to reference profiles", references > 0)
+
+        // Path one: the row is created with the auth user.
+        assertTrue("no trigger creates the profile row", sql.contains("after insert on auth.users"))
+        assertTrue(sql.contains("execute function public.handle_new_user()"))
+        assertTrue(sql.contains("insert into public.profiles (id, email, display_name)"))
+        assertTrue(
+            "the trigger must take the id from the new auth user",
+            Regex("values \\(\\s*new\\.id").containsMatchIn(sql),
+        )
+
+        // Path two: the client writes it when a session appears, so a project
+        // whose schema predates the trigger still syncs, and so the display name
+        // the user typed reaches the server at all.
+        val auth = RepoFiles.read("app/src/main/java/com/memorymap/data/repository/SupabaseAuthRepository.kt")
+        assertTrue("the app never writes the profile row", auth.contains(".from(PROFILE_TABLE).upsert("))
+        assertTrue(auth.contains("const val PROFILE_TABLE = \"profiles\""))
+
+        // And the record it sends has to fit the table.
+        val profile = RepoFiles.read("app/src/main/java/com/memorymap/data/remote/AuthRecords.kt")
+        val sent = Regex(
+            "@SerialName\\(\"([^\"]+)\"\\)|^\\s*val (\\w+):",
+            RegexOption.MULTILINE,
+        ).findAll(profile)
+            .map { it.groupValues[1].ifEmpty { it.groupValues[2] } }
+            .toSet()
+        val columns = tables["profiles"].orEmpty().map { it.name }.toSet()
+        assertEquals(
+            "the profile record and the profile table disagree",
+            emptySet<String>(),
+            sent - columns,
+        )
+        listOf("id", "email", "display_name").forEach { required ->
+            assertTrue("ProfileRecord must send $required", required in sent)
+        }
+    }
+
+    @Test
     fun `the enums the client sends are the enums the server accepts`() {
         val pairs = listOf(
             "sync_state" to enumEntries("app/src/main/java/com/memorymap/domain/model/SyncStatus.kt"),
