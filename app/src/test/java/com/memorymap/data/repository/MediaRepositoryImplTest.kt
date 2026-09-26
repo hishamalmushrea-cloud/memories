@@ -85,6 +85,8 @@ class MediaRepositoryImplTest {
     fun `the request cannot be withdrawn once the bytes are in the cloud`() = runTest {
         val item = item(MediaType.PHOTO, file("a.jpg"))
         repository.attach(item)
+        repository.requestUpload(item.id)
+        // As the sync worker leaves it once the bytes are in the bucket.
         db.mediaDao().setStoragePath(item.id, "user-1/${item.id}.jpg", "2024-06-01T00:00:00")
 
         repository.cancelUpload(item.id)

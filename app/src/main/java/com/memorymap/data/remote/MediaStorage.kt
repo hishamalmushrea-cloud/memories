@@ -40,19 +40,34 @@ interface MediaStorage {
 object MediaObjectKey {
 
     fun of(userId: String, mediaId: String, extension: String): String =
-        "$userId/$mediaId.${extensionOf(extension)}"
+        "$userId/$mediaId.${sanitise(extension)}"
 
     /**
-     * The extension to keep for a file at [localPath], or `bin` when it has none.
+     * The extension to keep for the file at [localPath], sanitised.
      *
-     * The name carries the type: the object is stored without a content type of
-     * its own, and both the bucket and any later reader infer it from this.
+     * The file name is taken before the extension, so a path with a dot in a
+     * directory name yields the file's own extension and not a fragment of the
+     * directory. The name carries the type: the object is stored without a
+     * content type of its own, and both the bucket and any later reader infer it
+     * from this.
      */
     fun extensionOf(localPath: String): String =
-        localPath.substringAfterLast('.', "")
-            .takeIf { it.isNotBlank() && it.length <= MAX_EXTENSION && it.none(Char::isWhitespace) }
-            ?.lowercase()
-            ?: "bin"
+        sanitise(localPath.substringAfterLast('/').substringAfterLast('.', ""))
+
+    /**
+     * A safe extension, or `bin` when there is nothing fit to use.
+     *
+     * Anything that could change where the object goes is refused rather than
+     * passed on: a stray separator would add a folder, and the storage policy
+     * reads folders to decide who owns what.
+     */
+    private fun sanitise(raw: String): String {
+        val cleaned = raw.trim().trimStart('.').lowercase()
+        val usable = cleaned.isNotBlank() &&
+            cleaned.length <= MAX_EXTENSION &&
+            cleaned.none { it.isWhitespace() || it == '/' || it == '\\' || it == '.' }
+        return if (usable) cleaned else "bin"
+    }
 
     /** Long enough for `jpeg` and `m4a`, short enough to reject a whole path. */
     private const val MAX_EXTENSION = 8

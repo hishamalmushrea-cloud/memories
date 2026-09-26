@@ -255,6 +255,16 @@ class MediaSyncTest {
     }
 
     @Test
+    fun `a bare extension and a path are told apart`() {
+        // The two entry points take different things, and passing one where the
+        // other is expected is how an object ends up named `...bin`.
+        assertEquals("jpg", MediaObjectKey.extensionOf("/storage/pic.jpg"))
+        assertEquals("jpg", MediaObjectKey.extensionOf("pic.jpg"))
+        assertEquals("bin", MediaObjectKey.extensionOf("pic"))
+        assertEquals("bin", MediaObjectKey.extensionOf(""))
+    }
+
+    @Test
     fun `an extension that is really a path is refused`() {
         // A file whose name has a dot in the directory part must not turn into a
         // nested key: the policy reads the first folder, and a second one would
