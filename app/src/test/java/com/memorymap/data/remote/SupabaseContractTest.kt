@@ -133,30 +133,36 @@ class SupabaseContractTest {
     @Test
     fun `every link table is keyed the way the client deletes from it`() {
         // Replacing links means deleting the old ones by their owner column and
-        // inserting the new set, so the owner column has to exist - otherwise the
-        // delete takes the wrong rows or none at all.
-        val calls = Regex("(?:replace|fetchLinks)\\(\\s*TABLE_\\w+,\\s*\"(\\w+)\"")
+        // inserting the new set, so that column has to be the one on that exact
+        // table: the wrong name deletes somebody else's links, or none at all.
+        val calls = Regex("(?:replace|fetchLinks)\\(\\s*TABLE_(\\w+),\\s*\"(\\w+)\"")
             .findAll(api)
-            .map { it.groupValues[1] }
+            .map { it.groupValues[1] to it.groupValues[2] }
             .toList()
         assertTrue("expected the client to name its owner columns", calls.isNotEmpty())
 
         val tableNames = Regex("const val TABLE_(\\w+) = \"(\\w+)\"").findAll(api)
             .associate { it.groupValues[1] to it.groupValues[2] }
-        val linkTables = listOf(
-            "MEMORY_PERSON" to "memory_person",
-            "MEMORY_PLACE" to "memory_place",
-            "ENTRY_PERSON" to "daily_entry_person",
-            "ENTRY_PLACE" to "daily_entry_place",
+
+        val ownerOf = mapOf(
+            "MEMORY_PERSON" to "memory_id",
+            "MEMORY_PLACE" to "memory_id",
+            "ENTRY_PERSON" to "entry_id",
+            "ENTRY_PLACE" to "entry_id",
         )
 
         val problems = mutableListOf<String>()
-        linkTables.forEach { (constant, table) ->
-            assertEquals(table, tableNames[constant])
-            listOf("memory_id", "entry_id", "person_id", "place_id").forEach { column ->
-                val present = tables[table].orEmpty().any { it.name == column }
-                val used = calls.contains(column)
-                if (used && !present) problems += "$table.$column is used to replace links but does not exist"
+        ownerOf.forEach { (constant, owner) ->
+            val table = tableNames[constant]
+            if (table == null) {
+                problems += "TABLE_$constant is used to replace links but is not declared"
+                return@forEach
+            }
+            if (calls.none { it.first == constant && it.second == owner }) {
+                problems += "$constant is replaced by the wrong owner column; expected $owner"
+            }
+            if (tables[table].orEmpty().none { it.name == owner }) {
+                problems += "$table.$owner is used to replace links but does not exist"
             }
         }
         assertEquals(emptyList<String>(), problems)
@@ -307,8 +313,12 @@ class SupabaseContractTest {
             }
             .joinToString("\n")
 
+        // Closed again with a brace: a single-line enum's last constant is
+        // followed by the end of the body rather than by a comma or a semicolon,
+        // and without this the final constant would be read as absent.
+
         return Regex("""\b([A-Z][A-Z0-9_]+)\s*[(,;}]""")
-            .findAll(body)
+            .findAll("{$body}")
             .map { it.groupValues[1] }
             .toList()
     }
