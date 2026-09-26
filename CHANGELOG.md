@@ -34,6 +34,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- `ci/check-import-order.py` also fails on the same import twice. `TestDoubles.kt`
+  imported `com.memorymap.domain.model.User` at line 9 and again at line 27, and
+  nothing said so - the compiler accepts it, the tests pass, and lint does not
+  look at it; it was found by reading the file. The guard now reads 2798 imports
+  across 176 files and reports a repeated one with both line numbers, and it fails
+  if it ever sees fewer than 2500 of them, because a checker that examines nothing
+  passes.
+
 - Seven strings that carry a count became `<plurals>`, because the number and the
   noun have to agree and Arabic does not have one form for that: "حدث واحد",
   "حدثان", "٥ أحداث" and "١٥ حدثًا" are four different sentences. The week, month,

@@ -13,7 +13,7 @@ stage, and the last stage cannot be done from this repository alone.
 |---|---|
 | Build | `assembleDebug`, `assembleRelease` and `bundleRelease` all pass in CI; debug APK ≈ 28.9 MB, release APK ≈ 4.5 MB, AAB ≈ 9.9 MB |
 | Tests | 431 unit tests, 0 failures, 0 ignored, 0 errors |
-| Lint | 0 errors; what is left is version advice (`GradleDependency`, `NewerVersionAvailable`, `AndroidGradlePluginVersion`), which is stage 5 |
+| Lint | 0 errors, 37 warnings — every one of them version advice (`GradleDependency`, `NewerVersionAvailable`, `AndroidGradlePluginVersion`), which is stage 5 |
 | Guards | ten checks in `ci/` run before Gradle, plus `verify-dependencies` and `check-security` |
 | Database | `supabase/schema.sql` applies twice and passes 24 checks on a real PostgreSQL (stage 1) |
 | Store | Metadata text is inside the limits for `ar` and `en-US`; the images do not exist yet |
@@ -77,14 +77,22 @@ assets. Silencing one import would leave the dependency in place. The honest
 change is to move the handful of icons the app uses to vector assets, which is a
 change with a diff to review and screenshots to check, not a rename.
 
-## Stage 3 — a guard for duplicate imports
+## Stage 3 — a guard for duplicate imports  ✅ done
 
 **Why.** `TestDoubles.kt` imported `com.memorymap.domain.model.User` twice and
 `ci/check-import-order.py` — which reads every import in 176 files — did not
-notice. It was found by hand. Nothing else looks at this.
+notice. It was found by hand. Nothing else looks at this: the Kotlin compiler
+warns about an unused import, not a repeated one, and lint does not look either.
 
-**Verified by.** The guard finding a duplicate in a copy of a file, and a
-repository-wide scan that reports zero.
+**What.** The guard collects every import as it walks a file, normalises the
+whitespace, and fails on a repeated one with both line numbers. It also fails if it
+reads fewer than 2500 imports, because a checker that examines nothing passes.
+
+**Verified by.** Five mutations: the exact `TestDoubles.kt` duplicate; the same
+duplicate written with different spacing; an import spliced in after a declaration
+(caught at the line); an aliased import beside the plain one (deliberately not
+reported — a second name for the same type is a different import); and a scanner
+pointed at an empty directory, which fails on the floor instead of reporting OK.
 
 ## Stage 4 — time that survives two time zones
 

@@ -288,7 +288,7 @@ python3 ci/check-schema.py
 
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
-استعلامات Room، ترتيب الاستيراد، قيود المتجر، نصوص الموارد، توازن الأقواس،
+استعلامات Room، ترتيب الاستيراد وتكراره، قيود المتجر، نصوص الموارد، توازن الأقواس،
 إرجاع القيم) → فحص مخطط Supabase على PostgreSQL حقيقي → gradlew help →
 testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRelease
 ```
