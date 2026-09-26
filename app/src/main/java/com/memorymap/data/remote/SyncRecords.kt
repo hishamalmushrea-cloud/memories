@@ -80,6 +80,26 @@ data class PlaceRecord(
 )
 
 /**
+ * One day's note.
+ *
+ * The server table is keyed by `(user_id, note_date)` rather than by an id of
+ * its own, and it has no `created_at` and no `deleted_at`: a note is not a row
+ * with a life story, it is what the user wrote about one day, and clearing it
+ * saves an empty body rather than a tombstone. So this record carries no `id`
+ * and nothing here deletes a note, which is why it is the one table whose
+ * synchronisation has no delete half.
+ */
+@Serializable
+data class DiaryNoteRecord(
+    @SerialName("user_id") val userId: String,
+    @SerialName("note_date") val noteDate: String,
+    val body: String = "",
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("sync_status") val syncStatus: String = "SYNCED",
+    @SerialName("last_synced_at") val lastSyncedAt: String? = null,
+)
+
+/**
  * The four link tables.
  *
  * These carry no timestamps and no status of their own: a link is not a row
@@ -186,6 +206,17 @@ interface SyncApi {
 
     /** Sends the metadata of attachments whose bytes are already in the bucket. */
     suspend fun upsertMedia(rows: List<MediaRecord>)
+
+    suspend fun upsertDiaryNotes(rows: List<DiaryNoteRecord>)
+
+    /**
+     * Notes changed since [since].
+     *
+     * Filtered on `updated_at` like every other table, so a note edited on
+     * another device arrives with its new text instead of being skipped as an
+     * already-known day.
+     */
+    suspend fun fetchDiaryNotes(userId: String, since: String?): List<DiaryNoteRecord>
 
     /**
      * Attachments changed since [since].

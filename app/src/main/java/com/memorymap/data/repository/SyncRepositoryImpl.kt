@@ -1,6 +1,7 @@
 package com.memorymap.data.repository
 
 import com.memorymap.data.local.dao.DailyEntryDao
+import com.memorymap.data.local.dao.DiaryNoteDao
 import com.memorymap.data.local.MediaFileStore
 import com.memorymap.data.local.dao.MediaDao
 import com.memorymap.data.local.dao.MemoryDao
@@ -12,6 +13,7 @@ import com.memorymap.data.remote.MediaStorage
 import com.memorymap.data.remote.SupabaseClientProvider
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.data.sync.EntrySyncTable
+import com.memorymap.data.sync.DiaryNoteSyncTable
 import com.memorymap.data.sync.MediaSyncTable
 import com.memorymap.data.sync.MemorySyncTable
 import com.memorymap.data.sync.PersonSyncTable
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.flowOf
 class SyncRepositoryImpl @Inject constructor(
     private val memoryDao: MemoryDao,
     private val entryDao: DailyEntryDao,
+    private val noteDao: DiaryNoteDao,
     private val mediaDao: MediaDao,
     private val personDao: PersonDao,
     private val placeDao: PlaceDao,
@@ -65,11 +68,12 @@ class SyncRepositoryImpl @Inject constructor(
         return combine(
             memoryDao.watchPendingSyncCount(userId),
             entryDao.watchPendingSyncCount(userId),
+            noteDao.watchPendingSyncCount(userId),
             metaDao.watch(userId),
             running,
-        ) { memories, entries, meta, isRunning ->
+        ) { memories, entries, notes, meta, isRunning ->
             SyncState(
-                pending = memories + entries,
+                pending = memories + entries + notes,
                 lastRunAt = meta?.lastRunAt,
                 lastOutcome = meta?.lastRunOutcome,
                 isRunning = isRunning,
@@ -124,6 +128,9 @@ class SyncRepositoryImpl @Inject constructor(
         PlaceSyncTable(placeDao, api),
         MemorySyncTable(memoryDao, api),
         EntrySyncTable(entryDao, api),
+        // A note belongs to a day and nothing points at it, so its place in the
+        // order is free; it goes after the records it describes.
+        DiaryNoteSyncTable(noteDao, api),
         // Last, and after the records it points at: an attachment names the
         // memory or event that owns it, so those rows have to exist first.
         MediaSyncTable(mediaDao, api, storage, files, images),

@@ -10,6 +10,7 @@ import com.memorymap.domain.model.User
 import com.memorymap.data.remote.EntryPersonLink
 import com.memorymap.data.remote.EntryPlaceLink
 import com.memorymap.data.remote.EntryRecord
+import com.memorymap.data.remote.DiaryNoteRecord
 import com.memorymap.data.local.MediaFileStore
 import com.memorymap.data.remote.MediaRecord
 import com.memorymap.data.remote.MediaStorage
@@ -128,6 +129,7 @@ class RecordingSyncApi : SyncApi {
     val peopleSent = mutableListOf<PersonRecord>()
     val placesSent = mutableListOf<PlaceRecord>()
     val mediaSent = mutableListOf<MediaRecord>()
+    val diaryNotesSent = mutableListOf<DiaryNoteRecord>()
 
     /** Each replace call, so a test can tell an unlink from a no-op. */
     val memoryPeopleReplacements = mutableListOf<Pair<List<String>, List<MemoryPersonLink>>>()
@@ -143,6 +145,7 @@ class RecordingSyncApi : SyncApi {
     var entryPeopleToReturn: List<EntryPersonLink> = emptyList()
     var entryPlacesToReturn: List<EntryPlaceLink> = emptyList()
     var mediaToReturn: List<MediaRecord> = emptyList()
+    var diaryNotesToReturn: List<DiaryNoteRecord> = emptyList()
 
     override suspend fun upsertMemories(rows: List<MemoryRecord>) {
         memoriesSent += rows
@@ -195,6 +198,12 @@ class RecordingSyncApi : SyncApi {
     override suspend fun upsertMedia(rows: List<MediaRecord>) {
         mediaSent += rows
     }
+
+    override suspend fun upsertDiaryNotes(rows: List<DiaryNoteRecord>) {
+        diaryNotesSent += rows
+    }
+
+    override suspend fun fetchDiaryNotes(userId: String, since: String?) = diaryNotesToReturn
 
     override suspend fun fetchMedia(userId: String, since: String?) = mediaToReturn
 }

@@ -26,6 +26,16 @@ data class DayCountRow(
     val hasDiaryNote: Int,
 )
 
+/**
+ * A note read back for synchronisation, addressed by the handle its table uses.
+ *
+ * `diary_notes` has no id column: it is keyed by `(user_id, note_date)`. Every
+ * sync table hands the engine a single opaque id per row, so a note's id is
+ * `user_id || '|' || date`, composed in SQL by the queries below. The row has no
+ * tombstone on either side, which is why there is no `deleted` field here.
+ */
+data class NoteSyncRow(val id: String, val updatedAt: String)
+
 @Dao
 interface DailyEntryDao {
 
@@ -302,6 +312,41 @@ interface DiaryNoteDao {
 
     @Query("SELECT * FROM diary_notes WHERE user_id = :userId AND date LIKE :pattern ORDER BY date DESC")
     suspend fun onThisDay(userId: String, pattern: String): List<com.memorymap.data.local.entities.DiaryNoteEntity>
+
+    // --- Synchronisation (Phase 6) ---------------------------------------
+    // The handle is `user_id || '|' || date` in every query below and in
+    // DiaryNoteSyncTable.noteHandle, which builds the same string for a record
+    // arriving from the server. The two are pinned together by a test.
+
+    @Query(
+        "SELECT user_id || '|' || date AS id, updated_at AS updatedAt FROM diary_notes " +
+            "WHERE user_id = :userId AND sync_status != 'SYNCED' ORDER BY updated_at ASC",
+    )
+    suspend fun pendingForSync(userId: String): List<NoteSyncRow>
+
+    @Query(
+        "SELECT user_id || '|' || date AS id, updated_at AS updatedAt FROM diary_notes " +
+            "WHERE user_id || '|' || date IN (:ids)",
+    )
+    suspend fun syncSnapshot(ids: List<String>): List<NoteSyncRow>
+
+    @Query("SELECT COUNT(*) FROM diary_notes WHERE user_id = :userId AND sync_status != 'SYNCED'")
+    fun watchPendingSyncCount(userId: String): Flow<Int>
+
+    @Query("SELECT * FROM diary_notes WHERE user_id || '|' || date IN (:ids)")
+    suspend fun byHandles(ids: List<String>): List<com.memorymap.data.local.entities.DiaryNoteEntity>
+
+    @Upsert
+    suspend fun upsertAll(notes: List<com.memorymap.data.local.entities.DiaryNoteEntity>)
+
+    @Query(
+        "UPDATE diary_notes SET sync_status = 'SYNCED', last_synced_at = :at " +
+            "WHERE user_id || '|' || date IN (:ids)",
+    )
+    suspend fun markSynced(ids: List<String>, at: String)
+
+    @Query("UPDATE diary_notes SET sync_status = 'SYNC_ERROR' WHERE user_id || '|' || date IN (:ids)")
+    suspend fun markSyncError(ids: List<String>)
 
     @Query("DELETE FROM diary_notes WHERE user_id = :userId")
     suspend fun deleteAll(userId: String)

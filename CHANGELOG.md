@@ -16,6 +16,17 @@ prompt asks for, in order, each one built, tested and reviewed before the next.
 
 ### Fixed
 
+- The end-of-day note now synchronises, which it never did. It was written into
+  Room, `supabase/schema.sql` had a `diary_notes` table with its own policy
+  waiting for it, and nothing carried it to the server: sign in on another device
+  and the events of a day were there while the note about them was not. The table
+  now takes part in a sync run like the others, with two differences that come
+  from the schema - the key is `(user_id, note_date)` rather than an id, so the
+  engine carries the pair as one handle that SQL and Kotlin compose the same way,
+  and there is no `deleted_at`, so clearing the note travels as an empty body
+  instead of a tombstone. The profile screen's "waiting to sync" count now
+  includes notes too, which it did not.
+
 - The uploaded copies of your attachments can now be deleted, which they could
   not be before. Deleting your local archive left them in the bucket with
   nothing able to reach them: the keys live on the rows the wipe removes, so

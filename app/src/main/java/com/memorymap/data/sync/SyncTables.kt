@@ -1,17 +1,21 @@
 package com.memorymap.data.sync
 
 import com.memorymap.data.local.dao.DailyEntryDao
+import com.memorymap.data.local.dao.DiaryNoteDao
+import com.memorymap.data.local.dao.NoteSyncRow
 import com.memorymap.data.local.MediaFileStore
 import com.memorymap.data.local.dao.MediaDao
 import com.memorymap.data.local.dao.MemoryDao
 import com.memorymap.data.local.dao.PersonDao
 import com.memorymap.data.local.dao.PlaceDao
 import com.memorymap.data.local.entities.DailyEntryEntity
+import com.memorymap.data.local.entities.DiaryNoteEntity
 import com.memorymap.data.local.entities.MediaEntity
 import com.memorymap.data.local.entities.MemoryEntity
 import com.memorymap.data.local.entities.PersonEntity
 import com.memorymap.data.local.entities.PlaceEntity
 import com.memorymap.data.remote.EntryRecord
+import com.memorymap.data.remote.DiaryNoteRecord
 import com.memorymap.data.remote.MemoryRecord
 import com.memorymap.data.remote.EntryPersonLink
 import com.memorymap.data.remote.EntryPlaceLink
@@ -478,6 +482,115 @@ class PlaceSyncTable(
  * is what keeps uploading optional: an attachment nobody opted into never leaves
  * this device, and there is nothing on the server to delete when it is removed.
  */
+/**
+ * Synchronises `diary_notes`: the free-form note the user writes about a day.
+ *
+ * This table was missing until now, which meant the one piece of writing that
+ * belongs to a day never left the device it was typed on: sign in somewhere else
+ * and the events were there while the note about them was not. The server table
+ * already existed, with its own policy, waiting for a client that never came.
+ *
+ * The shape differs from the other tables in two ways, both from the schema:
+ * a note is keyed by `(user_id, note_date)` instead of an id, and it has no
+ * `deleted_at`, so nothing here deletes anything. Clearing the note saves an
+ * empty body, which is a real state and travels like any other edit.
+ */
+class DiaryNoteSyncTable(
+    private val dao: DiaryNoteDao,
+    private val api: SyncApi,
+    private val clock: () -> String = { LocalDateTime.now().toString() },
+) : SyncTable<DiaryNoteRecord> {
+
+    override val name = "diary_notes"
+
+    override suspend fun pending(userId: String): List<PendingRow> =
+        dao.pendingForSync(userId).map { it.toPendingRow() }
+
+    override suspend fun pushUpserts(rows: List<PendingRow>) = push(rows)
+
+    /**
+     * Nothing to send: a note has no tombstone on either side.
+     *
+     * `diary_notes` has no `deleted_at` column and no code path deletes a row -
+     * a cleared note is saved as an empty body - so a "deleted" note cannot
+     * exist. An empty list here is the honest answer rather than a hard delete
+     * that would silently drop the day everywhere.
+     */
+    override suspend fun pushDeletes(rows: List<PendingRow>) = Unit
+
+    override suspend fun markSynced(ids: List<String>, at: String) {
+        if (ids.isNotEmpty()) dao.markSynced(ids, at)
+    }
+
+    override suspend fun markError(ids: List<String>) {
+        if (ids.isNotEmpty()) dao.markSyncError(ids)
+    }
+
+    override suspend fun fetchChanged(userId: String, since: String?): List<DiaryNoteRecord> =
+        api.fetchDiaryNotes(userId, since)
+
+    override fun remoteInfo(row: DiaryNoteRecord): RemoteRow = RemoteRow(
+        id = noteHandle(row.userId, row.noteDate),
+        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
+        deleted = false,
+    )
+
+    override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
+        if (ids.isEmpty()) {
+            emptyMap()
+        } else {
+            dao.syncSnapshot(ids).associate { it.id to it.toLocalRow() }
+        }
+
+    override suspend fun storeRemote(rows: List<DiaryNoteRecord>) {
+        if (rows.isEmpty()) return
+        val now = clock()
+        dao.upsertAll(rows.map { it.toEntity(now) })
+    }
+
+    private suspend fun push(rows: List<PendingRow>) {
+        if (rows.isEmpty()) return
+        val now = clock()
+        // Re-read by handle so what is sent is what the database holds now.
+        val records = dao.byHandles(rows.map { it.id }).map { it.toRecord(now) }
+        if (records.isNotEmpty()) api.upsertDiaryNotes(records)
+    }
+
+    private fun NoteSyncRow.toPendingRow() = PendingRow(id = id, updatedAt = updatedAt, deleted = false)
+
+    private fun NoteSyncRow.toLocalRow() = LocalRow(id = id, updatedAt = updatedAt, deleted = false)
+
+    private fun DiaryNoteEntity.toRecord(now: String) = DiaryNoteRecord(
+        userId = userId,
+        noteDate = date,
+        body = text,
+        updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
+        syncStatus = SyncStatus.SYNCED.name,
+        lastSyncedAt = SyncTime.toInstantText(now),
+    )
+
+    private fun DiaryNoteRecord.toEntity(now: String) = DiaryNoteEntity(
+        userId = userId,
+        date = noteDate,
+        text = body,
+        updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
+        syncStatus = SyncStatus.SYNCED.name,
+        lastSyncedAt = now,
+    )
+
+    companion object {
+        /**
+         * A note's id inside the sync engine.
+         *
+         * `diary_notes` is keyed by a pair, and the engine handles one id per
+         * row, so the pair is joined into one opaque string. The separator and
+         * the order have to match the `user_id || '|' || date` expression in
+         * [DiaryNoteDao]'s queries, which `DiaryNoteSyncTest` pins by round-trip.
+         */
+        fun noteHandle(userId: String, date: String): String = "$userId|$date"
+    }
+}
+
 class MediaSyncTable(
     private val dao: MediaDao,
     private val api: SyncApi,

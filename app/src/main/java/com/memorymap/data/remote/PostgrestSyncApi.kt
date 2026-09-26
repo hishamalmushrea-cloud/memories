@@ -49,6 +49,24 @@ class PostgrestSyncApi @Inject constructor(
             }
             .decodeList()
 
+    override suspend fun upsertDiaryNotes(rows: List<DiaryNoteRecord>) {
+        if (rows.isEmpty()) return
+        // The conflict target is the table's primary key, `(user_id, note_date)`,
+        // which is what the server merges on by default: sending the same day
+        // twice updates the text instead of failing the second write.
+        table(TABLE_DIARY_NOTES).upsert(rows)
+    }
+
+    override suspend fun fetchDiaryNotes(userId: String, since: String?): List<DiaryNoteRecord> =
+        table(TABLE_DIARY_NOTES)
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    if (since != null) gt("updated_at", since)
+                }
+            }
+            .decodeList()
+
     override suspend fun upsertMedia(rows: List<MediaRecord>) {
         if (rows.isEmpty()) return
         table(TABLE_MEDIA).upsert(rows)
@@ -172,5 +190,6 @@ class PostgrestSyncApi @Inject constructor(
         const val TABLE_ENTRY_PERSON = "daily_entry_person"
         const val TABLE_ENTRY_PLACE = "daily_entry_place"
         const val TABLE_MEDIA = "media"
+        const val TABLE_DIARY_NOTES = "diary_notes"
     }
 }
