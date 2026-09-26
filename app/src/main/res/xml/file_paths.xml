@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <external-files-path
-        name="memorymap_media"
-        path="memorymap/" />
-    <cache-path
-        name="memorymap_cache"
-        path="memorymap/" />
-</paths>

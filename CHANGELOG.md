@@ -23,6 +23,19 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- The camera can now be used from inside the app, which is what the images
+  specification asked for. *Take photo* opens a CameraX preview instead of
+  handing a file to whichever camera app the phone happens to have: the picture
+  is written straight into the app's own archive, so no storage permission and no
+  FileProvider grant are involved, and it is rotated the way the phone was held
+  at the moment it was taken rather than left for a later step to notice. The lamp
+  has three settings — off, automatic, on — remembered per lens, and the front
+  lens offers none because it has none. The camera is unbound the instant the
+  screen is left, so it is never held open behind another screen. A device with no
+  camera, or a refused permission, gets a clear message and keeps the gallery
+  picker. Recording video in the app is not part of this change; picking a video
+  still goes through the system gallery.
+
 - Photos are prepared before they leave the device, as the medium specification
   asks. An upload is not the file: a JPEG is turned the way its Exif orientation
   says, scaled to a longest edge of 2048 pixels and written at quality 82, and the
@@ -70,6 +83,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   Kotlin does not join those, so the query silently becomes its first fragment -
   seven shipped that way once, and five of them compiled happily while losing
   their `ORDER BY` and their `deleted_at IS NULL` clauses.
+
+### Removed
+
+- The `FileProvider` the app declared. It was there to hand a photo file to
+  whichever camera app the phone happens to have; now that the photo is taken
+  inside the app nothing referenced it, and a provider that grants URI access to
+  another app should not stay declared out of habit.
 
 ### Fixed
 

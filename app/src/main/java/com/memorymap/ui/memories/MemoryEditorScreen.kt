@@ -57,10 +57,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -71,6 +69,7 @@ import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaType
 import com.memorymap.navigation.Routes
 import com.memorymap.domain.model.Visibility
+import com.memorymap.ui.camera.CameraCaptureScreen
 import com.memorymap.ui.common.CAMERA_PERMISSION
 import com.memorymap.ui.common.RECORD_AUDIO_PERMISSION
 import com.memorymap.ui.common.emotionLabel
@@ -80,7 +79,6 @@ import com.memorymap.ui.common.rememberLocale
 import com.memorymap.ui.common.rememberPermissionRequest
 import com.memorymap.ui.common.visibilityLabel
 import com.memorymap.util.MediaImporter
-import com.memorymap.util.MediaStore
 import java.io.File
 import java.time.Instant
 import java.util.Locale
@@ -101,12 +99,11 @@ fun MemoryEditorScreen(
     viewModel: MemoryEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val locale = rememberLocale()
     val recorder = rememberAudioRecorder()
 
     var showDatePicker by remember { mutableStateOf(false) }
-    var pendingCaptureFile by remember { mutableStateOf<File?>(null) }
+    var showCamera by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.isSaved) {
@@ -119,32 +116,24 @@ fun MemoryEditorScreen(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri -> uri?.let(viewModel::importFromUri) }
 
-    val camera = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture(),
-    ) { saved ->
-        val file = pendingCaptureFile
-        pendingCaptureFile = null
-        if (saved && file != null) {
-            viewModel.adoptCapture(file, MediaType.PHOTO, "image/jpeg")
-        } else {
-            file?.let { MediaStore.delete(it) }
-        }
-    }
-
-    val requestCamera = rememberPermissionRequest(CAMERA_PERMISSION) {
-        val ownerId = state.memoryId
-        val file = MediaStore.newFile(context, MediaType.PHOTO, ownerId, "jpg")
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file,
-        )
-        pendingCaptureFile = file
-        camera.launch(uri)
-    }
+    val requestCamera = rememberPermissionRequest(CAMERA_PERMISSION) { showCamera = true }
 
     val requestMicrophone = rememberPermissionRequest(RECORD_AUDIO_PERMISSION) {
         recorder.start(state.memoryId)
+    }
+
+    // The camera runs inside the app: no photo is handed to another app, and the
+    // picture is written straight into the private archive while it is taken.
+    if (showCamera) {
+        CameraCaptureScreen(
+            ownerId = state.memoryId,
+            onCaptured = { file ->
+                showCamera = false
+                viewModel.adoptCapture(file, MediaType.PHOTO, "image/jpeg")
+            },
+            onCancel = { showCamera = false },
+        )
+        return
     }
 
     Column(

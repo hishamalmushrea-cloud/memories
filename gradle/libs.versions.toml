@@ -37,6 +37,9 @@ ktor = "3.1.1"
 # --- Media / images ---
 coil = "2.7.0"
 
+# --- In-app camera (CameraX) ---
+camera = "1.6.2"
+
 # --- Testing ---
 junit = "4.13.2"
 androidxTestJunit = "1.2.1"
@@ -100,6 +103,12 @@ ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.r
 
 # Media
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Camera (in-app capture only; the system picker stays for the gallery)
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camera" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -291,4 +291,15 @@
         <item quantity="other">%1$d attachments could not be removed from the cloud. Deleting your account is done from the Supabase dashboard, and removing the user there takes them with it.</item>
     </plurals>
 
+    <!-- In-app camera -->
+    <string name="camera_action_capture">Take a photo</string>
+    <string name="camera_action_flip">Switch camera</string>
+    <string name="camera_flash_auto">Flash automatic</string>
+    <string name="camera_flash_off">Flash off</string>
+    <string name="camera_flash_on">Flash on</string>
+    <string name="camera_status_preparing">Getting the camera ready…</string>
+    <string name="camera_error_permission">Allow the camera to take a photo</string>
+    <string name="camera_error_unavailable">No camera is available on this device</string>
+    <string name="camera_error_capture">The photo could not be captured</string>
+
 </resources>

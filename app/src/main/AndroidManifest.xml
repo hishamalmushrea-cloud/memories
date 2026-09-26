@@ -49,18 +49,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Shares media into the app-private folder without granting broad
-             storage access. -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-
         <!-- WorkManager is initialised through MemoryMapApp, not by the
              auto-init provider, so Hilt can inject the worker factory. -->
         <provider

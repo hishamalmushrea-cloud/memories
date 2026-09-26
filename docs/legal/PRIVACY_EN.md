@@ -34,7 +34,9 @@ use the app.
 ## 4) Media
 
 - Photos, audio recordings and videos are stored in the app's private storage on
-  your device.
+  your device. A photo you take in the app is captured by the app itself: the file
+  goes straight into that private storage and is never handed to another app to
+  write, which is also why no storage permission is declared.
 - Video stays local by default; uploading it is an explicit, optional action.
 - **What leaves the device is not the original.** A photo you choose to upload is
   scaled so that its longest edge is 2048 pixels and written out as a JPEG, and

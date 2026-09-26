@@ -304,4 +304,15 @@
         <item quantity="other">تعذّر حذف %1$d مرفق من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
     </plurals>
 
+    <!-- In-app camera -->
+    <string name="camera_action_capture">التقاط صورة</string>
+    <string name="camera_action_flip">تبديل الكاميرا</string>
+    <string name="camera_flash_auto">الفلاش تلقائي</string>
+    <string name="camera_flash_off">الفلاش مغلق</string>
+    <string name="camera_flash_on">الفلاش مفتوح</string>
+    <string name="camera_status_preparing">جارٍ تجهيز الكاميرا…</string>
+    <string name="camera_error_permission">يلزم السماح بالكاميرا لالتقاط صورة</string>
+    <string name="camera_error_unavailable">لا تتوفّر كاميرا على هذا الجهاز</string>
+    <string name="camera_error_capture">تعذّر التقاط الصورة</string>
+
 </resources>
