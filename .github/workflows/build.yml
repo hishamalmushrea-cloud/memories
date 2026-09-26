@@ -90,6 +90,9 @@ jobs:
       - name: Check the store listing stays inside the store limits
         run: python3 ci/check-store-metadata.py
 
+      - name: Check the string resources before aapt2 has to
+        run: python3 ci/check-strings.py
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 

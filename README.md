@@ -244,14 +244,21 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
-استعلامات Room، ترتيب الاستيراد، قيود المتجر، توازن الأقواس) → gradlew help →
-testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRelease
+استعلامات Room، ترتيب الاستيراد، قيود المتجر، نصوص الموارد، توازن الأقواس) →
+gradlew help → testDebugUnitTest → lintDebug → assembleDebug →
+assembleRelease + bundleRelease
 ```
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
 
 عند الفشل ينشر CI تقريرًا كـ**Issue** في المستودع (لأن سجلات GitHub مخزّنة على
 نطاق لا يمكن لكل الشبكات الوصول إليه).
+
+> ملاحظة: نصوص الواجهة تُفحص قبل Gradle بـ`ci/check-strings.py`، لأنه لا شيء
+> آخر يقرأ XML الموارد قبل aapt2: كل لغة تحمل أسماء الموارد نفسها، والجمع في
+> العربية يحمل صيغه الست، ولا فاصلة عليا (`'`) غير مُهرَّبة، والوسائط (`%1$d`)
+> متطابقة بين اللغتين. الرسالة التي يعطيها aapt2 لخطأ كهذا تقول «Invalid unicode
+> escape sequence in string» ولا تسمّي الحرف ولا السبب.
 
 > ملاحظة: مخطط Room المُصدَّر (`app/schemas/`) يولّده KSP أثناء البناء، وهو
 > مستثنى من Git حاليًا لأن توكن CI في هذا المستودع لا يملك صلاحية الدفع.

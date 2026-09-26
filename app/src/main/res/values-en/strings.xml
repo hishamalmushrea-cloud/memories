@@ -271,10 +271,10 @@
     <string name="account_action">Delete the account permanently</string>
     <string name="account_running">Deleting the account…</string>
     <string name="account_confirm_title">Delete the account and all its data?</string>
-    <string name="account_confirm_body">Your account will be deleted from the connected Supabase project with all its records and files, then this device's archive is deleted and the session ends. Take a backup first if you want to keep anything; there is no undo.</string>
+    <string name="account_confirm_body">Your account will be deleted from the connected Supabase project with all its records and files, then this device\'s archive is deleted and the session ends. Take a backup first if you want to keep anything; there is no undo.</string>
     <string name="account_confirm_action">Delete the account permanently</string>
     <string name="account_done_title">Account deleted</string>
-    <string name="account_done_body">The account was deleted from the server with its records and files, and this device's archive was deleted.</string>
+    <string name="account_done_body">The account was deleted from the server with its records and files, and this device\'s archive was deleted.</string>
     <string name="account_failed_title">The account was not deleted</string>
     <string name="account_failed_body">The server could not be reached and nothing was deleted: neither in your account nor on this device. Check the connection and try again.</string>
     <string name="account_failed_not_configured">No Supabase project is connected, so there is no account on a server to delete. Use "Delete all my local data".</string>

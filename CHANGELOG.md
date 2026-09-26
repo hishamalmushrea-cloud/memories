@@ -21,6 +21,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- Two English strings contained an unescaped apostrophe (`device's`), which aapt2
+  refuses with "Invalid unicode escape sequence in string" - naming neither the
+  character nor the reason, and failing the resource merge, and with it the unit
+  tests, the lint run and every APK. `ci/check-strings.py` now reads both locale
+  files before Gradle starts and fails on a bare apostrophe, an escape Android
+  does not accept, a resource that exists in one language only, an Arabic plural
+  missing one of its six categories, or a translation that dropped a `%1$d`.
+
 - The "could not be removed from the cloud" message told the user that deleting
   the account from the Supabase dashboard would take the remaining attachments
   with it. It would not: `storage.objects` is not a child of `auth.users`, so
