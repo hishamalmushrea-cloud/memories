@@ -222,6 +222,14 @@ jobs:
             echo
             echo "### APK"
             find app/build/outputs/apk -name "*.apk" -printf "%p %s bytes\n" 2>/dev/null || echo "(none)"
+            # What is inside the artifact, not only how large it is. A size on
+            # its own cannot tell a rebuilt APK from a stale one, and this
+            # repository has no way to download the artifact to look.
+            for apk in $(find app/build/outputs/apk -name "*.apk" 2>/dev/null | sort); do
+              echo "- $(basename "$apk") sha256 $(sha256sum "$apk" | cut -c1-16)"
+              unzip -l "$apk" 2>/dev/null | awk '/classes[0-9]*\.dex$|resources\.arsc$/ {printf "  %s %s bytes\n", $4, $1}'
+              echo "  own classes in the dex: $(unzip -p "$apk" 'classes*.dex' 2>/dev/null | grep -a -c 'com/memorymap' || echo 0)"
+            done
 
             echo
             echo "### Room schema"
@@ -294,8 +302,15 @@ jobs:
               exit 1
             fi
           done
-          if ! find app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | grep -q .; then
+          debug_apk=$(find app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | head -1)
+          if [ -z "$debug_apk" ]; then
             echo "::error::no debug APK was produced"
+            exit 1
+          fi
+          # An APK without the app's own classes in it is not this app, however
+          # the size changed or did not change between runs.
+          if ! unzip -p "$debug_apk" 'classes*.dex' 2>/dev/null | grep -aq "com/memorymap"; then
+            echo "::error::$debug_apk does not contain the app's own classes"
             exit 1
           fi
           if ! find app/build/outputs/apk/release -name "*.apk" 2>/dev/null | grep -q .; then
