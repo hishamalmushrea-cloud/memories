@@ -109,6 +109,7 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
+androidx-camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "camera" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

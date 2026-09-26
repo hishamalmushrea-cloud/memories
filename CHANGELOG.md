@@ -84,6 +84,18 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   seven shipped that way once, and five of them compiled happily while losing
   their `ORDER BY` and their `deleted_at IS NULL` clauses.
 
+- Video can be recorded inside the app rather than only picked from the gallery,
+  which is the other half of what the video specification asks for. The camera
+  has two modes, and the video one works a single button: press to start, press to
+  stop, with the elapsed time on screen. The recording is plain media — it is
+  never transcribed, analysed or summarised. Sound is captured only when the
+  microphone permission is already held; without it the video is recorded
+  silently and says so, rather than interrupting a shot with a permission dialog.
+  A recording shorter than a second, or one the camera ended with an error, is
+  deleted instead of being attached, so the archive holds no half-file. Playback
+  already used the system player, and picking a video from the gallery is
+  untouched.
+
 ### Removed
 
 - The `FileProvider` the app declared. It was there to hand a photo file to

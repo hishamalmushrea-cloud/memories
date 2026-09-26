@@ -74,6 +74,65 @@ class CameraControlsTest {
     }
 
     @Test
+    fun `the camera opens ready for a photo`() {
+        assertEquals(CameraMode.PHOTO, CameraControls().mode)
+    }
+
+    @Test
+    fun `switching the mode goes photo, video, photo`() {
+        val controls = CameraControls()
+
+        controls.toggleMode()
+        assertEquals(CameraMode.VIDEO, controls.mode)
+
+        controls.toggleMode()
+        assertEquals(CameraMode.PHOTO, controls.mode)
+    }
+
+    @Test
+    fun `the lamp is not offered while the mode is video`() {
+        val controls = CameraControls(initialFlash = CameraFlash.ON)
+
+        controls.toggleMode()
+        assertFalse(controls.canToggleFlash)
+
+        controls.cycleFlash()
+        assertEquals(CameraFlash.ON, controls.flash)
+    }
+
+    @Test
+    fun `the lamp is still where it was left when the photo mode returns`() {
+        val controls = CameraControls(initialFlash = CameraFlash.ON)
+
+        controls.toggleMode()
+        controls.toggleMode()
+
+        assertTrue(controls.canToggleFlash)
+        assertEquals(CameraFlash.ON, controls.flash)
+    }
+
+    @Test
+    fun `turning the camera round does not change the mode`() {
+        val controls = CameraControls(initialMode = CameraMode.VIDEO)
+
+        controls.flipLens()
+
+        assertEquals(CameraMode.VIDEO, controls.mode)
+    }
+
+    @Test
+    fun `a recording has to last a second to be worth keeping`() {
+        assertFalse(VideoTakePolicy.keep(999L, failed = false))
+        assertTrue(VideoTakePolicy.keep(1_000L, failed = false))
+        assertTrue(VideoTakePolicy.keep(5_000L, failed = false))
+    }
+
+    @Test
+    fun `a recording the camera gave up on is never kept`() {
+        assertFalse(VideoTakePolicy.keep(10_000L, failed = true))
+    }
+
+    @Test
     fun `every lamp setting maps to its own CameraX constant`() {
         assertEquals(ImageCapture.FLASH_MODE_OFF, CameraFlash.OFF.flashMode)
         assertEquals(ImageCapture.FLASH_MODE_AUTO, CameraFlash.AUTO.flashMode)

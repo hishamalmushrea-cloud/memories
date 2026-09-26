@@ -127,9 +127,9 @@ fun MemoryEditorScreen(
     if (showCamera) {
         CameraCaptureScreen(
             ownerId = state.memoryId,
-            onCaptured = { file ->
+            onCaptured = { file, type, mime ->
                 showCamera = false
-                viewModel.adoptCapture(file, MediaType.PHOTO, "image/jpeg")
+                viewModel.adoptCapture(file, type, mime)
             },
             onCancel = { showCamera = false },
         )

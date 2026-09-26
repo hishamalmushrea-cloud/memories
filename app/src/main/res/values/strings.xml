@@ -313,6 +313,14 @@
     <string name="camera_status_preparing">جارٍ تجهيز الكاميرا…</string>
     <string name="camera_error_permission">يلزم السماح بالكاميرا لالتقاط صورة</string>
     <string name="camera_error_unavailable">لا تتوفّر كاميرا على هذا الجهاز</string>
+    <string name="camera_mode_photo">صورة</string>
+    <string name="camera_mode_video">فيديو</string>
+    <string name="camera_action_record">بدء التسجيل</string>
+    <string name="camera_action_stop_recording">إيقاف التسجيل</string>
+    <string name="camera_recording">جارٍ التسجيل…</string>
+    <string name="camera_video_without_sound">سيُسجَّل الفيديو بلا صوت لأن إذن الميكروفون غير ممنوح</string>
+    <string name="camera_error_record">تعذّر التسجيل</string>
+    <string name="camera_error_too_short">التسجيل أقصر من أن يُحفظ</string>
     <string name="camera_error_capture">تعذّر التقاط الصورة</string>
 
 </resources>

@@ -300,6 +300,14 @@
     <string name="camera_status_preparing">Getting the camera ready…</string>
     <string name="camera_error_permission">Allow the camera to take a photo</string>
     <string name="camera_error_unavailable">No camera is available on this device</string>
+    <string name="camera_mode_photo">Photo</string>
+    <string name="camera_mode_video">Video</string>
+    <string name="camera_action_record">Start recording</string>
+    <string name="camera_action_stop_recording">Stop recording</string>
+    <string name="camera_recording">Recording…</string>
+    <string name="camera_video_without_sound">The video will be recorded without sound because the microphone permission is not granted</string>
+    <string name="camera_error_record">The video could not be recorded</string>
+    <string name="camera_error_too_short">The recording was too short to keep</string>
     <string name="camera_error_capture">The photo could not be captured</string>
 
 </resources>
