@@ -3,6 +3,7 @@ package com.memorymap.data.remote
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.memorymap.util.MmLog
@@ -48,8 +49,12 @@ class SecureSessionStore @Inject constructor(
     }
 
     override suspend fun saveSession(session: UserSession) {
-        runCatching { prefs.edit().putString(KEY_SESSION, json.encodeToString(UserSession.serializer(), session)).apply() }
-            .onFailure { MmLog.e("Unable to store the session", it) }
+        runCatching {
+            val encoded = json.encodeToString(UserSession.serializer(), session)
+            // `edit` is the androidx extension: it commits or applies on the way
+            // out, so the write cannot be forgotten at the end of a chain.
+            prefs.edit { putString(KEY_SESSION, encoded) }
+        }.onFailure { MmLog.e("Unable to store the session", it) }
     }
 
     override suspend fun loadSession(): UserSession {
@@ -59,7 +64,7 @@ class SecureSessionStore @Inject constructor(
     }
 
     override suspend fun deleteSession() {
-        runCatching { prefs.edit().remove(KEY_SESSION).apply() }
+        runCatching { prefs.edit { remove(KEY_SESSION) } }
             .onFailure { MmLog.e("Unable to clear the session", it) }
     }
 

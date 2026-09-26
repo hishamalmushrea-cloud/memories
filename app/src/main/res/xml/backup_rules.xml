@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The same statement as data_extraction_rules.xml, in the form Android 11 and
+  below read: `android:fullBackupContent` is consulted from API 23 to API 30,
+  and `android:dataExtractionRules` from API 31 up. With `minSdk = 26` both are
+  part of the app, and declaring only the newer one would leave the older
+  releases - which are most of them - backing up everything by default.
+
+  Every domain is excluded by name rather than left out: the default is the
+  whole domain, so an omitted line is a decision to include it.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

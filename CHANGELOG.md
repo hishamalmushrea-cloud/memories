@@ -49,8 +49,10 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   qualifier, so it was a directory name that meant nothing.
 
 - `Uri.parse` and two `Uri.fromFile` calls in the backup writer became the
-  `androidx.core.net` extensions (`toUri`), which is the same code with one less
-  conversion to read.
+  `androidx.core.net` extensions (`toUri`), and the two writers in
+  `SecureSessionStore` use the `androidx.core.content.edit` extension, so a
+  `SharedPreferences` edit cannot be left without its `apply` at the end of a
+  chain.
 
 - The lint part of the CI report now lists up to six locations per rule and the
   message of its first occurrence, instead of a count and one location. A count on
@@ -64,8 +66,11 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   is no longer the whole statement. There is now a rules file that excludes every
   domain by name, in both the cloud-backup and the device-transfer halves, so the
   app's private storage - the memories, the diary, the media - is not part of a
-  platform backup or a phone-to-phone transfer. The app's own export folder in
-  Settings remains the one copy the user chooses to make.
+  platform backup or a phone-to-phone transfer. The same is set for API 26 to 30
+  through `android:fullBackupContent`, because that is the file those releases
+  read and declaring only the newer one would leave them backing up everything.
+  The app's own export folder in Settings remains the one copy the user chooses
+  to make.
 
 - Two colours nothing referenced (`memorymap_primary`, `memorymap_on_primary`)
   were left over from a theme that is now built in Kotlin, and both were reported
