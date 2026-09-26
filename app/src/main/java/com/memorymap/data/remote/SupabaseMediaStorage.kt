@@ -2,11 +2,11 @@ package com.memorymap.data.remote
 
 import com.memorymap.util.MmLog
 import io.github.jan.supabase.storage.storage
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Small enough that a batch's paths stay a reasonable request. */
 private const val BATCH_SIZE = 100
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Supabase Storage, behind [MediaStorage].

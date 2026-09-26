@@ -77,6 +77,9 @@ jobs:
       - name: Check every Room query is the query it appears to be
         run: python3 ci/check-queries.py
 
+      - name: Check no import follows a declaration
+        run: python3 ci/check-import-order.py
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 
