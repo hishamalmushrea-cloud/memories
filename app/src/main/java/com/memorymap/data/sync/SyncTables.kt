@@ -111,6 +111,7 @@ class MemorySyncTable(
         // against a local row without a timezone shifting the answer.
         updatedAt = SyncTime.toLocalText(row.record.updatedAt) ?: row.record.updatedAt,
         deleted = row.record.deletedAt != null,
+        stamp = row.record.updatedAt,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
@@ -235,6 +236,7 @@ class EntrySyncTable(
         id = row.record.id,
         updatedAt = SyncTime.toLocalText(row.record.updatedAt) ?: row.record.updatedAt,
         deleted = row.record.deletedAt != null,
+        stamp = row.record.updatedAt,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
@@ -349,6 +351,7 @@ class PersonSyncTable(
         id = row.id,
         updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
         deleted = row.deletedAt != null,
+        stamp = row.updatedAt,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
@@ -424,6 +427,7 @@ class PlaceSyncTable(
         id = row.id,
         updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
         deleted = row.deletedAt != null,
+        stamp = row.updatedAt,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
@@ -533,6 +537,7 @@ class DiaryNoteSyncTable(
         id = noteHandle(row.userId, row.noteDate),
         updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
         deleted = false,
+        stamp = row.updatedAt,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =
@@ -648,6 +653,7 @@ class MediaSyncTable(
         id = row.id,
         updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
         deleted = row.deletedAt != null,
+        stamp = row.updatedAt,
     )
 
     override suspend fun localSnapshot(ids: List<String>): Map<String, LocalRow> =

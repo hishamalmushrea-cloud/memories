@@ -8,7 +8,12 @@ import java.time.LocalDateTime
 /** The outcome of one run: what happened, and where the next run should start. */
 data class SyncResult(
     val report: SyncReport,
-    /** The newest server timestamp seen, or the previous watermark if none was. */
+    /**
+     * The newest server timestamp seen, or the previous watermark if none was.
+     *
+     * An instant, in the server's own rendering, because the next run sends it
+     * back as the lower bound of a `timestamptz` comparison.
+     */
     val watermark: String?,
 )
 
@@ -108,7 +113,10 @@ class SyncEngine {
         if (remote.isEmpty()) return PullOutcome(SyncReport())
 
         val incoming = remote.map { row -> table.remoteInfo(row) to row }
-        val newestSeen = incoming.maxOf { it.first.updatedAt }
+        // Folded with the same instant comparison the watermark uses, because
+        // the stamps can mix `Z` and an offset for the same moment and a text
+        // max would pick whichever sorted last.
+        val newestSeen = incoming.map { it.first.stamp }.fold(null as String?, ::newerOf)
 
         val local = try {
             table.localSnapshot(incoming.map { it.first.id })

@@ -64,7 +64,7 @@ class SyncEngineTest {
 
     @Test
     fun `a failed download leaves the local rows alone`() = runTest {
-        table.server += RemoteRow("a", NEWER, deleted = false)
+        table.server += row("a", NEWER)
         table.failFetch = true
 
         val result = engine.sync(listOf(table), USER, since = null, now = NOW)
@@ -76,7 +76,7 @@ class SyncEngineTest {
 
     @Test
     fun `a row this device has never seen is stored`() = runTest {
-        table.server += RemoteRow("new", NEWER, deleted = false)
+        table.server += row("new", NEWER)
 
         val result = engine.sync(listOf(table), USER, since = null, now = NOW)
 
@@ -88,10 +88,10 @@ class SyncEngineTest {
     fun `the newer side of a conflict is the one that is kept`() = runTest {
         // Local is newer: the incoming copy is older and must be dropped.
         table.local["a"] = LocalRow("a", NEWER, deleted = false)
-        table.server += RemoteRow("a", OLDER, deleted = false)
+        table.server += row("a", OLDER)
         // Local is older: the incoming copy wins.
         table.local["b"] = LocalRow("b", OLDER, deleted = false)
-        table.server += RemoteRow("b", NEWER, deleted = false)
+        table.server += row("b", NEWER)
 
         engine.sync(listOf(table), USER, since = null, now = NOW)
 
@@ -103,7 +103,7 @@ class SyncEngineTest {
         // The server has a newer, living copy; the user deleted it here while
         // offline. The delete must hold, or the record comes back.
         table.local["gone"] = LocalRow("gone", OLDER, deleted = true)
-        table.server += RemoteRow("gone", NEWER, deleted = false)
+        table.server += row("gone", NEWER)
 
         val result = engine.sync(listOf(table), USER, since = null, now = NOW)
 
@@ -113,12 +113,49 @@ class SyncEngineTest {
 
     @Test
     fun `the watermark advances to the newest server timestamp`() = runTest {
-        table.server += RemoteRow("a", OLDER, deleted = false)
-        table.server += RemoteRow("b", NEWER, deleted = false)
+        table.server += row("a", OLDER)
+        table.server += row("b", NEWER)
 
         val result = engine.sync(listOf(table), USER, since = null, now = NOW)
 
         assertEquals(NEWER, result.watermark)
+    }
+
+    @Test
+    fun `the watermark is the server's own instant, not the local rendering of it`() = runTest {
+        // The engine turns a server stamp into naive local text so it can be
+        // compared with a Room row, and that value must not become the
+        // watermark: it goes back to the server as the lower bound of a
+        // timestamptz comparison, where a naive value is read in the session's
+        // timezone. A device three hours ahead would then ask for rows newer
+        // than a moment three hours in the server's future and never see what
+        // another device changed in the meantime.
+        table.server += row(
+            id = "a",
+            stamp = NEWER,
+            localText = "2026-09-24T11:00:00",
+        )
+
+        val result = engine.sync(listOf(table), USER, since = null, now = NOW)
+
+        assertEquals(NEWER, result.watermark)
+        assertEquals(
+            "the watermark must not be the local rendering",
+            false,
+            result.watermark == "2026-09-24T11:00:00",
+        )
+    }
+
+    @Test
+    fun `a stamp is compared as an instant when the renderings differ`() = runTest {
+        // The same moment can arrive as `Z` or as an offset. A text max would
+        // take whichever sorted last, which for these two is the wrong one.
+        table.server += row("a", stamp = "2026-09-24T08:00:00Z")
+        table.server += row("b", stamp = "2026-09-24T10:00:00+03:00")
+
+        val result = engine.sync(listOf(table), USER, since = null, now = NOW)
+
+        assertEquals("2026-09-24T08:00:00Z", result.watermark)
     }
 
     @Test
@@ -164,6 +201,18 @@ class SyncEngineTest {
     fun `a watermark from an unstarted account is null`() = runTest {
         assertNull(engine.sync(listOf(table), USER, since = null, now = NOW).watermark)
     }
+
+    /**
+     * A server row. [localText] defaults to the stamp, because most cases here
+     * are about conflict resolution rather than about the rendering; the two
+     * cases that are about the rendering pass both values explicitly.
+     */
+    private fun row(
+        id: String,
+        stamp: String,
+        localText: String = stamp,
+        deleted: Boolean = false,
+    ) = RemoteRow(id = id, updatedAt = localText, deleted = deleted, stamp = stamp)
 
     /** A table the test drives by hand, and can make fail on demand. */
     private class FakeTable(override val name: String) : SyncTable<RemoteRow> {

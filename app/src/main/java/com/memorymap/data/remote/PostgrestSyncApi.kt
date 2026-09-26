@@ -8,6 +8,12 @@ import javax.inject.Singleton
 /**
  * Talks to Postgres through Supabase's Postgrest plugin, as the signed-in user.
  *
+ * Downloads use `updated_at >= since`, not `>`: the watermark is the newest stamp
+ * this device has seen, and a row committed at the same instant as a query that
+ * ran a moment earlier would be behind a strict bound forever. Re-reading the
+ * boundary row costs one row and the conflict resolver treats equal stamps as
+ * "keep the local copy", so the second read is a no-op rather than a rewrite.
+ *
  * Row Level Security does the authorisation: every query is implicitly scoped to
  * the caller by `supabase/schema.sql`, so a bug here cannot read somebody else's
  * archive. Only the anon key is ever used; the client carries the user's JWT.
@@ -34,7 +40,7 @@ class PostgrestSyncApi @Inject constructor(
                     eq("user_id", userId)
                     // No watermark means a first sync, which reads everything the
                     // user owns. RLS keeps that to their own rows.
-                    if (since != null) gt("updated_at", since)
+                    if (since != null) gte("updated_at", since)
                 }
             }
             .decodeList()
@@ -44,7 +50,7 @@ class PostgrestSyncApi @Inject constructor(
             .select {
                 filter {
                     eq("user_id", userId)
-                    if (since != null) gt("updated_at", since)
+                    if (since != null) gte("updated_at", since)
                 }
             }
             .decodeList()
@@ -62,7 +68,7 @@ class PostgrestSyncApi @Inject constructor(
             .select {
                 filter {
                     eq("user_id", userId)
-                    if (since != null) gt("updated_at", since)
+                    if (since != null) gte("updated_at", since)
                 }
             }
             .decodeList()
@@ -77,7 +83,7 @@ class PostgrestSyncApi @Inject constructor(
             .select {
                 filter {
                     eq("user_id", userId)
-                    if (since != null) gt("updated_at", since)
+                    if (since != null) gte("updated_at", since)
                 }
             }
             .decodeList()
@@ -97,7 +103,7 @@ class PostgrestSyncApi @Inject constructor(
             .select {
                 filter {
                     eq("user_id", userId)
-                    if (since != null) gt("updated_at", since)
+                    if (since != null) gte("updated_at", since)
                 }
             }
             .decodeList()
@@ -107,7 +113,7 @@ class PostgrestSyncApi @Inject constructor(
             .select {
                 filter {
                     eq("user_id", userId)
-                    if (since != null) gt("updated_at", since)
+                    if (since != null) gte("updated_at", since)
                 }
             }
             .decodeList()

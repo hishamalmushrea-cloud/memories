@@ -16,11 +16,24 @@ data class LocalRow(
     val deleted: Boolean,
 )
 
-/** The part of an incoming server row the engine needs in order to compare it. */
+/**
+ * The part of an incoming server row the engine needs in order to compare it.
+ *
+ * [updatedAt] and [stamp] are the same moment written two ways, and both are
+ * needed. [updatedAt] is what Room stores - naive local text - so that a server
+ * row and a local row can be compared without a timezone shifting the answer.
+ * [stamp] is the server's own rendering, an instant, because that is what the
+ * watermark is: it goes back to the server as `updated_at >= :since`, and a
+ * naive value would be read there in the session's timezone. On a device three
+ * hours ahead of UTC, sending the local text as the watermark asks the server
+ * for rows newer than a moment three hours in its future, and everything another
+ * device changed in those three hours is never downloaded.
+ */
 data class RemoteRow(
     val id: String,
     val updatedAt: String,
     val deleted: Boolean,
+    val stamp: String,
 )
 
 /** What one sync run did, so the UI can report it honestly. */

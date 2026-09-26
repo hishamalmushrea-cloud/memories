@@ -210,6 +210,31 @@ create table public.memory_shares (
 );
 
 -- =============================================================================
+-- updated_at: stamped on arrival, so a download window cannot step over a row
+-- =============================================================================
+-- Every download asks for rows changed after a watermark, and the watermark is
+-- the newest stamp the device has already seen. That only works if the stamps
+-- grow in the order rows are written. They do not, on their own: the client sends
+-- its own edit time, so a phone that edited a memory at 09:59 and uploaded it at
+-- 10:05 stores 09:59 - behind another device's 10:00 watermark, and that row is
+-- then never downloaded anywhere. It is not a rare race: any edit made offline
+-- and sent after another device has synced lands behind its watermark.
+--
+-- So the server takes the later of the two: a client value that is already ahead
+-- (an edit about to happen, or a clock set forward) is kept, and anything older
+-- is replaced with the server's own `now()`. Arrival order is then the stamp
+-- order, and a row written after a device's watermark is always greater than it.
+create or replace function public.stamp_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+    new.updated_at = greatest(new.updated_at, now());
+    return new;
+end;
+$$;
+
+-- =============================================================================
 -- profiles: the row every other table's foreign key needs
 -- =============================================================================
 -- `user_id` on places, people, memories, daily_entries, diary_notes and media is
@@ -442,6 +467,25 @@ create policy "avatars: owner deletes own file" on storage.objects
         bucket_id = 'avatars'
         and (storage.foldername(name))[1] = auth.uid()::text
     );
+
+
+-- -----------------------------------------------------------------------------
+-- One trigger per synchronised table. A table added to the client's sync tables
+-- without one here would have a stamp that can fall behind a watermark, which is
+-- silent data loss rather than an error, so it is also checked by a test.
+-- -----------------------------------------------------------------------------
+create trigger memories_stamp_updated_at before insert or update on public.memories
+    for each row execute function public.stamp_updated_at();
+create trigger daily_entries_stamp_updated_at before insert or update on public.daily_entries
+    for each row execute function public.stamp_updated_at();
+create trigger diary_notes_stamp_updated_at before insert or update on public.diary_notes
+    for each row execute function public.stamp_updated_at();
+create trigger people_stamp_updated_at before insert or update on public.people
+    for each row execute function public.stamp_updated_at();
+create trigger places_stamp_updated_at before insert or update on public.places
+    for each row execute function public.stamp_updated_at();
+create trigger media_stamp_updated_at before insert or update on public.media
+    for each row execute function public.stamp_updated_at();
 
 -- =============================================================================
 -- Account deletion

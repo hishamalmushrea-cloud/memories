@@ -214,6 +214,59 @@ class SupabaseContractTest {
     }
 
     @Test
+    fun `every synchronised table stamps its rows when they arrive`() {
+        // A download asks for rows changed after a watermark, which only works
+        // if stamps grow in the order rows are written. The client sends its own
+        // edit time, so a phone that edited a row offline and uploaded it after
+        // another device synced would store a stamp behind that device's
+        // watermark - and that row would never be downloaded anywhere again. No
+        // error, no retry, just a memory that exists on one phone.
+        assertTrue(
+            "the schema does not stamp updated_at on arrival",
+            sql.contains("create or replace function public.stamp_updated_at()"),
+        )
+        assertTrue(
+            "the stamp must take the later of the client value and the server clock",
+            sql.contains("new.updated_at = greatest(new.updated_at, now())"),
+        )
+
+        // Every table the client syncs, and only those: a link table has no
+        // updated_at to stamp.
+        val synced = clientTables - setOf(
+            "memory_person", "memory_place", "daily_entry_person", "daily_entry_place",
+        )
+        val problems = mutableListOf<String>()
+        synced.forEach { table ->
+            val trigger = "before insert or update on public.$table"
+            if (!sql.contains(trigger)) problems += "$table has no trigger, so its stamps can fall behind"
+        }
+        assertEquals(emptyList<String>(), problems)
+
+        val triggered = Regex("before insert or update on public\\.(\\w+)").findAll(sql)
+            .map { it.groupValues[1] }.toSet()
+        assertEquals(
+            "a trigger was added for a table the client never writes",
+            emptySet<String>(),
+            triggered - synced,
+        )
+    }
+
+    @Test
+    fun `a download window is inclusive, so the boundary row is re-read`() {
+        // The watermark is the newest stamp the device has seen. With a strict
+        // bound, a row committed in the same instant as the query that preceded
+        // it sits behind that bound forever. Inclusive is safe because the
+        // conflict resolver keeps the local copy when the stamps are equal.
+        val windows = Regex("""\b(gte?)\("updated_at", since\)""").findAll(api).toList()
+        assertEquals("expected six download windows, one per synced table", 6, windows.size)
+        assertTrue(
+            "every download must use gte, not gt: " + windows.map { it.value }.toString(),
+            windows.all { it.groupValues[1] == "gte" },
+        )
+    }
+    }
+
+    @Test
     fun `the enums the client sends are the enums the server accepts`() {
         val pairs = listOf(
             "sync_state" to enumEntries("app/src/main/java/com/memorymap/domain/model/SyncStatus.kt"),

@@ -16,6 +16,22 @@ prompt asks for, in order, each one built, tested and reviewed before the next.
 
 ### Fixed
 
+- A memory edited on one device while another was syncing could stay on the first
+  phone and never reach the second, with no error and no retry. The download
+  window was wrong twice over. The watermark was stored as the naive local
+  rendering of the newest server stamp and sent back as the lower bound of a
+  `timestamptz` comparison, where a value without an offset is read in the
+  session's timezone: a device three hours ahead of UTC asked for rows newer than
+  a moment three hours in the server's future and skipped everything another
+  device changed in that window. The watermark is now the server's own instant,
+  carried separately from the local rendering used for comparison. The stamps
+  themselves were the client's edit times, so a row edited offline at 09:59 and
+  uploaded at 10:05 carried a stamp behind the 10:00 watermark of a device that
+  had already synced - the window is now inclusive, so that boundary row is
+  re-read and the resolver discards it as unchanged, and the schema stamps
+  `updated_at` on arrival with `greatest(client value, now())` so a row written
+  after a watermark is always greater than it.
+
 - The account row in `profiles` now exists before anything is uploaded, which it
   did not. Every table's `user_id` is a foreign key to `public.profiles`, nothing
   in the app wrote that row, and the schema had no trigger creating it either:
