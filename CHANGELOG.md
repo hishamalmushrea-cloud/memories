@@ -43,7 +43,12 @@ prompt asks for, in order, each one built, tested and reviewed before the next.
   reaches the publishing step. The signing, F-Droid and Play steps, the Data
   safety answers and the still-missing store images are written down in
   `docs/RELEASE.md`, including that screenshots must come from a real device
-  rather than a mock-up.
+  rather than a mock-up. The AAB that Google Play accepts is now built on every
+  push - `assembleRelease bundleRelease` - and the build fails when it is
+  missing, so the Play artifact is verified per commit instead of first at
+  release time. A hand-run rehearsal of the release workflow is only possible
+  once the workflow is on the default branch, which is written down where the
+  command is.
 
 - "Near by" is a screen instead of a note saying which phase would build it. It
   lists the memories and events inside one kilometre of a position you ask for,

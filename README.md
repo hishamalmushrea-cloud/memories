@@ -211,15 +211,17 @@ testDebugUnitTest → lintDebug → assembleDebug → assembleRelease
 
 - **GitHub Releases**: `.github/workflows/release.yml` يعمل عند دفع وسم `v*`،
   ويشغّل بوابة الأمان والاختبارات و`lintRelease`، ثم يبني APK و AAB وينشر
-  الإصدار. وتشغيله يدويًا من تبويب Actions يعيد كل ذلك ثم يتوقف بلا نشر،
-  فالتجربة ممكنة دون إنشاء إصدار.
+  الإصدار. وتشغيله يدويًا من تبويب Actions يعيد كل ذلك ثم يتوقف بلا نشر — لكن
+  هذا التشغيل اليدوي يحتاج أن يكون الملف على الفرع الافتراضي أولًا، لأن GitHub
+  لا يسمح به من فرع آخر. أما مسار الـAAB نفسه فيُبنى ويُتحقق منه في كل push.
 - **بيانات المتجر**: [`fastlane/metadata/android/`](fastlane/metadata/android)
   بالعربية (`ar`) والإنجليزية (`en-US`): الاسم، الوصف المختصر، الوصف الكامل،
   وسجل تغييرات لكل `versionCode`. ويتحقق `ci/check-store-metadata.py` من حدود
   المتجر قبل كل بناء، فلا يُرفع وصف مقطوع.
 - **F-Droid**: يبني من المصدر، والوصف أعلاه هو ما يُقرأ هناك؛ ينقص قبل أول
   إصدار حقيقي: لقطات شاشة حقيقية من جهاز.
-- **Google Play**: يُرفع `AAB` من `./gradlew bundleRelease`، وينقص قبل الرفع:
+- **Google Play**: يُبنى `AAB` بـ`bundleRelease` على كل push في CI (لا مرة واحدة
+  وقت الإصدار)، وينقص قبل الرفع:
   أيقونة ٥١٢×٥١٢ وصورة عرض ١٠٢٤×٥٠٠ ولقطات شاشة، وتعبئة نموذج Data safety
   (الأجوبة مكتوبة في [`docs/RELEASE.md`](docs/RELEASE.md)).
 - **التوقيع والخطوات التفصيلية**: [`docs/RELEASE.md`](docs/RELEASE.md).

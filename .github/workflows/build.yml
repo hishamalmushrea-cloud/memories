@@ -102,8 +102,12 @@ jobs:
       # that can prove the shrinker rules are valid and that minification does not
       # strip something the app needs. It falls back to debug signing when no
       # keystore is supplied, which is what makes it runnable here at all.
-      - name: Assemble the release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace --continue 2>&1 | tee /tmp/release.log || true
+      # The AAB is the artifact Google Play accepts, and it is the only thing
+      # that exercises the bundle path instead of the APK path. Building it here
+      # means the Play upload is verified on every push rather than at release
+      # time, on the one run that cannot be rehearsed (see docs/RELEASE.md).
+      - name: Assemble the release APK and the Play bundle
+        run: ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace --continue 2>&1 | tee /tmp/release.log || true
 
       - name: Show what was built
         run: |
@@ -223,6 +227,9 @@ jobs:
           PY
 
             echo
+            echo "### Bundle"
+            find app/build/outputs/bundle -name "*.aab" -printf "%p %s bytes\n" 2>/dev/null || echo "(none)"
+            echo
             echo "### APK"
             find app/build/outputs/apk -name "*.apk" -printf "%p %s bytes\n" 2>/dev/null || echo "(none)"
             # What is inside the artifact, not only how large it is. A size on
@@ -318,6 +325,10 @@ jobs:
           fi
           if ! find app/build/outputs/apk/release -name "*.apk" 2>/dev/null | grep -q .; then
             echo "::error::no release APK was produced"
+            exit 1
+          fi
+          if ! find app/build/outputs/bundle/release -name "*.aab" 2>/dev/null | grep -q .; then
+            echo "::error::no release bundle was produced"
             exit 1
           fi
           if find app/build/test-results -name "*.xml" 2>/dev/null | grep -q .; then

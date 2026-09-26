@@ -75,6 +75,17 @@ gh workflow run release.yml --ref main
 gh run list --workflow release.yml --limit 1
 ```
 
+That only works once `release.yml` is on the default branch: GitHub registers
+`workflow_dispatch` for workflows in the default branch, and a dispatch from any
+other branch is answered with `HTTP 404 .../actions/workflows/release.yml`.
+Until then the one thing that runs this file is a `v*` tag push, which
+publishes - so do not use a tag as a rehearsal.
+
+The AAB path is verified without any of that: `build.yml` runs
+`assembleRelease bundleRelease` on every push, reports the size of both
+artifacts, and fails when either is missing, so the artifact Google Play
+receives is built on every commit rather than first at release time.
+
 It runs the security gate, the store metadata check, the unit tests and
 `lintRelease`, builds the APK *and* the AAB, prints the size of what a tag push
 would attach, and stops. Only `refs/tags/v*` reaches the publishing step, so a
