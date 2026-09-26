@@ -27,6 +27,8 @@ use the app.
   - Creating a memory and choosing automatic location.
   - Creating an event and choosing to attach a location.
   - Picking a location manually on the map.
+  - Opening "Near by" and tapping "my location" to order what is around you by
+    distance.
 - The app is fully usable without granting the location permission.
 - Coordinates are never written to logs and never sent to a service that does not
   need them.

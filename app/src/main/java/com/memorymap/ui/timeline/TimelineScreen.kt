@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,6 +92,17 @@ fun TimelineScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            item(key = "nearby") {
+                OutlinedButton(
+                    onClick = { navController.navigate(Routes.NEARBY) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Outlined.NearMe, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.nearby_title))
+                }
+            }
+
             state.days.forEach { day ->
                 item(key = "header-${day.date}") {
                     TimelineDayHeader(day = day, dateText = day.date.formatLong(locale))

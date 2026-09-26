@@ -72,10 +72,6 @@
     <string name="emotion_pride">فخر</string>
     <string name="emotion_nostalgia">حنين</string>
 
-    <!-- Honest placeholders -->
-    <string name="placeholder_title">هذه الشاشة قيد البناء</string>
-    <string name="placeholder_phase">سيتم تنفيذها في %1$s. لا توجد بيانات وهمية معروضة هنا.</string>
-
     <!-- المصادقة -->
     <string name="auth_subtitle">يومياتك وذكرياتك محفوظة على جهازك أولًا</string>
     <string name="auth_tab_sign_in">تسجيل الدخول</string>
@@ -182,6 +178,14 @@
     <string name="memory_pick_location">اختيار الموقع على الخريطة</string>
     <string name="memory_location_set">الموقع: %1$s، %2$s</string>
     <string name="memory_clear_location">إزالة الموقع</string>
+
+    <!-- Nearby -->
+    <string name="nearby_title">قرب مني</string>
+    <string name="nearby_prompt">لم يُقرأ موقعك بعد. الموقع يُقرأ عند الطلب فقط، ولا يُتبَّع في الخلفية.</string>
+    <string name="nearby_locating">جارٍ تحديد موقعك…</string>
+    <string name="nearby_within">داخل %1$s من موقعك</string>
+    <string name="nearby_none_within">لا ذكرى ولا حدث داخل هذا النطاق. اقترب أكثر، أو ابحث في مكان آخر.</string>
+    <string name="nearby_nothing_located">لا يوجد سجل يحمل موقعًا بعد. ضع ذكرى أو حدثًا على الخريطة ثم عُد إلى هنا.</string>
 
     <!-- Synchronisation (Phase 6) -->
     <string name="profile_sync_title">المزامنة</string>

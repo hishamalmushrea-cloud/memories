@@ -23,6 +23,17 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- "Near by" is a screen instead of a note saying which phase would build it. It
+  lists the memories and events inside one kilometre of a position you ask for,
+  closest first, each with its distance and its day, and tapping one opens it. The
+  position is read once, when the button is pressed, and the screen says plainly
+  that it has not been read before that: there is no tracking, and no record of
+  where you might have been. A position that cannot be read says so, and an empty
+  radius explains which of the two it is - nothing located at all, or nothing
+  nearby. It is reachable from the map and from the top of the timeline. The
+  filter and the ordering are `Geo.nearby`, and the screen is covered by
+  `NearbyViewModelTest` against a real database.
+
 - The camera can now be used from inside the app, which is what the images
   specification asked for. *Take photo* opens a CameraX preview instead of
   handing a file to whichever camera app the phone happens to have: the picture

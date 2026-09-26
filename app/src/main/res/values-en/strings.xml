@@ -71,10 +71,6 @@
     <string name="emotion_pride">Pride</string>
     <string name="emotion_nostalgia">Nostalgia</string>
 
-    <!-- Honest placeholders -->
-    <string name="placeholder_title">This screen is under construction</string>
-    <string name="placeholder_phase">It is implemented in %1$s. No fake data is shown here.</string>
-
     <!-- Authentication -->
     <string name="auth_subtitle">Your diary and memories live on your device first</string>
     <string name="auth_tab_sign_in">Sign in</string>
@@ -181,6 +177,15 @@
     <string name="memory_pick_location">Pick location on the map</string>
     <string name="memory_location_set">Location: %1$s, %2$s</string>
     <string name="memory_clear_location">Remove location</string>
+
+    <!-- Nearby -->
+    <string name="nearby_title">Nearby</string>
+    <string name="nearby_prompt">Your location has not been read yet. It is read only when you ask for it, and never tracked in the background.</string>
+    <string name="nearby_locating">Finding your location…</string>
+    <string name="nearby_within">Within %1$s of you</string>
+    <string name="nearby_none_within">No memory or event is inside this range. Move closer, or look somewhere else.</string>
+    <string name="nearby_nothing_located">No record carries a location yet. Put a memory or an event on the map, then come back here.</string>
+
 
     <!-- Synchronisation (Phase 6) -->
     <string name="profile_sync_title">Synchronisation</string>

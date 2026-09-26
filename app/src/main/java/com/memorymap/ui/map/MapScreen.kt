@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -121,6 +122,9 @@ fun MapScreen(
         ) {
             FloatingActionButton(onClick = { navController.navigate(Routes.SEARCH) }) {
                 Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.action_search))
+            }
+            FloatingActionButton(onClick = { navController.navigate(Routes.NEARBY) }) {
+                Icon(Icons.Outlined.NearMe, contentDescription = stringResource(R.string.nearby_title))
             }
             FloatingActionButton(onClick = requestLocation) {
                 if (locating) {
