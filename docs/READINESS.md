@@ -94,20 +94,36 @@ duplicate written with different spacing; an import spliced in after a declarati
 reported — a second name for the same type is a different import); and a scanner
 pointed at an empty directory, which fails on the floor instead of reporting OK.
 
-## Stage 4 — time that survives two time zones
+## Stage 4 — time that survives two time zones  ✅ done
 
-**Why.** `LocalDateTime.now().toString()` has no offset. A watermark is compared
-as a string on the client side, and the server compares `timestamptz`. Two devices
-in different zones, or one travelling, can order the same edits differently. This
-is the kind of defect that shows up as a lost edit rather than as an error.
+**Why.** Every stamp the app wrote was a clock reading with no offset, and the
+conflict resolver read both sides in whichever zone the phone was in *at the
+moment of comparison*. A memory edited at 10:00 in Sanaa and then again at 09:00
+in London after a flight had its newer edit judged older by an hour, so the edit
+was discarded in favour of the server's older copy - silently, once, and
+unrecoverably.
 
-**What.** Everything that crosses the wire becomes an instant with an offset
-(`Instant.toString()` / `OffsetDateTime` with UTC), the comparison stays on the
-server's `timestamptz`, and the displayed time stays local.
+**What.** `util/SyncTime.kt` is now the only place that says what a stamp is.
+Writers stamp `Instant.now()`. What is stored is the moment itself, so nothing is
+converted on the way to the server or on the way back. The conflict resolver and
+the watermark fold read through `SyncTime.instant`, so there is one reading of
+what a stamp means instead of two. `LocalDateTime.iso()` was removed from the
+mappers, so the naive writer no longer exists to be used again.
 
-**Verified by.** Unit tests that pin two zones and prove a round trip keeps the
-instant, plus the existing sync tests unchanged.
+**Deliberately unchanged.** `memory_date`, `entry_date` and `note_date` are days,
+not moments. The wall-clock time of a diary event is what the user chose, stored
+as the moment they chose it in. Room's column types did not change, so there is
+no schema migration: rows written before this change hold plain local text and
+are read in the device's zone - written down in the code, and asserted by a test
+named after it.
 
+**Verified by.** Four new tests, each of which fails if the old behaviour comes
+back: `an edit made after a flight is still the later one` (switches the JVM's
+default zone between the two writes), `a stamp that already carries its offset is
+left as it is`, `what is written to the database is a moment, not a clock reading`
+(reads the row back out of Room), and `a remote stamp keeps the instant the server
+sent`. Three existing assertions that encoded the old design were rewritten, each
+with the reason in the test.
 ## Stage 5 — dependency refresh, one group at a time
 
 **Why.** 35 advisories are pinned versions that have moved on: AGP, Kotlin, KSP,

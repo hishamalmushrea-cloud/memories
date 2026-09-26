@@ -143,7 +143,7 @@ class ReferenceSyncTableTest {
     }
 
     @Test
-    fun `remote rows are compared on local text, not on the raw instant`() {
+    fun `remote rows keep the instant they arrived with`() {
         val table = PersonSyncTable(db.personDao(), api, clock = { now })
 
         val info = table.remoteInfo(
@@ -156,9 +156,11 @@ class ReferenceSyncTableTest {
             ),
         )
 
-        // Room stores naive local text; comparing an instant against it directly
-        // would let a timezone decide who wins a conflict.
-        assertEquals("2024-01-02T03:04:05", info.updatedAt)
+        // Room stores the instant too, so the comparison the engine makes next
+        // does not depend on the zone the phone happens to be in. It used to
+        // store the same moment rendered as local text, which is a reading, not
+        // a moment: the same row meant 03:04 in one country and 00:04 in another.
+        assertEquals("2024-01-02T03:04:05Z", info.updatedAt)
         assertEquals(false, info.deleted)
     }
 

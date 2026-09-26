@@ -19,8 +19,10 @@ import com.memorymap.domain.model.Place
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.model.User
 import com.memorymap.domain.model.Visibility
+import com.memorymap.util.SyncTime
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * The only place that knows how entities and domain models look. The UI never
@@ -29,10 +31,26 @@ import java.time.LocalDateTime
 object Mappers {
 
     fun LocalDate.iso(): String = toString()
-    fun LocalDateTime.iso(): String = toString()
+
+    /**
+     * A moment as Room stores it: an instant, offset and all.
+     *
+     * `LocalDateTime.now()` says what the clock on this phone read; it does not
+     * say which zone that clock was in. Storing the reading is what let a memory
+     * edited in one country be judged older than one edited the day before in
+     * another, so every stamp that is compared or sent goes through here and
+     * comes out as a moment.
+     */
+    fun LocalDateTime.stamp(): String = atZone(ZoneId.systemDefault()).toInstant().toString()
+
+    /**
+     * A stamp as the app reads it back - into this device's own zone, so the
+     * calendar and the labels show local time. Rows written before stamps became
+     * instants hold plain local text, and both read the same way.
+     */
+    private fun String?.toStamp(): LocalDateTime? = SyncTime.local(this)
 
     private fun String?.toDate(): LocalDate? = this?.takeIf { it.isNotBlank() }?.let(LocalDate::parse)
-    private fun String?.toDateTime(): LocalDateTime? = this?.takeIf { it.isNotBlank() }?.let(LocalDateTime::parse)
 
     // --- User ---
 
@@ -41,7 +59,7 @@ object Mappers {
         email = email,
         displayName = displayName,
         avatarUrl = avatarUrl,
-        createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
+        createdAt = createdAt.toStamp() ?: LocalDateTime.now(),
     )
 
     fun User.toEntity(): UserEntity = UserEntity(
@@ -49,7 +67,7 @@ object Mappers {
         email = email,
         displayName = displayName,
         avatarUrl = avatarUrl,
-        createdAt = createdAt.iso(),
+        createdAt = createdAt.stamp(),
     )
 
     // --- Memory ---
@@ -64,11 +82,11 @@ object Mappers {
         memoryDate = memoryDate.toDate() ?: LocalDate.now(),
         emotion = Emotion.fromName(emotion) ?: Emotion.NOSTALGIA,
         visibility = Visibility.fromName(visibility),
-        createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
-        updatedAt = updatedAt.toDateTime() ?: LocalDateTime.now(),
-        deletedAt = deletedAt.toDateTime(),
+        createdAt = createdAt.toStamp() ?: LocalDateTime.now(),
+        updatedAt = updatedAt.toStamp() ?: LocalDateTime.now(),
+        deletedAt = deletedAt.toStamp(),
         syncStatus = SyncStatus.fromName(syncStatus),
-        lastSyncedAt = lastSyncedAt.toDateTime(),
+        lastSyncedAt = lastSyncedAt.toStamp(),
     )
 
     fun Memory.toEntity(): MemoryEntity = MemoryEntity(
@@ -82,11 +100,11 @@ object Mappers {
         memoryDate = memoryDate.iso(),
         emotion = emotion.name,
         visibility = visibility.name,
-        createdAt = createdAt.iso(),
-        updatedAt = updatedAt.iso(),
-        deletedAt = deletedAt?.iso(),
+        createdAt = createdAt.stamp(),
+        updatedAt = updatedAt.stamp(),
+        deletedAt = deletedAt?.stamp(),
         syncStatus = syncStatus.name,
-        lastSyncedAt = lastSyncedAt?.iso(),
+        lastSyncedAt = lastSyncedAt?.stamp(),
     )
 
     // --- Daily entry ---
@@ -95,25 +113,25 @@ object Mappers {
         id = id,
         userId = userId,
         date = date.toDate() ?: LocalDate.now(),
-        time = time.toDateTime() ?: LocalDateTime.now(),
+        time = time.toStamp() ?: LocalDateTime.now(),
         title = title,
         text = text,
         location = if (latitude != null && longitude != null) GeoPoint(latitude, longitude!!) else null,
         placeId = placeId,
         emotion = Emotion.fromName(emotion),
         linkedMemoryId = linkedMemoryId,
-        createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
-        updatedAt = updatedAt.toDateTime() ?: LocalDateTime.now(),
-        deletedAt = deletedAt.toDateTime(),
+        createdAt = createdAt.toStamp() ?: LocalDateTime.now(),
+        updatedAt = updatedAt.toStamp() ?: LocalDateTime.now(),
+        deletedAt = deletedAt.toStamp(),
         syncStatus = SyncStatus.fromName(syncStatus),
-        lastSyncedAt = lastSyncedAt.toDateTime(),
+        lastSyncedAt = lastSyncedAt.toStamp(),
     )
 
     fun DailyEntry.toEntity(): DailyEntryEntity = DailyEntryEntity(
         id = id,
         userId = userId,
         date = date.iso(),
-        time = time.iso(),
+        time = time.stamp(),
         title = title,
         text = text,
         latitude = location?.latitude,
@@ -121,11 +139,11 @@ object Mappers {
         placeId = placeId,
         emotion = emotion?.name,
         linkedMemoryId = linkedMemoryId,
-        createdAt = createdAt.iso(),
-        updatedAt = updatedAt.iso(),
-        deletedAt = deletedAt?.iso(),
+        createdAt = createdAt.stamp(),
+        updatedAt = updatedAt.stamp(),
+        deletedAt = deletedAt?.stamp(),
         syncStatus = syncStatus.name,
-        lastSyncedAt = lastSyncedAt?.iso(),
+        lastSyncedAt = lastSyncedAt?.stamp(),
     )
 
     // --- Media ---
@@ -140,11 +158,11 @@ object Mappers {
         width = width,
         height = height,
         durationMs = durationMs,
-        createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
-        updatedAt = updatedAt.toDateTime() ?: (createdAt.toDateTime() ?: LocalDateTime.now()),
+        createdAt = createdAt.toStamp() ?: LocalDateTime.now(),
+        updatedAt = updatedAt.toStamp() ?: (createdAt.toStamp() ?: LocalDateTime.now()),
         syncStatus = SyncStatus.fromName(syncStatus),
-        lastSyncedAt = lastSyncedAt.toDateTime(),
-        deletedAt = deletedAt.toDateTime(),
+        lastSyncedAt = lastSyncedAt.toStamp(),
+        deletedAt = deletedAt.toStamp(),
         storagePath = storagePath,
         uploadRequested = uploadRequested,
     )
@@ -159,11 +177,11 @@ object Mappers {
         width = width,
         height = height,
         durationMs = durationMs,
-        createdAt = createdAt.iso(),
-        updatedAt = updatedAt.iso(),
+        createdAt = createdAt.stamp(),
+        updatedAt = updatedAt.stamp(),
         syncStatus = syncStatus.name,
-        lastSyncedAt = lastSyncedAt?.iso(),
-        deletedAt = deletedAt?.iso(),
+        lastSyncedAt = lastSyncedAt?.stamp(),
+        deletedAt = deletedAt?.stamp(),
         storagePath = storagePath,
         uploadRequested = uploadRequested,
     )
@@ -174,14 +192,14 @@ object Mappers {
         id = id,
         userId = userId,
         name = name,
-        createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
+        createdAt = createdAt.toStamp() ?: LocalDateTime.now(),
     )
 
     fun Person.toEntity(): PersonEntity = PersonEntity(
         id = id,
         userId = userId,
         name = name,
-        createdAt = createdAt.iso(),
+        createdAt = createdAt.stamp(),
     )
 
     fun PlaceEntity.toDomain(): Place = Place(
@@ -189,7 +207,7 @@ object Mappers {
         userId = userId,
         name = name,
         location = GeoPoint(latitude, longitude),
-        createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
+        createdAt = createdAt.toStamp() ?: LocalDateTime.now(),
     )
 
     fun Place.toEntity(): PlaceEntity = PlaceEntity(
@@ -198,7 +216,7 @@ object Mappers {
         name = name,
         latitude = location.latitude,
         longitude = location.longitude,
-        createdAt = createdAt.iso(),
+        createdAt = createdAt.stamp(),
     )
 
     // --- Diary note ---
@@ -209,7 +227,7 @@ object Mappers {
         userId = userId,
         date = date.iso(),
         text = text,
-        updatedAt = LocalDateTime.now().iso(),
+        updatedAt = SyncTime.nowText(),
         syncStatus = SyncStatus.PENDING_UPDATE.name,
     )
 }

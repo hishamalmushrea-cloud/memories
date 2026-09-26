@@ -3,7 +3,7 @@ package com.memorymap.data.sync
 import com.memorymap.domain.usecase.ConflictResolver
 import com.memorymap.domain.usecase.ConflictResolver.Winner
 import com.memorymap.util.MmLog
-import java.time.LocalDateTime
+import com.memorymap.util.SyncTime
 
 /** The outcome of one run: what happened, and where the next run should start. */
 data class SyncResult(
@@ -35,7 +35,7 @@ class SyncEngine {
         tables: List<SyncTable<*>>,
         userId: String,
         since: String?,
-        now: String = LocalDateTime.now().toString(),
+        now: String = SyncTime.nowText(),
     ): SyncResult {
         var report = SyncReport()
         var watermark = since

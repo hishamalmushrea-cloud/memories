@@ -13,6 +13,7 @@ import com.memorymap.domain.model.Person
 import com.memorymap.domain.model.Place
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.util.SyncTime
 import java.time.LocalDateTime
 import java.util.UUID
 import javax.inject.Inject
@@ -51,7 +52,7 @@ class ReferenceRepositoryImpl @Inject constructor(
             name = trimmed,
             createdAt = now,
         )
-        val stamp = now.toString()
+        val stamp = SyncTime.localAsText(now)
         personDao.upsert(
             // A revived name keeps its old id and creation time: the links other
             // records hold point at that id, and a fresh row would orphan them.
@@ -73,7 +74,7 @@ class ReferenceRepositoryImpl @Inject constructor(
     }
 
     override suspend fun savePlace(place: Place) {
-        val now = LocalDateTime.now().toString()
+        val now = SyncTime.nowText()
         val existing = placeDao.getById(place.id)
         placeDao.upsert(
             place.toEntity().copy(
@@ -95,9 +96,9 @@ class ReferenceRepositoryImpl @Inject constructor(
      * reappear on the next download and the deletion would look like it had
      * been ignored.
      */
-    override suspend fun deletePerson(id: String) = personDao.softDelete(id, LocalDateTime.now().toString())
+    override suspend fun deletePerson(id: String) = personDao.softDelete(id, SyncTime.nowText())
 
-    override suspend fun deletePlace(id: String) = placeDao.softDelete(id, LocalDateTime.now().toString())
+    override suspend fun deletePlace(id: String) = placeDao.softDelete(id, SyncTime.nowText())
 
     override suspend fun entriesWithPerson(personId: String): List<DailyEntry> =
         entryDao.entriesWithPerson(personId).map { it.toDomain() }

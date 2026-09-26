@@ -6,6 +6,7 @@ import com.memorymap.data.local.dao.MemoryDao
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.MemoryRepository
+import com.memorymap.util.SyncTime
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -43,7 +44,7 @@ class MemoryRepositoryImpl @Inject constructor(
     override suspend fun save(memory: Memory, personIds: List<String>, placeIds: List<String>) {
         val existing = memoryDao.getById(memory.id)
         val toWrite = memory.copy(
-            createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: memory.createdAt,
+            createdAt = SyncTime.local(existing?.createdAt) ?: memory.createdAt,
             updatedAt = LocalDateTime.now(),
             // A record that has never reached the server stays PENDING_CREATE,
             // otherwise the sync worker would try to PATCH a row that is not there.
@@ -61,7 +62,7 @@ class MemoryRepositoryImpl @Inject constructor(
     override suspend fun delete(id: String) {
         // Soft delete only: the tombstone is what tells the server to remove its
         // copy, so a memory deleted offline stays deleted after reconnecting.
-        memoryDao.softDelete(id, LocalDateTime.now().toString())
+        memoryDao.softDelete(id, SyncTime.nowText())
     }
 
     override suspend fun search(userId: String, query: String): List<Memory> {

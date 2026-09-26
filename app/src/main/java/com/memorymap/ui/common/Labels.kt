@@ -6,8 +6,8 @@ import com.memorymap.R
 import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.Visibility
+import com.memorymap.util.SyncTime
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -46,12 +46,15 @@ fun LocalDate.formatLong(locale: Locale): String =
 /**
  * A short, locale-aware date and time, for "last synchronised at".
  *
- * Returns null rather than throwing when the stored text cannot be read: a
- * timestamp the app cannot parse is worth skipping, not worth a crash over.
+ * `SyncTime.local` reads both a stored instant and the plain local text older
+ * rows hold, and answers in this device's zone - which is the zone a person
+ * reading a clock wants. Returns null rather than throwing when the stored text
+ * cannot be read: a timestamp the app cannot parse is worth skipping, not worth
+ * a crash over.
  */
 fun formatDateTime(text: String?, locale: Locale): String? {
     if (text.isNullOrBlank()) return null
-    val parsed = runCatching { LocalDateTime.parse(text) }.getOrNull() ?: return null
+    val parsed = SyncTime.local(text) ?: return null
     return parsed.format(
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(locale),
     )

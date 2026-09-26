@@ -19,15 +19,17 @@ data class LocalRow(
 /**
  * The part of an incoming server row the engine needs in order to compare it.
  *
- * [updatedAt] and [stamp] are the same moment written two ways, and both are
- * needed. [updatedAt] is what Room stores - naive local text - so that a server
- * row and a local row can be compared without a timezone shifting the answer.
- * [stamp] is the server's own rendering, an instant, because that is what the
- * watermark is: it goes back to the server as `updated_at >= :since`, and a
- * naive value would be read there in the session's timezone. On a device three
- * hours ahead of UTC, sending the local text as the watermark asks the server
- * for rows newer than a moment three hours in its future, and everything another
- * device changed in those three hours is never downloaded.
+ * [updatedAt] is what Room stores, and [stamp] is the server's own text: both
+ * are moments, which is what makes the comparison the engine makes next mean
+ * something. They are the same moment in the common case and may differ in
+ * rendering (`Z` against `+03:00`), which is why the watermark folds them as
+ * instants rather than as text.
+ *
+ * The watermark itself is always the server's own rendering, because it goes
+ * back as the lower bound of `updated_at >= :since`, where a value without an
+ * offset is read in the session's timezone: a device three hours ahead would ask
+ * for rows newer than a moment three hours in the server's future and never see
+ * what another device changed. Sending the local rendering was that bug.
  */
 data class RemoteRow(
     val id: String,

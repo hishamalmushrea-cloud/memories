@@ -18,8 +18,10 @@ import kotlinx.serialization.Serializable
  * tombstones. Those describe this phone's relationship with a server, and
  * restoring them onto a different phone would be meaningless at best.
  *
- * Timestamps stay in the naive local text Room uses, so an archive round-trips
- * byte for byte instead of shifting by a timezone on the way through.
+ * Timestamps stay in the text the database holds, so an archive round-trips byte
+ * for byte instead of shifting by a timezone on the way through. For rows written
+ * by this version and later that text is an instant (`...Z`); an archive written
+ * before it holds plain local text, and both read back as the moment they mean.
  */
 
 @Serializable

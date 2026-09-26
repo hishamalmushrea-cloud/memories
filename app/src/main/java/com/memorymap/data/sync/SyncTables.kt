@@ -65,7 +65,7 @@ data class EntryWithLinks(
 class MemorySyncTable(
     private val dao: MemoryDao,
     private val api: SyncApi,
-    private val clock: () -> String = { LocalDateTime.now().toString() },
+    private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<MemoryWithLinks> {
 
     override val name = "memories"
@@ -107,9 +107,10 @@ class MemorySyncTable(
 
     override fun remoteInfo(row: MemoryWithLinks): RemoteRow = RemoteRow(
         id = row.record.id,
-        // Converted to the naive local text Room uses, so it can be compared
-        // against a local row without a timezone shifting the answer.
-        updatedAt = SyncTime.toLocalText(row.record.updatedAt) ?: row.record.updatedAt,
+        // Kept as the instant it is. It is compared against a local row, and a
+        // wall-clock reading would mean the two were written in the same zone -
+        // which is the assumption that made a newer edit lose to an older one.
+        updatedAt = SyncTime.asInstantText(row.record.updatedAt) ?: row.record.updatedAt,
         deleted = row.record.deletedAt != null,
         stamp = row.record.updatedAt,
     )
@@ -163,12 +164,12 @@ class MemorySyncTable(
         memoryDate = memoryDate,
         emotion = emotion,
         visibility = visibility,
-        createdAt = SyncTime.toInstantText(createdAt) ?: now,
-        updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
-        deletedAt = SyncTime.toInstantText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         // A row that has just been accepted is, by definition, in agreement.
         syncStatus = SyncStatus.SYNCED.name,
-        lastSyncedAt = SyncTime.toInstantText(now),
+        lastSyncedAt = SyncTime.asInstantText(now),
     )
 
     private fun MemoryRecord.toEntity(now: String) = MemoryEntity(
@@ -182,9 +183,9 @@ class MemorySyncTable(
         memoryDate = memoryDate,
         emotion = emotion,
         visibility = visibility,
-        createdAt = SyncTime.toLocalText(createdAt) ?: now,
-        updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
-        deletedAt = SyncTime.toLocalText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
         lastSyncedAt = now,
     )
@@ -194,7 +195,7 @@ class MemorySyncTable(
 class EntrySyncTable(
     private val dao: DailyEntryDao,
     private val api: SyncApi,
-    private val clock: () -> String = { LocalDateTime.now().toString() },
+    private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<EntryWithLinks> {
 
     override val name = "daily_entries"
@@ -234,7 +235,7 @@ class EntrySyncTable(
 
     override fun remoteInfo(row: EntryWithLinks): RemoteRow = RemoteRow(
         id = row.record.id,
-        updatedAt = SyncTime.toLocalText(row.record.updatedAt) ?: row.record.updatedAt,
+        updatedAt = SyncTime.asInstantText(row.record.updatedAt) ?: row.record.updatedAt,
         deleted = row.record.deletedAt != null,
         stamp = row.record.updatedAt,
     )
@@ -276,7 +277,7 @@ class EntrySyncTable(
         id = id,
         userId = userId,
         entryDate = date,
-        entryTime = SyncTime.toInstantText(time) ?: now,
+        entryTime = SyncTime.asInstantText(time) ?: now,
         title = title,
         body = text,
         latitude = latitude,
@@ -284,18 +285,18 @@ class EntrySyncTable(
         placeId = placeId,
         emotion = emotion,
         linkedMemoryId = linkedMemoryId,
-        createdAt = SyncTime.toInstantText(createdAt) ?: now,
-        updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
-        deletedAt = SyncTime.toInstantText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
-        lastSyncedAt = SyncTime.toInstantText(now),
+        lastSyncedAt = SyncTime.asInstantText(now),
     )
 
     private fun EntryRecord.toEntity(now: String) = DailyEntryEntity(
         id = id,
         userId = userId,
         date = entryDate,
-        time = SyncTime.toLocalText(entryTime) ?: now,
+        time = SyncTime.asInstantText(entryTime) ?: now,
         title = title,
         text = body,
         latitude = latitude,
@@ -303,9 +304,9 @@ class EntrySyncTable(
         placeId = placeId,
         emotion = emotion,
         linkedMemoryId = linkedMemoryId,
-        createdAt = SyncTime.toLocalText(createdAt) ?: now,
-        updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
-        deletedAt = SyncTime.toLocalText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
         lastSyncedAt = now,
     )
@@ -321,7 +322,7 @@ class EntrySyncTable(
 class PersonSyncTable(
     private val dao: PersonDao,
     private val api: SyncApi,
-    private val clock: () -> String = { LocalDateTime.now().toString() },
+    private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<PersonRecord> {
 
     override val name = "people"
@@ -349,7 +350,7 @@ class PersonSyncTable(
 
     override fun remoteInfo(row: PersonRecord): RemoteRow = RemoteRow(
         id = row.id,
-        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
+        updatedAt = SyncTime.asInstantText(row.updatedAt) ?: row.updatedAt,
         deleted = row.deletedAt != null,
         stamp = row.updatedAt,
     )
@@ -374,20 +375,20 @@ class PersonSyncTable(
         id = id,
         userId = userId,
         name = name,
-        createdAt = SyncTime.toInstantText(createdAt) ?: now,
-        updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
-        deletedAt = SyncTime.toInstantText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
-        lastSyncedAt = SyncTime.toInstantText(now),
+        lastSyncedAt = SyncTime.asInstantText(now),
     )
 
     private fun PersonRecord.toEntity(now: String) = PersonEntity(
         id = id,
         userId = userId,
         name = name,
-        createdAt = SyncTime.toLocalText(createdAt) ?: now,
-        updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
-        deletedAt = SyncTime.toLocalText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
         lastSyncedAt = now,
     )
@@ -397,7 +398,7 @@ class PersonSyncTable(
 class PlaceSyncTable(
     private val dao: PlaceDao,
     private val api: SyncApi,
-    private val clock: () -> String = { LocalDateTime.now().toString() },
+    private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<PlaceRecord> {
 
     override val name = "places"
@@ -425,7 +426,7 @@ class PlaceSyncTable(
 
     override fun remoteInfo(row: PlaceRecord): RemoteRow = RemoteRow(
         id = row.id,
-        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
+        updatedAt = SyncTime.asInstantText(row.updatedAt) ?: row.updatedAt,
         deleted = row.deletedAt != null,
         stamp = row.updatedAt,
     )
@@ -452,11 +453,11 @@ class PlaceSyncTable(
         name = name,
         latitude = latitude,
         longitude = longitude,
-        createdAt = SyncTime.toInstantText(createdAt) ?: now,
-        updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
-        deletedAt = SyncTime.toInstantText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
-        lastSyncedAt = SyncTime.toInstantText(now),
+        lastSyncedAt = SyncTime.asInstantText(now),
     )
 
     private fun PlaceRecord.toEntity(now: String) = PlaceEntity(
@@ -465,9 +466,9 @@ class PlaceSyncTable(
         name = name,
         latitude = latitude,
         longitude = longitude,
-        createdAt = SyncTime.toLocalText(createdAt) ?: now,
-        updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
-        deletedAt = SyncTime.toLocalText(deletedAt),
+        createdAt = SyncTime.asInstantText(createdAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+        deletedAt = SyncTime.asInstantText(deletedAt),
         syncStatus = SyncStatus.SYNCED.name,
         lastSyncedAt = now,
     )
@@ -502,7 +503,7 @@ class PlaceSyncTable(
 class DiaryNoteSyncTable(
     private val dao: DiaryNoteDao,
     private val api: SyncApi,
-    private val clock: () -> String = { LocalDateTime.now().toString() },
+    private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<DiaryNoteRecord> {
 
     override val name = "diary_notes"
@@ -535,7 +536,7 @@ class DiaryNoteSyncTable(
 
     override fun remoteInfo(row: DiaryNoteRecord): RemoteRow = RemoteRow(
         id = noteHandle(row.userId, row.noteDate),
-        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
+        updatedAt = SyncTime.asInstantText(row.updatedAt) ?: row.updatedAt,
         deleted = false,
         stamp = row.updatedAt,
     )
@@ -569,16 +570,16 @@ class DiaryNoteSyncTable(
         userId = userId,
         noteDate = date,
         body = text,
-        updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
         syncStatus = SyncStatus.SYNCED.name,
-        lastSyncedAt = SyncTime.toInstantText(now),
+        lastSyncedAt = SyncTime.asInstantText(now),
     )
 
     private fun DiaryNoteRecord.toEntity(now: String) = DiaryNoteEntity(
         userId = userId,
         date = noteDate,
         text = body,
-        updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
+        updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
         syncStatus = SyncStatus.SYNCED.name,
         lastSyncedAt = now,
     )
@@ -602,7 +603,7 @@ class MediaSyncTable(
     private val storage: MediaStorage,
     private val files: MediaFileStore,
     private val images: ImageOptimizer,
-    private val clock: () -> String = { LocalDateTime.now().toString() },
+    private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<MediaRecord> {
 
     /** Not `media`: this is the word the user sees in a message about a run. */
@@ -651,7 +652,7 @@ class MediaSyncTable(
 
     override fun remoteInfo(row: MediaRecord): RemoteRow = RemoteRow(
         id = row.id,
-        updatedAt = SyncTime.toLocalText(row.updatedAt) ?: row.updatedAt,
+        updatedAt = SyncTime.asInstantText(row.updatedAt) ?: row.updatedAt,
         deleted = row.deletedAt != null,
         stamp = row.updatedAt,
     )
@@ -751,12 +752,12 @@ private fun MediaEntity.toRecord(now: String, storagePath: String, userId: Strin
     width = width,
     height = height,
     durationMs = durationMs,
-    createdAt = SyncTime.toInstantText(createdAt) ?: now,
-    updatedAt = SyncTime.toInstantText(updatedAt) ?: now,
-    deletedAt = SyncTime.toInstantText(deletedAt),
+    createdAt = SyncTime.asInstantText(createdAt) ?: now,
+    updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
+    deletedAt = SyncTime.asInstantText(deletedAt),
     // A row that is being sent is, by definition, in agreement.
     syncStatus = SyncStatus.SYNCED.name,
-    lastSyncedAt = SyncTime.toInstantText(now),
+    lastSyncedAt = SyncTime.asInstantText(now),
 )
 
 /**
@@ -779,11 +780,11 @@ private fun MediaRecord.toEntity(
     width = width,
     height = height,
     durationMs = durationMs,
-    createdAt = SyncTime.toLocalText(createdAt) ?: now,
-    updatedAt = SyncTime.toLocalText(updatedAt) ?: now,
+    createdAt = SyncTime.asInstantText(createdAt) ?: now,
+    updatedAt = SyncTime.asInstantText(updatedAt) ?: now,
     syncStatus = SyncStatus.SYNCED.name,
-    lastSyncedAt = SyncTime.toLocalText(now),
-    deletedAt = SyncTime.toLocalText(deletedAt),
+    lastSyncedAt = SyncTime.asInstantText(now),
+    deletedAt = SyncTime.asInstantText(deletedAt),
     storagePath = storagePath.takeIf { it.isNotBlank() },
     // Already in the bucket, so it is opted in by definition; a row with no key
     // is not, and must not be queued for an upload it cannot do.

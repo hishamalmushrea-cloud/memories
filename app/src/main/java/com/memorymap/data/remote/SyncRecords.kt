@@ -10,8 +10,10 @@ import kotlinx.serialization.Serializable
  * `body` and dates `entry_date` / `entry_time`. Keeping the two apart is the
  * point of these classes — nothing outside the remote layer sees them.
  *
- * Timestamps travel as instants. Room keeps naive local text, and the conversion
- * happens in [com.memorymap.data.sync] where it can be tested.
+ * Timestamps travel as instants and are stored as instants. A row written on a
+ * phone in one country is compared, later, on that phone in another: a clock
+ * reading would mean something different in each place, and the newer of two
+ * edits would lose.
  */
 
 @Serializable

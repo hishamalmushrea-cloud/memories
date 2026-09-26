@@ -1,10 +1,7 @@
 package com.memorymap.domain.usecase
 
+import com.memorymap.util.SyncTime
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeParseException
 
 /**
  * Decides which copy of a record wins when the phone and the server disagree.
@@ -57,20 +54,11 @@ object ConflictResolver {
     /**
      * Reads a timestamp written by either side.
      *
-     * The server sends instants with an offset; Room holds naive local text,
-     * which is what the rest of the app writes. Treating naive text as the
-     * device's own zone keeps the two comparable.
+     * Both sides write instants now, so this is almost always a straight parse.
+     * It goes through [SyncTime] rather than parsing here, because the one thing
+     * that must not happen is a second reading of what a stamp means: rows
+     * written before stamps carried an offset are read in the device's own zone
+     * there, in one place, with the assumption written down.
      */
-    internal fun parse(value: String?): Instant? {
-        if (value.isNullOrBlank()) return null
-        return try {
-            OffsetDateTime.parse(value).toInstant()
-        } catch (_: DateTimeParseException) {
-            try {
-                LocalDateTime.parse(value).atZone(ZoneId.systemDefault()).toInstant()
-            } catch (_: DateTimeParseException) {
-                null
-            }
-        }
-    }
+    internal fun parse(value: String?): Instant? = SyncTime.instant(value)
 }

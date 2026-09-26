@@ -34,6 +34,27 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- Every timestamp the app writes is now a moment (`2026-09-26T22:31:05.123Z`)
+  rather than a clock reading (`2026-09-26T22:31:05.123`). A clock reading means
+  the moment only in the zone it was written in, and the sync engine compares a
+  local stamp with the server's to decide which edit wins: a memory edited at
+  10:00 in Sanaa and edited again at 09:00 in London after a flight had its newer
+  edit read as the older one, because both readings were interpreted in whichever
+  zone the phone was in at the moment of comparison. The newer edit lost, once,
+  with nothing shown to the user.
+
+  `util/SyncTime.kt` is the one place that says what a stamp is: `nowText()`
+  writes one, `asInstantText()` reads either shape and answers in the moment
+  shape (plain text without an offset is read in the device's zone, which is the
+  only honest reading of a row written before this change), `instant()` compares,
+  and `local()` gives the local time for the screen. Stored stamps keep the
+  server's own text, so nothing is converted on the way in or out, the conflict
+  resolver reads stamps through `SyncTime` instead of forming its own second
+  opinion about what they mean, and `LocalDateTime.iso()` is gone from the mappers
+  so there is no longer a way to write a clock reading into the database. The
+  column types did not change, so there is no migration: rows written earlier
+  still read back as the moment they were.
+
 - `ci/check-import-order.py` also fails on the same import twice. `TestDoubles.kt`
   imported `com.memorymap.domain.model.User` at line 9 and again at line 27, and
   nothing said so - the compiler accepts it, the tests pass, and lint does not

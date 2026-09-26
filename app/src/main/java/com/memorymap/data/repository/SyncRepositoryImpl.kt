@@ -26,6 +26,7 @@ import com.memorymap.domain.model.SyncState
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.MmLog
+import com.memorymap.util.SyncTime
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -142,7 +143,7 @@ class SyncRepositoryImpl @Inject constructor(
                 SyncMetaEntity(
                     userId = userId,
                     lastDownloadAt = watermark,
-                    lastRunAt = LocalDateTime.now().toString(),
+                    lastRunAt = SyncTime.nowText(),
                     lastRunOutcome = outcome,
                 ),
             )

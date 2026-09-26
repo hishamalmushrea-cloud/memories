@@ -123,13 +123,13 @@ class SyncEngineTest {
 
     @Test
     fun `the watermark is the server's own instant, not the local rendering of it`() = runTest {
-        // The engine turns a server stamp into naive local text so it can be
-        // compared with a Room row, and that value must not become the
-        // watermark: it goes back to the server as the lower bound of a
-        // timestamptz comparison, where a naive value is read in the session's
-        // timezone. A device three hours ahead would then ask for rows newer
-        // than a moment three hours in the server's future and never see what
-        // another device changed in the meantime.
+        // The watermark goes back to the server as the lower bound of a
+        // `timestamptz` comparison, where a value without an offset is read in
+        // the session's timezone. A device three hours ahead would then ask for
+        // rows newer than a moment three hours in the server's future, and never
+        // see what another device changed in the meantime. The engine folds the
+        // stamps as instants and stores the server's own text, so the bound is
+        // the moment the server meant.
         table.server += row(
             id = "a",
             stamp = NEWER,

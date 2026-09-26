@@ -10,6 +10,7 @@ import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.DayContentCounts
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.DiaryRepository
+import com.memorymap.util.SyncTime
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -43,7 +44,7 @@ class DiaryRepositoryImpl @Inject constructor(
     override suspend fun saveEntry(entry: DailyEntry, personIds: List<String>, placeIds: List<String>) {
         val existing = entryDao.getById(entry.id)
         val toWrite = entry.copy(
-            createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: entry.createdAt,
+            createdAt = SyncTime.local(existing?.createdAt) ?: entry.createdAt,
             updatedAt = LocalDateTime.now(),
             syncStatus = if (existing == null) SyncStatus.PENDING_CREATE else SyncStatus.PENDING_UPDATE,
         )
@@ -59,7 +60,7 @@ class DiaryRepositoryImpl @Inject constructor(
     override suspend fun placesOf(entryId: String): List<String> = entryDao.placesOf(entryId)
 
     override suspend fun deleteEntry(id: String) {
-        entryDao.softDelete(id, LocalDateTime.now().toString())
+        entryDao.softDelete(id, SyncTime.nowText())
     }
 
     override suspend fun getDiaryNote(userId: String, date: LocalDate): String? =

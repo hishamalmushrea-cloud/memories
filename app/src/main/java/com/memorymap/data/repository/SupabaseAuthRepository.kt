@@ -10,6 +10,7 @@ import com.memorymap.domain.model.User
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.LOCAL_USER_ID
 import com.memorymap.util.MmLog
+import com.memorymap.util.SyncTime
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.SignOutScope
@@ -206,7 +207,7 @@ class SupabaseAuthRepository @Inject constructor(
             email = existing?.email ?: OFFLINE_EMAIL,
             displayName = name,
             avatarUrl = existing?.avatarUrl,
-            createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: LocalDateTime.now(),
+            createdAt = SyncTime.local(existing?.createdAt) ?: LocalDateTime.now(),
         )
         database.userDao().upsert(user.toEntityRow())
         publish(user, offlineAccount = true)
@@ -228,7 +229,7 @@ class SupabaseAuthRepository @Inject constructor(
             email = email.ifBlank { existing?.email.orEmpty() },
             displayName = displayName.ifBlank { existing?.displayName ?: email },
             avatarUrl = existing?.avatarUrl,
-            createdAt = existing?.createdAt?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() } ?: LocalDateTime.now(),
+            createdAt = SyncTime.local(existing?.createdAt) ?: LocalDateTime.now(),
         )
         database.userDao().upsert(user.toEntityRow())
         ensureProfileRow(user)
@@ -322,7 +323,7 @@ class SupabaseAuthRepository @Inject constructor(
         email = email,
         displayName = displayName,
         avatarUrl = avatarUrl,
-        createdAt = runCatching { LocalDateTime.parse(createdAt) }.getOrDefault(LocalDateTime.now()),
+        createdAt = SyncTime.local(createdAt) ?: LocalDateTime.now(),
     )
 
     private fun User.toEntityRow(): UserEntity = UserEntity(

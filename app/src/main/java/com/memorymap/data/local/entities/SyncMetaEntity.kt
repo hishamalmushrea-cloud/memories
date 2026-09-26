@@ -26,7 +26,7 @@ data class SyncMetaEntity(
     @ColumnInfo(name = "last_download_at")
     val lastDownloadAt: String? = null,
 
-    /** Local naive text, used only to tell the user when sync last ran. */
+    /** An instant, used only to tell the user when sync last ran. */
     @ColumnInfo(name = "last_run_at")
     val lastRunAt: String? = null,
 

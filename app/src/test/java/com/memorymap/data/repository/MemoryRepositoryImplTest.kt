@@ -8,6 +8,7 @@ import com.memorymap.domain.model.GeoPoint
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.model.Visibility
+import com.memorymap.util.SyncTime
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -83,6 +84,27 @@ class MemoryRepositoryImplTest {
         assertEquals("بعد التعديل", stored.title)
         assertEquals(SyncStatus.PENDING_UPDATE, stored.syncStatus)
         assertEquals(createdAt, stored.createdAt)
+    }
+
+    @Test
+    fun `what is written to the database is a moment, not a clock reading`() = runTest {
+        // The sync engine compares this stamp with the server's, and the conflict
+        // resolver decides which edit wins. A clock reading would make that
+        // answer depend on the zone the phone is standing in.
+        val memory = sampleMemory(title = "توقيت")
+
+        repository.save(memory)
+
+        val stored = db.memoryDao().getById(memory.id)!!
+        assertTrue("expected an instant, got ${stored.updatedAt}", stored.updatedAt.endsWith("Z"))
+        assertNotNull(SyncTime.instant(stored.updatedAt))
+        // And it is the same moment the app reads back: a round trip through the
+        // device's own zone must not move it.
+        val readBack = repository.getById(memory.id)!!
+        assertEquals(
+            SyncTime.instant(stored.updatedAt),
+            SyncTime.instant(SyncTime.localAsText(readBack.updatedAt)),
+        )
     }
 
     @Test

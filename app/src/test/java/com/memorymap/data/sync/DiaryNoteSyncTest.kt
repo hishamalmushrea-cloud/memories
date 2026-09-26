@@ -120,23 +120,33 @@ class DiaryNoteSyncTest {
     }
 
     @Test
-    fun `a remote stamp is compared in the same space as a local one`() = runTest {
-        // The engine decides whether an incoming row wins by comparing its stamp
-        // with the local one, and one of those is an instant while the other is
-        // naive local text. Without this conversion the comparison would be
-        // decided by the device's offset.
+    fun `a remote stamp keeps the instant the server sent`() = runTest {
+        // The engine compares an incoming stamp with the local one, so both have
+        // to be moments rather than clock readings. This used to convert the
+        // server's instant into the device's local text - which meant the answer
+        // depended on where the phone was standing when it asked.
         db.diaryNoteDao().upsert(note("نص"))
         val table = DiaryNoteSyncTable(db.diaryNoteDao(), api, clock = { now })
         val instant = "2026-09-24T09:00:00Z"
 
         val remote = table.remoteInfo(record(updatedAt = instant))
 
-        assertEquals(SyncTime.toLocalText(instant), remote.updatedAt)
-        assertTrue(
-            "the remote stamp still reads as the later of the two",
-            LocalDateTime.parse(remote.updatedAt).isAfter(LocalDateTime.parse(note("x").updatedAt)),
-        )
+        assertEquals(instant, remote.updatedAt)
+        assertEquals(instant, SyncTime.instant(remote.updatedAt).toString())
         assertEquals(1, table.localSnapshot(listOf(remote.id)).size)
+    }
+
+    @Test
+    fun `a note written here is stamped with an instant, not a clock reading`() = runTest {
+        db.diaryNoteDao().upsert(note("نص"))
+        val table = DiaryNoteSyncTable(db.diaryNoteDao(), api, clock = { SyncTime.nowText() })
+
+        table.pushUpserts(table.pending(userId))
+
+        val sent = api.diaryNotesSent.single()
+        // Ends with the offset, so a device in another zone reads the same moment.
+        assertTrue("expected an instant, got ${sent.updatedAt}", sent.updatedAt.endsWith("Z"))
+        assertEquals(sent.updatedAt, SyncTime.instant(sent.updatedAt).toString())
     }
 
     @Test

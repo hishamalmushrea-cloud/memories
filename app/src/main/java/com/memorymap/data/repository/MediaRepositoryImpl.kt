@@ -10,6 +10,7 @@ import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.util.MediaStore
 import com.memorymap.util.MmLog
+import com.memorymap.util.SyncTime
 import java.io.File
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -40,14 +41,14 @@ class MediaRepositoryImpl @Inject constructor(
 
     override suspend fun remove(id: String) {
         val existing = mediaDao.getById(id)
-        mediaDao.softDelete(id, LocalDateTime.now().toString())
+        mediaDao.softDelete(id, SyncTime.nowText())
         // The row survives as a tombstone; the bytes do not.
         existing?.let { deleteFile(it.uri) }
     }
 
     override suspend fun removeAllFor(owner: MediaOwner, ownerId: String) {
         val files = mediaDao.getFor(owner.name, ownerId).map { it.uri }
-        mediaDao.softDeleteFor(owner.name, ownerId, LocalDateTime.now().toString())
+        mediaDao.softDeleteFor(owner.name, ownerId, SyncTime.nowText())
         files.forEach { deleteFile(it) }
     }
 
@@ -76,7 +77,7 @@ class MediaRepositoryImpl @Inject constructor(
         // The stamp moves with the request so the queue sees it: rows are read
         // oldest-first by `updated_at`, and a request that did not move it would
         // sort as something that had already been dealt with.
-        mediaDao.requestUpload(id, LocalDateTime.now().toString())
+        mediaDao.requestUpload(id, SyncTime.nowText())
     }
 
     override suspend fun cancelUpload(id: String) {
