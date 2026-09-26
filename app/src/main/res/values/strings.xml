@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default language is Arabic; values-en/strings.xml holds the English copy. -->
+<resources>
+    <string name="app_name">خريطة الذكريات</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_map">الخريطة</string>
+    <string name="tab_diary">يومياتي</string>
+    <string name="tab_memories">ذكرياتي</string>
+    <string name="tab_timeline">الخط الزمني</string>
+    <string name="tab_profile">حسابي</string>
+
+    <!-- Global actions -->
+    <string name="action_add">إضافة</string>
+    <string name="action_save">حفظ</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_edit">تعديل</string>
+    <string name="action_cancel">إلغاء</string>
+
+    <!-- Quick add sheet -->
+    <string name="quick_add_title">ماذا تريد أن تضيف؟</string>
+    <string name="quick_add_memory">ذكرى</string>
+    <string name="quick_add_entry">حدث يومي</string>
+    <string name="quick_add_photo">صورة</string>
+    <string name="quick_add_audio">تسجيل صوتي</string>
+    <string name="quick_add_video">فيديو</string>
+    <string name="coming_phase_3">قريبًا</string>
+
+    <!-- Diary -->
+    <string name="diary_today">اليوم</string>
+    <string name="diary_yesterday">الأمس</string>
+    <string name="diary_this_week">هذا الأسبوع</string>
+    <string name="diary_this_month">هذا الشهر</string>
+    <string name="diary_this_year">هذه السنة</string>
+    <string name="diary_add_to_day">إضافة إلى يومي</string>
+    <string name="diary_day_events">أحداث اليوم</string>
+    <string name="diary_no_events">لا توجد أحداث في هذا اليوم بعد.</string>
+    <string name="diary_note_title">مذكرات اليوم</string>
+    <string name="diary_note_hint">ماذا فعلت اليوم؟</string>
+    <string name="on_this_day">في مثل هذا اليوم</string>
+
+    <!-- Week / month / year -->
+    <string name="week_events_count">%1$d حدث</string>
+    <string name="week_media_count">%1$d صورة · %2$d تسجيل · %3$d فيديو</string>
+    <string name="month_recorded_days">أيام مسجّلة: %1$d</string>
+    <string name="month_totals">%1$d حدث · %2$d صورة · %3$d فيديو · %4$d تسجيل · %5$d ذكرى</string>
+    <string name="year_recorded_days">أيام مسجّلة خلال السنة: %1$d</string>
+    <string name="year_days_count">%1$d يوم</string>
+
+    <!-- Profile -->
+    <string name="profile_local_title">حساب محلي</string>
+    <string name="profile_local_hint">بياناتك محفوظة على هذا الجهاز</string>
+    <string name="profile_offline_only">لا يوجد مشروع Supabase مرتبط، لذلك يعمل التطبيق محليًا بالكامل. هذا وضع مدعوم وليس خطأ.</string>
+    <string name="profile_stats_title">إحصاءات الحياة</string>
+    <string name="stat_recorded_days">الأيام المسجّلة</string>
+    <string name="stat_memories">الذكريات</string>
+    <string name="stat_events">الأحداث</string>
+    <string name="stat_places">الأماكن</string>
+    <string name="stat_people">الأشخاص</string>
+    <string name="stat_photos">الصور</string>
+    <string name="stat_audio">التسجيلات</string>
+    <string name="stat_videos">الفيديوهات</string>
+    <string name="stat_top_emotion">أكثر شعور</string>
+    <string name="stat_top_month">أكثر شهر نشاطًا</string>
+    <string name="stat_none">لا شيء بعد</string>
+
+    <!-- Emotions -->
+    <string name="emotion_happy">سعيد</string>
+    <string name="emotion_sad">حزين</string>
+    <string name="emotion_love">حب</string>
+    <string name="emotion_fear">خوف</string>
+    <string name="emotion_pride">فخر</string>
+    <string name="emotion_nostalgia">حنين</string>
+
+    <!-- المصادقة -->
+    <string name="auth_subtitle">يومياتك وذكرياتك محفوظة على جهازك أولًا</string>
+    <string name="auth_tab_sign_in">تسجيل الدخول</string>
+    <string name="auth_tab_sign_up">إنشاء حساب</string>
+    <string name="auth_display_name">الاسم</string>
+    <string name="auth_email">البريد الإلكتروني</string>
+    <string name="auth_password">كلمة المرور</string>
+    <string name="auth_action_sign_in">دخول</string>
+    <string name="auth_action_sign_up">إنشاء الحساب</string>
+    <string name="auth_action_reset">إرسال رابط الاستعادة</string>
+    <string name="auth_action_sign_out">تسجيل الخروج</string>
+    <string name="auth_forgot_password">نسيت كلمة المرور؟</string>
+    <string name="auth_back_to_sign_in">العودة إلى تسجيل الدخول</string>
+    <string name="auth_continue_offline">المتابعة بحساب محلي</string>
+    <string name="auth_start_local">ابدأ بحساب محلي</string>
+    <string name="auth_offline_title">لا يوجد مشروع Supabase مرتبط</string>
+    <string name="auth_offline_body">يعمل التطبيق بالكامل على هذا الجهاز دون حساب سحابي. لا تُرسَل أي بيانات إلى أي مكان، ويمكنك ربط Supabase لاحقًا من إعدادات البناء.</string>
+    <string name="auth_error_credentials">البريد الإلكتروني أو كلمة المرور غير صحيحة.</string>
+    <string name="auth_error_weak_password">كلمة المرور قصيرة جدًا. استخدم 6 أحرف على الأقل.</string>
+    <string name="auth_error_email_taken">هذا البريد الإلكتروني مسجَّل مسبقًا.</string>
+    <string name="auth_error_email_unconfirmed">لم يتم تأكيد البريد الإلكتروني بعد.</string>
+    <string name="auth_error_rate_limited">محاولات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.</string>
+    <string name="auth_error_offline">لا يوجد حساب محلي بهذا البريد. ابدأ بحساب محلي أو أنشئ حسابًا جديدًا.</string>
+    <string name="auth_error_email_required">أدخل البريد الإلكتروني.</string>
+    <string name="auth_error_generic">تعذّر إكمال الطلب. تحقّق من الاتصال ثم أعد المحاولة.</string>
+    <string name="auth_reset_sent">أُرسل رابط استعادة كلمة المرور إلى بريدك.</string>
+    <!-- Memories: list, editor, detail -->
+    <string name="memory_search_hint">ابحث في الذكريات</string>
+    <string name="memory_empty_title">لا توجد ذكريات بعد</string>
+    <string name="memory_search_empty">لا توجد نتائج مطابقة</string>
+    <string name="memory_empty_body">أضف أول ذكرى من زر الإضافة، وأرفق لها صورة أو تسجيلًا أو فيديو.</string>
+    <string name="memory_delete_title">حذف الذكرى</string>
+    <string name="memory_delete_body">ستُحذف «%1$s» ومرفقاتها من هذا الجهاز.</string>
+    <string name="memory_not_found">لم يتم العثور على هذه الذكرى</string>
+    <string name="memory_section_photos">الصور (%1$d)</string>
+    <string name="memory_section_audio">التسجيلات (%1$d)</string>
+    <string name="memory_section_videos">الفيديوهات (%1$d)</string>
+    <string name="memory_section_attachments">المرفقات</string>
+    <string name="memory_action_play">تشغيل</string>
+    <string name="memory_action_pause">إيقاف مؤقت</string>
+    <string name="memory_editor_new">ذكرى جديدة</string>
+    <string name="memory_editor_edit">تعديل الذكرى</string>
+    <string name="memory_field_title">العنوان</string>
+    <string name="memory_field_text">التفاصيل</string>
+    <string name="memory_field_date">التاريخ: %1$s</string>
+    <string name="memory_field_emotion">الشعور</string>
+    <string name="memory_field_visibility">من يستطيع الرؤية</string>
+    <string name="memory_field_place">اسم المكان</string>
+    <string name="memory_action_pick_photo">اختيار صورة</string>
+    <string name="memory_action_take_photo">التقاط صورة</string>
+    <string name="memory_action_pick_video">اختيار فيديو</string>
+    <string name="memory_action_record">تسجيل صوتي</string>
+    <string name="memory_action_keep">حفظ التسجيل</string>
+    <string name="memory_recording">جارٍ التسجيل… %1$s</string>
+    <string name="memory_discard_title">تجاهل التغييرات؟</string>
+    <string name="memory_discard_body">ستُحذف المرفقات التي أضفتها دون حفظ.</string>
+    <string name="memory_action_discard">تجاهل</string>
+    <string name="memory_error_title">اكتب عنوانًا للذكرى</string>
+    <string name="memory_error_media">تعذّرت إضافة هذا الملف</string>
+    <string name="memory_error_no_account">لا يوجد حساب نشط</string>
+    <string name="memory_error_save">تعذّر حفظ الذكرى</string>
+
+    <!-- Shared labels -->
+    <string name="visibility_private">خاص</string>
+    <string name="visibility_shared">مشترك</string>
+    <string name="visibility_public">عام</string>
+    <string name="media_type_photo">صورة</string>
+    <string name="media_type_audio">تسجيل صوتي</string>
+    <string name="media_type_video">فيديو</string>
+    <!-- Diary: event editor -->
+    <string name="entry_editor_new">حدث جديد</string>
+    <string name="entry_editor_edit">تعديل الحدث</string>
+    <string name="entry_field_title">ماذا حدث؟</string>
+    <string name="entry_field_text">التفاصيل</string>
+    <string name="entry_field_emotion">الشعور</string>
+    <string name="entry_emotion_optional">الشعور اختياري؛ اضغط عليه مرة أخرى لإزالته.</string>
+    <string name="entry_pick_time">اختر الوقت</string>
+    <string name="entry_delete_title">حذف الحدث</string>
+    <string name="entry_delete_body">سيُحذف «%1$s» من هذا اليوم.</string>
+    <string name="entry_error_title">اكتب وصفًا للحدث</string>
+    <string name="entry_error_save">تعذّر حفظ الحدث</string>
+
+    <!-- Life timeline -->
+    <string name="timeline_empty_title">الخط الزمني فارغ</string>
+    <string name="timeline_empty_body">تظهر هنا أحداث يومياتك وذكرياتك مرتبة من الأحدث.</string>
+    <string name="timeline_load_earlier">عرض أيام أقدم</string>
+    <string name="timeline_day_count">%1$d عنصر</string>
+
+    <!-- Calendar -->
+    <string name="diary_calendar">التقويم</string>
+    <string name="diary_calendar_hint">تصفّح الشهور وافتح أي يوم</string>
+    <string name="calendar_previous_month">الشهر السابق</string>
+    <string name="calendar_next_month">الشهر التالي</string>
+    <string name="calendar_go_to_today">الذهاب إلى اليوم</string>
+    <!-- Map -->
+    <string name="action_search">بحث</string>
+    <string name="map_my_location">موقعي</string>
+    <string name="map_location_unavailable">تعذّر تحديد موقعك. تحقّق من تفعيل خدمة الموقع.</string>
+    <string name="map_no_pins">لا توجد نقاط بعد؛ أضف موقعًا إلى ذكرى لتظهر هنا.</string>
+    <string name="map_add_memory_here">ذكرى هنا</string>
+    <string name="location_picker_title">اختر الموقع</string>
+    <string name="location_picker_coordinates">%1$s، %2$s</string>
+    <string name="location_picker_confirm">تأكيد الموقع</string>
+    <string name="memory_pick_location">اختيار الموقع على الخريطة</string>
+    <string name="memory_location_set">الموقع: %1$s، %2$s</string>
+    <string name="memory_clear_location">إزالة الموقع</string>
+
+    <!-- Nearby -->
+    <string name="nearby_title">قرب مني</string>
+    <string name="nearby_prompt">لم يُقرأ موقعك بعد. الموقع يُقرأ عند الطلب فقط، ولا يُتبَّع في الخلفية.</string>
+    <string name="nearby_locating">جارٍ تحديد موقعك…</string>
+    <string name="nearby_within">داخل %1$s من موقعك</string>
+    <string name="nearby_none_within">لا ذكرى ولا حدث داخل هذا النطاق. اقترب أكثر، أو ابحث في مكان آخر.</string>
+    <string name="nearby_nothing_located">لا يوجد سجل يحمل موقعًا بعد. ضع ذكرى أو حدثًا على الخريطة ثم عُد إلى هنا.</string>
+
+    <!-- Synchronisation (Phase 6) -->
+    <string name="profile_sync_title">المزامنة</string>
+    <string name="sync_pending_count">في الانتظار: %1$d</string>
+    <string name="sync_last_ok">آخر محاولة: تم الرفع والتنزيل بنجاح</string>
+    <string name="sync_last_nothing">آخر محاولة: لا جديد للمزامنة</string>
+    <string name="sync_last_error">آخر محاولة فشلت، وستُعاد تلقائيًا</string>
+    <string name="sync_last_run_at">وقت آخر مزامنة: %1$s</string>
+    <string name="sync_running">جارٍ المزامنة…</string>
+    <string name="sync_action_now">زامِن الآن</string>
+
+    <!-- Search and organisation (Phase 7) -->
+    <string name="search_field_label">ابحث في أرشيفك</string>
+    <string name="search_field_example">مثال: مذكرات سبتمبر، الأحداث مع أحمد، في صنعاء 2024</string>
+    <string name="search_clear">مسح البحث</string>
+    <string name="search_running">جارٍ البحث…</string>
+    <string name="search_explainer">اكتب كلمة أو اسم شخص أو مكان أو تاريخًا. البحث محلي بالكامل ولا يغادر جهازك.</string>
+    <string name="search_no_results">لا نتيجة مطابقة</string>
+    <string name="search_intent_person">الشخص: %1$s</string>
+    <string name="search_intent_place">المكان: %1$s</string>
+    <string name="search_intent_date">التاريخ: %1$s</string>
+    <string name="search_intent_words">الكلمات: %1$s</string>
+    <string name="search_clear_filter">إلغاء التصفية</string>
+    <string name="search_section_people">الأشخاص (%1$d)</string>
+    <string name="search_section_places">الأماكن (%1$d)</string>
+    <string name="search_section_memories">الذكريات (%1$d)</string>
+    <string name="search_section_events">الأحداث (%1$d)</string>
+    <string name="search_open_person">كل ما يرتبط بهذا الشخص</string>
+    <string name="search_open_place">كل ما حدث في هذا المكان</string>
+    <string name="search_open_full">بحث شامل</string>
+    <string name="people_title">الأشخاص</string>
+    <string name="people_add_label">اسم الشخص</string>
+    <string name="people_add_action">أضف الشخص</string>
+    <string name="people_empty">لا أشخاص بعد. أضف اسمًا ثم اربطه بذكرياتك وأحداثك.</string>
+    <string name="people_delete">حذف الشخص</string>
+    <string name="places_title">الأماكن</string>
+    <string name="places_add_label">اسم المكان</string>
+    <string name="places_add_action">أضف المكان</string>
+    <string name="places_pick_location">اختر الموقع</string>
+    <string name="places_empty">لا أماكن بعد. أضف اسمًا وحدد موقعه ليظهر على الخريطة.</string>
+    <string name="places_delete">حذف المكان</string>
+    <string name="reference_record_count">%1$d سجل</string>
+
+    <!-- Phase 8: local backup -->
+    <string name="backup_title">النسخ الاحتياطي</string>
+    <string name="backup_intro">احفظ نسخة من ذكرياتك في مجلد تختاره أنت على جهازك، ثم استوردها متى شئت. النسخة ملفات عادية يمكن قراءتها، ولا تعتمد على أي خادم.</string>
+    <string name="backup_action_open">النسخ الاحتياطي والاستعادة</string>
+    <string name="backup_action_export">تصدير نسخة</string>
+    <string name="backup_action_import">استيراد نسخة</string>
+    <string name="backup_action_import_confirm">استيراد</string>
+    <string name="backup_running">جارٍ العمل…</string>
+    <string name="backup_exported">تم حفظ النسخة في المجلد الذي اخترته.</string>
+    <string name="backup_imported">تم دمج النسخة في أرشيفك.</string>
+    <string name="backup_confirm_title">استيراد هذه النسخة؟</string>
+    <string name="backup_confirm_body">ستُدمج السجلات مع ما هو موجود لديك. السجل الأحدث هو الذي يبقى، وما حذفته من قبل لن يعود.</string>
+    <string name="backup_created_at">أُنشئت في %1$s</string>
+    <string name="backup_media_copied">ملفات الوسائط المنسوخة: %1$d</string>
+    <string name="backup_media_missing">ملفات وسائط مفقودة: %1$d</string>
+    <string name="backup_media_restored">ملفات وسائط مستعادة: %1$d</string>
+    <string name="backup_skipped">سجلات موجودة تم تخطيها: %1$d</string>
+    <string name="backup_error_open">تعذّر فتح هذا المجلد.</string>
+    <string name="backup_error_write">تعذّر الكتابة في هذا المجلد.</string>
+    <string name="backup_error_format">هذا المجلد لا يحتوي نسخة احتياطية صالحة.</string>
+
+    <!-- Phase 10: account deletion -->
+    <string name="wipe_title">حذف البيانات المحلية</string>
+    <string name="wipe_intro">يحذف كل ما على هذا الجهاز: الذكريات والأحداث والملاحظات والأشخاص والأماكن وملفات الوسائط. لا يمكن التراجع.</string>
+    <string name="wipe_action">حذف كل بياناتي المحلية</string>
+    <string name="wipe_running">جارٍ الحذف…</string>
+    <string name="wipe_confirm_title">حذف كل البيانات المحلية؟</string>
+    <string name="wipe_confirm_body">سيُحذف أرشيفك من هذا الجهاز نهائيًا مع كل ملفات الوسائط، وستُغلق الجلسة. خذ نسخة احتياطية أولًا إن كنت تريد الاحتفاظ بنسخة.</string>
+    <string name="wipe_confirm_action">حذف نهائي</string>
+    <string name="wipe_done_title">تم الحذف</string>
+    <string name="wipe_done_body">حُذف %1$d سجلًا و%2$d ملف وسائط من هذا الجهاز.</string>
+
+    <!-- Linking a record to people and places -->
+    <string name="editor_people_label">الأشخاص</string>
+    <string name="editor_people_empty">لا أشخاص بعد. أضف اسمًا لربطه بهذا السجل.</string>
+    <string name="editor_person_add">اسم الشخص</string>
+    <string name="editor_add_action">أضف</string>
+    <string name="editor_places_label">الأماكن</string>
+    <string name="editor_places_empty">لا أماكن بعد. أضف اسمًا لربطه بهذا السجل.</string>
+    <string name="editor_place_add">اسم المكان</string>
+    <string name="editor_places_needs_location">لا أماكن بعد. حدد موقع السجل أولًا ليصبح إضافة مكان ممكنة.</string>
+    <string name="editor_place_needs_location">لا يمكن إضافة مكان دون تحديد الموقع أولًا.</string>
+    <string name="editor_places_pick_elsewhere">لا أماكن بعد. تُنشأ الأماكن من الخريطة أو من ذكرى لها موقع.</string>
+
+    <!-- Attachments are local unless the user asks otherwise. -->
+    <string name="editor_media_upload">رفع إلى السحابة</string>
+    <string name="editor_media_uploading">بانتظار الرفع</string>
+    <string name="editor_media_uploaded">مرفوع إلى السحابة</string>
+    <string name="editor_media_upload_cancel">إلغاء الرفع</string>
+
+    <!-- The uploaded copies, which outlive a local wipe. -->
+    <string name="wipe_cloud_hint">هذه ملفات رفعتها أنت إلى مشروع Supabase المربوط. إن تركتها فهي تبقى على ذلك الخادم، ولن يستطيع التطبيق حذفها بعد الآن لأن مفاتيحها تُحذف مع السجلات.</string>
+
+    <!-- The uploaded copies, whose wording depends on how many. -->
+    <plurals name="wipe_cloud_choice">
+        <item quantity="zero">احذف نسخ السحابة (لا شيء مرفوع)</item>
+        <item quantity="one">احذف نسخة السحابة (مرفق واحد رفعته)</item>
+        <item quantity="two">احذف نسختي السحابة (مرفقان رفعتهما)</item>
+        <item quantity="few">احذف نسخ السحابة (%1$d مرفقات رفعتها)</item>
+        <item quantity="many">احذف نسخ السحابة (%1$d مرفقًا رفعتها)</item>
+        <item quantity="other">احذف نسخ السحابة (%1$d مرفق رفعته)</item>
+    </plurals>
+    <plurals name="wipe_cloud_done">
+        <item quantity="zero">لم يُحذف شيء من السحابة.</item>
+        <item quantity="one">حُذف مرفق واحد من السحابة.</item>
+        <item quantity="two">حُذف مرفقان من السحابة.</item>
+        <item quantity="few">حُذفت %1$d مرفقات من السحابة.</item>
+        <item quantity="many">حُذف %1$d مرفقًا من السحابة.</item>
+        <item quantity="other">حُذف %1$d مرفق من السحابة.</item>
+    </plurals>
+    <plurals name="wipe_cloud_left">
+        <item quantity="zero">لم يبقَ شيء في السحابة.</item>
+        <item quantity="one">تعذّر حذف مرفق واحد من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيله معه.</item>
+        <item quantity="two">تعذّر حذف مرفقين من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلهما معه.</item>
+        <item quantity="few">تعذّر حذف %1$d مرفقات من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+        <item quantity="many">تعذّر حذف %1$d مرفقًا من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+        <item quantity="other">تعذّر حذف %1$d مرفق من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+    </plurals>
+
+    <!-- In-app camera -->
+    <string name="camera_action_capture">التقاط صورة</string>
+    <string name="camera_action_flip">تبديل الكاميرا</string>
+    <string name="camera_flash_auto">الفلاش تلقائي</string>
+    <string name="camera_flash_off">الفلاش مغلق</string>
+    <string name="camera_flash_on">الفلاش مفتوح</string>
+    <string name="camera_status_preparing">جارٍ تجهيز الكاميرا…</string>
+    <string name="camera_error_permission">يلزم السماح بالكاميرا لالتقاط صورة</string>
+    <string name="camera_error_unavailable">لا تتوفّر كاميرا على هذا الجهاز</string>
+    <string name="camera_mode_photo">صورة</string>
+    <string name="camera_mode_video">فيديو</string>
+    <string name="camera_action_record">بدء التسجيل</string>
+    <string name="camera_action_stop_recording">إيقاف التسجيل</string>
+    <string name="camera_recording">جارٍ التسجيل…</string>
+    <string name="camera_video_without_sound">سيُسجَّل الفيديو بلا صوت لأن إذن الميكروفون غير ممنوح</string>
+    <string name="camera_error_record">تعذّر التسجيل</string>
+    <string name="camera_error_too_short">التسجيل أقصر من أن يُحفظ</string>
+    <string name="camera_error_capture">تعذّر التقاط الصورة</string>
+
+</resources>

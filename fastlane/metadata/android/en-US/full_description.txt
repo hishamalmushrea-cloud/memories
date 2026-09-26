@@ -1,0 +1,40 @@
+Why this app
+
+Everything you have lived is worth keeping. This app keeps your memories, your
+diary and the events of your life in one place: on a map, and in a timeline that
+goes from a day to a week to a month to a year. No account on anyone else's
+service is needed to use it. No ads, no tracking, no analytics, no analysis of
+your photos or recordings, and no AI writing in your place.
+
+What you can do
+
+• Memories bound to places: a photo, text, a voice recording or a video, with a
+  position on the map, and all of it waiting there when you come back.
+• A diary: the events of the day with date and time, a month calendar, week,
+  month and year views, and an end-of-day note.
+• A life timeline: everything in order, newest first, without losing the order
+  of a single day.
+• People, places and search: attach a memory to the people and places it
+  belongs to, and search all of it.
+• Open maps: no Google Maps key, no Google Maps billing, and the tile credit on
+  screen because the tile hosts require it.
+• Optional sync: connect it to your own Supabase project if you want, with an
+  explicit sync status per record. The app is fully usable offline.
+• Backup and import to a folder you choose, and a complete deletion of your data
+  from inside the app.
+
+Privacy first
+
+• Your data lives on your device first, and nothing leaves it unless you turn on
+  sync yourself.
+• Location is read on demand only and never tracked in the background.
+• No ads, no analytics, no tracking libraries.
+• A service_role key never reaches the app.
+
+Open source
+
+Apache-2.0, with the whole source published. Arabic first: the interface is
+Arabic right-to-left, and English is available if you prefer it.
+
+Note: sync requires creating your own Supabase project and entering its URL and
+public key, and that project's free-tier limits are what will cap your usage.

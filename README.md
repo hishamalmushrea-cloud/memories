@@ -1,1 +1,286 @@
-# memories
+# خريطة الذكريات – Memory Map
+
+تطبيق Android يجمع **خريطة الذكريات + يوميات شخصية + سجل زمني للحياة**.
+تحفظ فيه ذكرياتك المهمة، وتكتب يومك بنفسك، ثم تعود بعد سنوات لتجد حياتك مرتبة زمنيًا وجغرافيًا.
+
+> الحالة الحالية: **Phase 1 (الأساس)** و**Phase 2 (المصادقة)** و**Phase 3 (الذكريات)** و**Phase 4 (اليوميات)** و**Phase 5 (الخريطة)** و**Phase 6 (المزامنة)** و**Phase 7 (البحث والتنظيم)** و**Phase 8 (النسخ الاحتياطي)** و**Phase 9 (الأمان والخصوصية)** و**Phase 10 (الاختبار والإصدار)** مكتملة، والبناء + الاختبارات تعمل في CI. بقية المراحل موثقة في [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+
+---
+
+## ماذا يفعل التطبيق
+
+| الوحدة | المعنى |
+|---|---|
+| **اليوم** | الوحدة الأساسية في اليوميات |
+| **الحدث** | الوحدة الأساسية داخل اليوم |
+| **الذكرى** | حدث مهم يمكن ربطه باليوم وبالمكان |
+| **المكان** | يربط المحتوى بالخريطة |
+| **الخط الزمني** | يربط كل شيء بالتاريخ |
+
+التصفح: `اليوم ← الأسبوع ← الشهر ← السنة`، مع ميزة **في مثل هذا اليوم**.
+
+## مبادئ غير قابلة للتفاوض
+
+- **Offline-first**: بعد أول تسجيل دخول، كل شيء يعمل بلا إنترنت.
+- **لا ذكاء اصطناعي**: لا تحويل صوت لنص، لا تحليل فيديو، لا توليد نصوص، لا تلخيص. المستخدم هو من يكتب.
+- **لا إعلانات، لا Tracking، لا Analytics، لا بيع بيانات.**
+- **لا تتبع موقع مستمر**: الموقع يُقرأ عند الطلب فقط.
+- **اليوميات `PRIVATE` افتراضيًا**، والمشاركة قرار صريح.
+- **البيانات ملكك**: تصدير واستيراد نسخة احتياطية محلية كاملة.
+
+---
+
+## البناء من Android Studio
+
+1. افتح مجلد المشروع في Android Studio (Koala أو أحدث).
+2. اترك Gradle يزامن المشروع (يستخدم Gradle Wrapper، فلا حاجة لتنصيب Gradle يدويًا).
+3. شغّل:
+
+```bash
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
+```
+
+أو من سطر الأوامر مباشرة بنفس الأمرين.
+
+### مفاتيح Supabase (اختيارية)
+
+التطبيق يعمل بالكامل بدونها. لربط مشروع Supabase:
+
+```bash
+cp local.properties.example local.properties
+# ثم ضع SUPABASE_URL و SUPABASE_ANON_KEY داخل local.properties
+```
+
+`local.properties` مستثنى من Git. **لا تضع `service_role key` في التطبيق أبدًا** — كل ما داخل الـAPK يعتبر عامًا.
+
+---
+
+## البنية
+
+```text
+app/src/main/java/com/memorymap/
+├── MemoryMapApp.kt        # Hilt + WorkManager factory + جدولة المزامنة
+├── MainActivity.kt        # Compose + Material 3
+├── data/
+│   ├── local/             # Room: entities, dao, converters, mappers, AppDatabase
+│   ├── remote/            # SupabaseClient + إعدادات العميل
+│   ├── repository/        # تنفيذات Repository Pattern
+│   └── sync/              # SyncWorker (WorkManager)
+├── domain/
+│   ├── model/             # نماذج نظيفة بلا اعتماد على Android
+│   ├── repository/        # الواجهات فقط
+│   └── usecase/           # DiaryTime: منطق اليوم/الأسبوع/الشهر/السنة
+├── ui/                    # theme + navigation + الشاشات
+├── di/                    # Hilt modules
+└── util/                  # Geo, MediaStore, MmLog, backup
+```
+
+القاعدة: **الـUI لا يلمس Room ولا Supabase مباشرة**، ولا يعرف أي نوع من أنواعهما.
+
+### مستويات SDK (معرّفة في مكان واحد)
+
+```text
+minSdk = 26      compileSdk = 36      targetSdk = 36
+```
+
+كل الإصدارات مركزية في `gradle/libs.versions.toml`.
+
+## قاعدة البيانات
+
+الجداول: `users`, `memories`, `daily_entries`, `diary_notes`, `media`, `people`, `places`,
+`daily_entry_person`, `daily_entry_place`, `memory_person`, `memory_place`, `memory_shares`.
+
+حالات المزامنة (لا يوجد `isSynced: Boolean`):
+
+```text
+PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
+```
+
+الحذف **ناعم**: يبقى الصف كشاهد (`deleted_at`) حتى يؤكد الخادم الحذف، فلا تعود البيانات المحذوفة بعد إعادة الاتصال.
+
+ما يُزامَن: الذكريات، وأحداث اليوميات، وملاحظة آخر اليوم، والأشخاص، والأماكن،
+والمرفقات (بياناتها ثم بايتاتها). ملاحظة اليوم لها حالتان مختلفتان عن غيرها:
+مفتاحها `(user_id, note_date)` لا معرّف، ولا يوجد لها `deleted_at`، فمسح النص
+يُزامَن كنص فارغ لا كحذف.
+
+## الصور قبل الرفع
+
+الرفع لا يرسل الملف الأصلي، ولا يفكّ ترميز صورة لا يحتاج إلى تغييرها:
+
+```text
+قراءة ترويسة JPEG  →  الاتجاه + المقاس        (بلا فك ترميز، بلا ذاكرة)
+        │
+        ├── صورتها أصلًا في اتجاهها الصحيح وداخل الحد
+        │      └── تُحذف شرائح Exif و XMP وفوتوشوب والتعليقات، والبكسلات تُنسخ كما هي
+        │
+        └── أكبر من الحد، أو تحتاج تدويرًا أو انعكاسًا
+               └── فك ترميز بعيّنة → تدوير/انعكاس → تصغير → JPEG بجودة 82
+                      └── تُستخدم فقط إن جاءت أصغر من الأصل
+```
+
+- الحد 2048 بكسل على الضلع الأطول، والجودة 82، ولا تُكبَّر صورة أبدًا.
+- صورة تحتاج تدويرًا لا تُفصل عن ترويستها إلا بعد تدوير بكسلاتها فعلًا، وإلا جاءت
+  في السحابة راقدة على جنبها.
+- PNG وGIF وHEIC وأي صورة يتعذّر قراءة اتجاهها تُرفع كما هي مع بياناتها، لأن
+  إعادة كتابتها تخاطر بالصورة نفسها.
+- الملف المحلي لا يتغيّر أبدًا: التحضير يقع على النسخة التي تخرج من الجهاز وحدها.
+
+## الكاميرا داخل التطبيق
+
+زر «التقاط صورة» يفتح كاميرا داخل التطبيق (CameraX) لا تطبيق كاميرا آخر:
+
+- المعاينة والالتقاط داخل الشاشة، والصورة تُكتب مباشرة في أرشيف التطبيق الخاص،
+  فلا إذن تخزين ولا تسليم ملف لتطبيق آخر عبر FileProvider.
+- الفلاش ثلاث حالات: مغلق، تلقائي، مفتوح، ويُتذكَّر لكل عدسة، والتبديل بين
+  الأمامية والخلفية لا يُفقد الإعداد. العدسة الأمامية بلا فلاش أصلًا.
+- الصورة تُدوَّر بحسب اتجاه الجهاز لحظة الالتقاط، فتُحفظ في اتجاهها الصحيح بدل
+  أن تُستدرك لاحقًا من وسم Exif.
+- الكاميرا تُفكّ عن دورة الحياة لحظة مغادرة الشاشة، فلا تبقى مفتوحة في الخلفية.
+- جهاز بلا كاميرا، أو إذن مرفوض: رسالة واضحة، و«اختيار صورة» من معرض النظام
+  يبقى متاحًا.
+- وضعان: «صورة» و«فيديو». في وضع الفيديو زر واحد يبدأ التسجيل ويوقفه، مع عدّاد
+  للمدة. والتسجيل ملف وسائط عادي: لا تفريغ، ولا تحليل، ولا تلخيص.
+- الصوت يُسجَّل فقط إذا كان إذن الميكروفون ممنوحًا أصلًا؛ بدونه يُسجَّل الفيديو
+  بلا صوت وتظهر ملاحظة تقول ذلك، بدل طلب الإذن في منتصف اللقطة.
+- تسجيل أقصر من ثانية، أو تسجيل أوقفته الكاميرا بخطأ، يُحذف ولا يُضاف إلى الذكرى.
+- الفلاش خاص بالصور: وضع الفيديو لا يعرض زر الفلاش، وإعداد الفلاش يبقى كما تركه
+  المستخدم للصورة التالية.
+- اختيار فيديو من المعرض ما زال متاحًا إلى جانب التسجيل.
+
+قواعد الكاميرا (أي عدسة، وأي حالة فلاش، وأي ثابت في CameraX يقابلها) في
+`CameraControls`، وقاعدة «متى يُحفظ التسجيل» في `VideoTakePolicy`، وكلتاهما
+منفصلتان عن CameraX لتُختبرا بلا جهاز.
+
+## قرب مني
+
+شاشة «قرب مني» تعرض الذكريات والأحداث داخل كيلومتر واحد من موقعك:
+
+- الموقع لا يُقرأ إلا عند الضغط على «موقعي»، قراءة واحدة، ولا يُحدَّث من تلقاء
+  نفسه ولا يُتتبَّع في الخلفية. وقبل ذلك تقول الشاشة صراحةً إن الموقع لم يُقرأ بعد.
+- القائمة مرتّبة بالمسافة من الأقرب، ومع كل سجل تاريخه وبُعده، والضغط عليه يفتحه
+  (ذكرى أو حدث) مباشرة.
+- إن لم يكن في الأرشيف سجل يحمل موقعًا، أو لم يكن شيء داخل النطاق، تقول الشاشة
+  أيّ الحالتين هي، بدل قائمة فارغة صامتة.
+- الوصول إليها من زر في الخارطة، ومن أعلى الخط الزمني.
+
+الترشيح والترتيب يعتمدان على `Geo.nearby` — نفس حساب المسافة المختبَر في
+`GeoTest` — بلا حساب جديد ولا مكتبة جديدة.
+
+## الاختبارات
+
+```bash
+./gradlew testDebugUnitTest
+```
+
+الموجود حاليًا:
+
+| الاختبار | ماذا يثبت |
+|---|---|
+| `DiaryTimeTest` | بداية الأسبوع الأحد، تقسيم الأسابيع/الشهور، «في مثل هذا اليوم» |
+| `GeoTest` | حساب المسافة، فلتر «قرب مني» بنطاق 1 كم |
+| `NearbyViewModelTest` | «قرب مني»: لا ترشيح قبل طلب الموقع، ونطاق الكيلومتر مرتّبًا بالمسافة، وتجاهل ما لا يحمل موقعًا |
+| `BackupPlannerTest` | شكل مجلد النسخة الاحتياطية ورفض صيغة أحدث |
+| `MemoryRepositoryImplTest` | كتابة محلية + `PENDING_CREATE`، شاهد الحذف، البحث، الروابط |
+| `DiaryDatabaseTest` | تجميع عدّادات اليوم من استعلام Room الحقيقي |
+| `DayViewModelTest` | شاشة اليوم تعرض أحداثها وتحفظ مذكرات اليوم |
+| `JpegMetadataTest` | قراءة ترويسة JPEG: الاتجاه بترتيبَي البايت، ورفض الترويسة التالفة |
+| `ImageOptimizerTest` | ما لا يجوز لمسه: PNG، وما ليس صورة، وصورة يتعذّر قراءة اتجاهها |
+| `ImageOptimizerTransformTest` | اتجاهات Exif الثمانية: موضع كل ركن، والتصغير داخل الحد |
+| `CameraControlsTest` | إعدادات الكاميرا: الوضعان، ودورة الفلاش، وحدّ الثانية الواحدة للتسجيل، ومطابقة كل إعداد لثابته في CameraX |
+
+## التحقق المستمر
+
+`.github/workflows/build.yml` ينفذ على كل push:
+
+```text
+verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
+استعلامات Room، ترتيب الاستيراد، قيود المتجر) → gradlew help →
+testDebugUnitTest → lintDebug → assembleDebug → assembleRelease
+```
+
+ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
+
+عند الفشل ينشر CI تقريرًا كـ**Issue** في المستودع (لأن سجلات GitHub مخزّنة على
+نطاق لا يمكن لكل الشبكات الوصول إليه).
+
+> ملاحظة: مخطط Room المُصدَّر (`app/schemas/`) يولّده KSP أثناء البناء، وهو
+> مستثنى من Git حاليًا لأن توكن CI في هذا المستودع لا يملك صلاحية الدفع.
+> يُفضّل عمل commit له يدويًا مرة واحدة ثم إزالة الاستثناء من `.gitignore`،
+> ليصبح أي تغيير في المخطط diff قابلًا للمراجعة.
+
+## النشر
+
+المشروع **مهيأ للنشر، ولم يُنشر بعد** — لا يوجد أي إصدار على GitHub ولا على أي
+متجر، ولن يُقال عكس ذلك قبل أن يحدث فعلًا.
+
+- **GitHub Releases**: `.github/workflows/release.yml` يعمل عند دفع وسم `v*`،
+  ويشغّل بوابة الأمان والاختبارات و`lintRelease`، ثم يبني APK و AAB وينشر
+  الإصدار. وتشغيله يدويًا من تبويب Actions يعيد كل ذلك ثم يتوقف بلا نشر — لكن
+  هذا التشغيل اليدوي يحتاج أن يكون الملف على الفرع الافتراضي أولًا، لأن GitHub
+  لا يسمح به من فرع آخر. أما مسار الـAAB نفسه فيُبنى ويُتحقق منه في كل push.
+- **بيانات المتجر**: [`fastlane/metadata/android/`](fastlane/metadata/android)
+  بالعربية (`ar`) والإنجليزية (`en-US`): الاسم، الوصف المختصر، الوصف الكامل،
+  وسجل تغييرات لكل `versionCode`. ويتحقق `ci/check-store-metadata.py` من حدود
+  المتجر قبل كل بناء، فلا يُرفع وصف مقطوع.
+- **F-Droid**: يبني من المصدر، والوصف أعلاه هو ما يُقرأ هناك؛ ينقص قبل أول
+  إصدار حقيقي: لقطات شاشة حقيقية من جهاز.
+- **Google Play**: يُبنى `AAB` بـ`bundleRelease` على كل push في CI (لا مرة واحدة
+  وقت الإصدار)، وينقص قبل الرفع:
+  أيقونة ٥١٢×٥١٢ وصورة عرض ١٠٢٤×٥٠٠ ولقطات شاشة، وتعبئة نموذج Data safety
+  (الأجوبة مكتوبة في [`docs/RELEASE.md`](docs/RELEASE.md)).
+- **التوقيع والخطوات التفصيلية**: [`docs/RELEASE.md`](docs/RELEASE.md).
+
+## الخارطة
+
+- [x] **Phase 1** – Foundation: Gradle, Compose, Theme, Navigation, Room, Supabase foundation, CI
+- [x] **Phase 2** – Authentication (Supabase Auth + الجلسة + حساب محلي دون اتصال)
+- [x] **Phase 3** – Memories (CRUD + صور/صوت/فيديو)
+- [x] **Phase 4** – Diary (اليوم، التقويم، الأسبوع، الشهر، السنة)
+- [x] **Phase 5** – Map (مزود خرائط مفتوح + Markers + Clustering)
+- [x] **Phase 6** – Sync (طابور غير متصل، رفع، تعارضات)
+- [x] **Phase 7** – Search, People, Places, Filters
+- [x] **Phase 8** – Backup (Export/Import إلى مجلد يختاره المستخدم)
+- [x] **Phase 9** – Security & Privacy (RLS، سياسات Storage، بوابة فحص في CI)
+- [x] **Phase 10** – Testing & Release (حذف الحساب، اختبارات الأداء، بناء release في CI، workflow إصدار عند دفع وسم `v*`)
+
+## ملفات المشروع
+
+- [البرومبت الكامل](MemoryMap_Full_Prompt.md)
+- [CHANGELOG](CHANGELOG.md)
+- [سياسة الخصوصية – العربية](docs/legal/PRIVACY_AR.md) · [Privacy Policy (English)](docs/legal/PRIVACY_EN.md)
+- [مخطط قاعدة البيانات وسياسات RLS](supabase/schema.sql)
+- [التوقيع والنشر](docs/RELEASE.md)
+
+## الرخصة
+
+Apache License 2.0 — انظر [LICENSE](LICENSE).
+
+---
+
+# Memory Map (English)
+
+An Android app that combines a **memory map + a personal diary + a life timeline**.
+Offline-first, no AI, no ads, no tracking. Arabic UI by default with English as an
+optional locale; all code and comments are in English.
+
+```bash
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
+```
+
+Status: **Phase 1 (Foundation)**, **Phase 2 (Authentication)**, **Phase 3
+(Memories)**, **Phase 4 (Diary)**, **Phase 5 (Map)**, **Phase 6 (Sync)**, **Phase 7 (Search)**, **Phase 8 (Backup)**, **Phase 9 (Security)** and **Phase 10 (Release)** — project
+structure, Gradle version catalog, Compose + Material 3 theme (Cairo/Inter),
+navigation shell, the full Room schema with repositories, Supabase email
+authentication with Keystore-backed session storage and an offline local account,
+and a CI pipeline that builds and tests every push. The full specification lives
+in [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+
+An uploaded photo is not the file: it is turned the way its Exif orientation
+says, scaled to a longest edge of 2048 pixels and written at quality 82, and only
+kept when the result is smaller than the original. Photos already upright and
+inside the limit keep their pixels byte for byte and lose only the metadata
+around them, and anything that cannot be rewritten faithfully — PNG, GIF, HEIC, or
+an orientation that cannot be read — is uploaded untouched. The local file is
+never modified.

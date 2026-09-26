@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Memory Map</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_map">Map</string>
+    <string name="tab_diary">My diary</string>
+    <string name="tab_memories">Memories</string>
+    <string name="tab_timeline">Timeline</string>
+    <string name="tab_profile">Account</string>
+
+    <!-- Global actions -->
+    <string name="action_add">Add</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Quick add sheet -->
+    <string name="quick_add_title">What do you want to add?</string>
+    <string name="quick_add_memory">Memory</string>
+    <string name="quick_add_entry">Daily event</string>
+    <string name="quick_add_photo">Photo</string>
+    <string name="quick_add_audio">Voice note</string>
+    <string name="quick_add_video">Video</string>
+    <string name="coming_phase_3">Coming soon</string>
+
+    <!-- Diary -->
+    <string name="diary_today">Today</string>
+    <string name="diary_yesterday">Yesterday</string>
+    <string name="diary_this_week">This week</string>
+    <string name="diary_this_month">This month</string>
+    <string name="diary_this_year">This year</string>
+    <string name="diary_add_to_day">Add to my day</string>
+    <string name="diary_day_events">Events of the day</string>
+    <string name="diary_no_events">No events on this day yet.</string>
+    <string name="diary_note_title">Notes of the day</string>
+    <string name="diary_note_hint">What did you do today?</string>
+    <string name="on_this_day">On this day</string>
+
+    <!-- Week / month / year -->
+    <string name="week_events_count">%1$d events</string>
+    <string name="week_media_count">%1$d photos · %2$d recordings · %3$d videos</string>
+    <string name="month_recorded_days">Recorded days: %1$d</string>
+    <string name="month_totals">%1$d events · %2$d photos · %3$d videos · %4$d recordings · %5$d memories</string>
+    <string name="year_recorded_days">Recorded days this year: %1$d</string>
+    <string name="year_days_count">%1$d days</string>
+
+    <!-- Profile -->
+    <string name="profile_local_title">Local account</string>
+    <string name="profile_local_hint">Your data is stored on this device</string>
+    <string name="profile_offline_only">No Supabase project is linked, so the app runs fully offline. This is a supported state, not an error.</string>
+    <string name="profile_stats_title">Life statistics</string>
+    <string name="stat_recorded_days">Recorded days</string>
+    <string name="stat_memories">Memories</string>
+    <string name="stat_events">Events</string>
+    <string name="stat_places">Places</string>
+    <string name="stat_people">People</string>
+    <string name="stat_photos">Photos</string>
+    <string name="stat_audio">Recordings</string>
+    <string name="stat_videos">Videos</string>
+    <string name="stat_top_emotion">Most used emotion</string>
+    <string name="stat_top_month">Busiest month</string>
+    <string name="stat_none">Nothing yet</string>
+
+    <!-- Emotions -->
+    <string name="emotion_happy">Happy</string>
+    <string name="emotion_sad">Sad</string>
+    <string name="emotion_love">Love</string>
+    <string name="emotion_fear">Fear</string>
+    <string name="emotion_pride">Pride</string>
+    <string name="emotion_nostalgia">Nostalgia</string>
+
+    <!-- Authentication -->
+    <string name="auth_subtitle">Your diary and memories live on your device first</string>
+    <string name="auth_tab_sign_in">Sign in</string>
+    <string name="auth_tab_sign_up">Create account</string>
+    <string name="auth_display_name">Name</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_action_sign_in">Sign in</string>
+    <string name="auth_action_sign_up">Create account</string>
+    <string name="auth_action_reset">Send reset link</string>
+    <string name="auth_action_sign_out">Sign out</string>
+    <string name="auth_forgot_password">Forgot your password?</string>
+    <string name="auth_back_to_sign_in">Back to sign in</string>
+    <string name="auth_continue_offline">Continue with a local account</string>
+    <string name="auth_start_local">Start with a local account</string>
+    <string name="auth_offline_title">No Supabase project is linked</string>
+    <string name="auth_offline_body">The app runs entirely on this device with no cloud account. Nothing is sent anywhere, and you can link Supabase later from the build settings.</string>
+    <string name="auth_error_credentials">The email or password is incorrect.</string>
+    <string name="auth_error_weak_password">That password is too short. Use at least 6 characters.</string>
+    <string name="auth_error_email_taken">That email is already registered.</string>
+    <string name="auth_error_email_unconfirmed">The email address has not been confirmed yet.</string>
+    <string name="auth_error_rate_limited">Too many attempts in a short time. Wait a moment and try again.</string>
+    <string name="auth_error_offline">There is no local account with that email. Start a local account or create a new one.</string>
+    <string name="auth_error_email_required">Enter your email address.</string>
+    <string name="auth_error_generic">The request could not be completed. Check the connection and try again.</string>
+    <string name="auth_reset_sent">A password reset link was sent to your email.</string>
+    <!-- Memories: list, editor, detail -->
+    <string name="memory_search_hint">Search memories</string>
+    <string name="memory_empty_title">No memories yet</string>
+    <string name="memory_search_empty">No matching memories</string>
+    <string name="memory_empty_body">Add your first memory from the add button, and attach a photo, a recording or a video.</string>
+    <string name="memory_delete_title">Delete memory</string>
+    <string name="memory_delete_body">%1$s and its attachments will be removed from this device.</string>
+    <string name="memory_not_found">That memory could not be found</string>
+    <string name="memory_section_photos">Photos (%1$d)</string>
+    <string name="memory_section_audio">Recordings (%1$d)</string>
+    <string name="memory_section_videos">Videos (%1$d)</string>
+    <string name="memory_section_attachments">Attachments</string>
+    <string name="memory_action_play">Play</string>
+    <string name="memory_action_pause">Pause</string>
+    <string name="memory_editor_new">New memory</string>
+    <string name="memory_editor_edit">Edit memory</string>
+    <string name="memory_field_title">Title</string>
+    <string name="memory_field_text">Details</string>
+    <string name="memory_field_date">Date: %1$s</string>
+    <string name="memory_field_emotion">Emotion</string>
+    <string name="memory_field_visibility">Who can see this</string>
+    <string name="memory_field_place">Place name</string>
+    <string name="memory_action_pick_photo">Pick photo</string>
+    <string name="memory_action_take_photo">Take photo</string>
+    <string name="memory_action_pick_video">Pick video</string>
+    <string name="memory_action_record">Record audio</string>
+    <string name="memory_action_keep">Keep recording</string>
+    <string name="memory_recording">Recording… %1$s</string>
+    <string name="memory_discard_title">Discard changes?</string>
+    <string name="memory_discard_body">Attachments you added will be deleted without saving.</string>
+    <string name="memory_action_discard">Discard</string>
+    <string name="memory_error_title">Give the memory a title</string>
+    <string name="memory_error_media">That file could not be added</string>
+    <string name="memory_error_no_account">No active account</string>
+    <string name="memory_error_save">The memory could not be saved</string>
+
+    <!-- Shared labels -->
+    <string name="visibility_private">Private</string>
+    <string name="visibility_shared">Shared</string>
+    <string name="visibility_public">Public</string>
+    <string name="media_type_photo">Photo</string>
+    <string name="media_type_audio">Recording</string>
+    <string name="media_type_video">Video</string>
+    <!-- Diary: event editor -->
+    <string name="entry_editor_new">New event</string>
+    <string name="entry_editor_edit">Edit event</string>
+    <string name="entry_field_title">What happened?</string>
+    <string name="entry_field_text">Details</string>
+    <string name="entry_field_emotion">Emotion</string>
+    <string name="entry_emotion_optional">The emotion is optional; tap it again to clear it.</string>
+    <string name="entry_pick_time">Pick a time</string>
+    <string name="entry_delete_title">Delete event</string>
+    <string name="entry_delete_body">%1$s will be removed from this day.</string>
+    <string name="entry_error_title">Describe the event</string>
+    <string name="entry_error_save">The event could not be saved</string>
+
+    <!-- Life timeline -->
+    <string name="timeline_empty_title">The timeline is empty</string>
+    <string name="timeline_empty_body">Your diary events and memories appear here, newest first.</string>
+    <string name="timeline_load_earlier">Show earlier days</string>
+    <string name="timeline_day_count">%1$d items</string>
+
+    <!-- Calendar -->
+    <string name="diary_calendar">Calendar</string>
+    <string name="diary_calendar_hint">Browse months and open any day</string>
+    <string name="calendar_previous_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_go_to_today">Go to today</string>
+    <!-- Map -->
+    <string name="action_search">Search</string>
+    <string name="map_my_location">My location</string>
+    <string name="map_location_unavailable">Could not get your location. Check that location is turned on.</string>
+    <string name="map_no_pins">No pins yet. Add a location to a memory to see it here.</string>
+    <string name="map_add_memory_here">Memory here</string>
+    <string name="location_picker_title">Pick location</string>
+    <string name="location_picker_coordinates">%1$s, %2$s</string>
+    <string name="location_picker_confirm">Use this location</string>
+    <string name="memory_pick_location">Pick location on the map</string>
+    <string name="memory_location_set">Location: %1$s, %2$s</string>
+    <string name="memory_clear_location">Remove location</string>
+
+    <!-- Nearby -->
+    <string name="nearby_title">Nearby</string>
+    <string name="nearby_prompt">Your location has not been read yet. It is read only when you ask for it, and never tracked in the background.</string>
+    <string name="nearby_locating">Finding your location…</string>
+    <string name="nearby_within">Within %1$s of you</string>
+    <string name="nearby_none_within">No memory or event is inside this range. Move closer, or look somewhere else.</string>
+    <string name="nearby_nothing_located">No record carries a location yet. Put a memory or an event on the map, then come back here.</string>
+
+
+    <!-- Synchronisation (Phase 6) -->
+    <string name="profile_sync_title">Synchronisation</string>
+    <string name="sync_pending_count">Waiting to sync: %1$d</string>
+    <string name="sync_last_ok">Last run: uploaded and downloaded successfully</string>
+    <string name="sync_last_nothing">Last run: nothing to synchronise</string>
+    <string name="sync_last_error">The last run failed and will be retried automatically</string>
+    <string name="sync_last_run_at">Last synchronised: %1$s</string>
+    <string name="sync_running">Synchronising…</string>
+    <string name="sync_action_now">Synchronise now</string>
+
+    <!-- Search and organisation (Phase 7) -->
+    <string name="search_field_label">Search your archive</string>
+    <string name="search_field_example">e.g. September notes, events with Ahmed, in Sanaa 2024</string>
+    <string name="search_clear">Clear the search</string>
+    <string name="search_running">Searching…</string>
+    <string name="search_explainer">Type a word, a person, a place or a date. Search runs entirely on this device and never leaves it.</string>
+    <string name="search_no_results">Nothing matches</string>
+    <string name="search_intent_person">Person: %1$s</string>
+    <string name="search_intent_place">Place: %1$s</string>
+    <string name="search_intent_date">Date: %1$s</string>
+    <string name="search_intent_words">Words: %1$s</string>
+    <string name="search_clear_filter">Clear the filter</string>
+    <string name="search_section_people">People (%1$d)</string>
+    <string name="search_section_places">Places (%1$d)</string>
+    <string name="search_section_memories">Memories (%1$d)</string>
+    <string name="search_section_events">Events (%1$d)</string>
+    <string name="search_open_person">Everything linked to this person</string>
+    <string name="search_open_place">Everything that happened here</string>
+    <string name="search_open_full">Full search</string>
+    <string name="people_title">People</string>
+    <string name="people_add_label">Person\'s name</string>
+    <string name="people_add_action">Add the person</string>
+    <string name="people_empty">No people yet. Add a name, then link it to your memories and events.</string>
+    <string name="people_delete">Delete the person</string>
+    <string name="places_title">Places</string>
+    <string name="places_add_label">Place name</string>
+    <string name="places_add_action">Add the place</string>
+    <string name="places_pick_location">Pick the location</string>
+    <string name="places_empty">No places yet. Add a name and set its position so it can appear on the map.</string>
+    <string name="places_delete">Delete the place</string>
+    <string name="reference_record_count">%1$d records</string>
+
+    <!-- Phase 8: local backup -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_intro">Save a copy of your memories in a folder you choose on your device, and restore it whenever you like. The archive is plain readable files and does not depend on any server.</string>
+    <string name="backup_action_open">Backup and restore</string>
+    <string name="backup_action_export">Export a backup</string>
+    <string name="backup_action_import">Import a backup</string>
+    <string name="backup_action_import_confirm">Import</string>
+    <string name="backup_running">Working…</string>
+    <string name="backup_exported">The backup was written to the folder you chose.</string>
+    <string name="backup_imported">The backup was merged into your archive.</string>
+    <string name="backup_confirm_title">Import this backup?</string>
+    <string name="backup_confirm_body">The records will be merged with what you already have. The newer copy of each record is kept, and anything you deleted stays deleted.</string>
+    <string name="backup_created_at">Created on %1$s</string>
+    <string name="backup_media_copied">Media files copied: %1$d</string>
+    <string name="backup_media_missing">Media files missing: %1$d</string>
+    <string name="backup_media_restored">Media files restored: %1$d</string>
+    <string name="backup_skipped">Existing records skipped: %1$d</string>
+    <string name="backup_error_open">That folder could not be opened.</string>
+    <string name="backup_error_write">That folder could not be written to.</string>
+    <string name="backup_error_format">That folder does not hold a valid backup.</string>
+
+    <!-- Phase 10: account deletion -->
+    <string name="wipe_title">Delete local data</string>
+    <string name="wipe_intro">Removes everything on this device: memories, events, notes, people, places and the media files. This cannot be undone.</string>
+    <string name="wipe_action">Delete all my local data</string>
+    <string name="wipe_running">Deleting…</string>
+    <string name="wipe_confirm_title">Delete all local data?</string>
+    <string name="wipe_confirm_body">Your archive will be permanently removed from this device, together with every media file, and the session will end. Take a backup first if you want to keep a copy.</string>
+    <string name="wipe_confirm_action">Delete permanently</string>
+    <string name="wipe_done_title">Deleted</string>
+    <string name="wipe_done_body">Removed %1$d records and %2$d media files from this device.</string>
+
+    <!-- Linking a record to people and places -->
+    <string name="editor_people_label">People</string>
+    <string name="editor_people_empty">No people yet. Add a name to link it to this record.</string>
+    <string name="editor_person_add">Person\'s name</string>
+    <string name="editor_add_action">Add</string>
+    <string name="editor_places_label">Places</string>
+    <string name="editor_places_empty">No places yet. Add a name to link it to this record.</string>
+    <string name="editor_place_add">Place name</string>
+    <string name="editor_places_needs_location">No places yet. Set the record\'s location first to make adding a place possible.</string>
+    <string name="editor_place_needs_location">A place cannot be added without a location.</string>
+    <string name="editor_places_pick_elsewhere">No places yet. Places are created from the map or from a memory that has a location.</string>
+
+    <!-- Attachments are local unless the user asks otherwise. -->
+    <string name="editor_media_upload">Upload to the cloud</string>
+    <string name="editor_media_uploading">Waiting to upload</string>
+    <string name="editor_media_uploaded">Uploaded to the cloud</string>
+    <string name="editor_media_upload_cancel">Cancel the upload</string>
+
+    <!-- The uploaded copies, which outlive a local wipe. -->
+    <string name="wipe_cloud_hint">These are files you uploaded to the connected Supabase project. If you leave them, they stay on that server, and the app will no longer be able to delete them: their keys go with the rows.</string>
+
+    <!-- The uploaded copies, whose wording depends on how many. -->
+    <plurals name="wipe_cloud_choice">
+        <item quantity="one">Also delete the cloud copy (%1$d uploaded)</item>
+        <item quantity="other">Also delete the cloud copies (%1$d uploaded)</item>
+    </plurals>
+    <plurals name="wipe_cloud_done">
+        <item quantity="one">Removed %1$d attachment from the cloud.</item>
+        <item quantity="other">Removed %1$d attachments from the cloud.</item>
+    </plurals>
+    <plurals name="wipe_cloud_left">
+        <item quantity="one">%1$d attachment could not be removed from the cloud. Deleting your account is done from the Supabase dashboard, and removing the user there takes it with it.</item>
+        <item quantity="other">%1$d attachments could not be removed from the cloud. Deleting your account is done from the Supabase dashboard, and removing the user there takes them with it.</item>
+    </plurals>
+
+    <!-- In-app camera -->
+    <string name="camera_action_capture">Take a photo</string>
+    <string name="camera_action_flip">Switch camera</string>
+    <string name="camera_flash_auto">Flash automatic</string>
+    <string name="camera_flash_off">Flash off</string>
+    <string name="camera_flash_on">Flash on</string>
+    <string name="camera_status_preparing">Getting the camera ready…</string>
+    <string name="camera_error_permission">Allow the camera to take a photo</string>
+    <string name="camera_error_unavailable">No camera is available on this device</string>
+    <string name="camera_mode_photo">Photo</string>
+    <string name="camera_mode_video">Video</string>
+    <string name="camera_action_record">Start recording</string>
+    <string name="camera_action_stop_recording">Stop recording</string>
+    <string name="camera_recording">Recording…</string>
+    <string name="camera_video_without_sound">The video will be recorded without sound because the microphone permission is not granted</string>
+    <string name="camera_error_record">The video could not be recorded</string>
+    <string name="camera_error_too_short">The recording was too short to keep</string>
+    <string name="camera_error_capture">The photo could not be captured</string>
+
+</resources>
