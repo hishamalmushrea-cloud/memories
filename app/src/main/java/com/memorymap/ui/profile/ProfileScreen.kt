@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -146,8 +147,12 @@ fun ProfileScreen(
                                 onCheckedChange = { deleteCloudCopies = it },
                             )
                             Text(
-                                text = stringResource(
-                                    R.string.wipe_cloud_choice,
+                                // A plural, not a number in a sentence: Arabic
+                                // says one attachment, two attachments and
+                                // eleven attachments three different ways.
+                                text = pluralStringResource(
+                                    R.plurals.wipe_cloud_choice,
+                                    state.uploadedCount,
                                     state.uploadedCount,
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -192,13 +197,21 @@ fun ProfileScreen(
                     state.cloudRemoval?.let { cloud ->
                         if (cloud.removed > 0) {
                             Text(
-                                stringResource(R.string.wipe_cloud_done, cloud.removed),
+                                pluralStringResource(
+                                    R.plurals.wipe_cloud_done,
+                                    cloud.removed,
+                                    cloud.removed,
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
                         if (cloud.remaining > 0) {
                             Text(
-                                stringResource(R.string.wipe_cloud_left, cloud.remaining),
+                                pluralStringResource(
+                                    R.plurals.wipe_cloud_left,
+                                    cloud.remaining,
+                                    cloud.remaining,
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )

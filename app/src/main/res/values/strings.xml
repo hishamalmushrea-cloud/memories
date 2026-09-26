@@ -276,8 +276,32 @@
     <string name="editor_media_upload_cancel">إلغاء الرفع</string>
 
     <!-- The uploaded copies, which outlive a local wipe. -->
-    <string name="wipe_cloud_choice">احذف أيضًا نسخ السحابة (%1$d مرفقًا رفعتها)</string>
     <string name="wipe_cloud_hint">هذه ملفات رفعتها أنت إلى مشروع Supabase المربوط. إن تركتها فهي تبقى على ذلك الخادم، ولن يستطيع التطبيق حذفها بعد الآن لأن مفاتيحها تُحذف مع السجلات.</string>
-    <string name="wipe_cloud_done">حُذف %1$d مرفقًا من السحابة.</string>
-    <string name="wipe_cloud_left">تعذّر حذف %1$d مرفقًا من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</string>
+
+    <!-- The uploaded copies, whose wording depends on how many. -->
+    <plurals name="wipe_cloud_choice">
+        <item quantity="zero">احذف نسخ السحابة (لا شيء مرفوع)</item>
+        <item quantity="one">احذف نسخة السحابة (مرفق واحد رفعته)</item>
+        <item quantity="two">احذف نسختي السحابة (مرفقان رفعتهما)</item>
+        <item quantity="few">احذف نسخ السحابة (%1$d مرفقات رفعتها)</item>
+        <item quantity="many">احذف نسخ السحابة (%1$d مرفقًا رفعتها)</item>
+        <item quantity="other">احذف نسخ السحابة (%1$d مرفق رفعته)</item>
+    </plurals>
+    <plurals name="wipe_cloud_done">
+        <item quantity="zero">لم يُحذف شيء من السحابة.</item>
+        <item quantity="one">حُذف مرفق واحد من السحابة.</item>
+        <item quantity="two">حُذف مرفقان من السحابة.</item>
+        <item quantity="few">حُذفت %1$d مرفقات من السحابة.</item>
+        <item quantity="many">حُذف %1$d مرفقًا من السحابة.</item>
+        <item quantity="other">حُذف %1$d مرفق من السحابة.</item>
+    </plurals>
+    <plurals name="wipe_cloud_left">
+        <item quantity="zero">لم يبقَ شيء في السحابة.</item>
+        <item quantity="one">تعذّر حذف مرفق واحد من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيله معه.</item>
+        <item quantity="two">تعذّر حذف مرفقين من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلهما معه.</item>
+        <item quantity="few">تعذّر حذف %1$d مرفقات من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+        <item quantity="many">تعذّر حذف %1$d مرفقًا من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+        <item quantity="other">تعذّر حذف %1$d مرفق من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+    </plurals>
+
 </resources>

@@ -77,6 +77,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   mistake cost a whole ten-minute build cycle to discover - three times over.
   It runs before Gradle now, so it reports itself immediately.
 
+- The three new strings about uploaded copies are plurals rather than a number
+  substituted into a sentence. Arabic says one attachment, two attachments and
+  eleven attachments three different ways, and `(%1$d مرفقًا)` was wrong for two
+  of those three. This is what the newly-listed `PluralsCandidate` warnings
+  pointed at.
+
 - The CI report now lists lint warnings by rule with a count and one example
   location. It already listed compiler warnings that way; lint printed only a
   total, which is why a run that added three of them could not say which three.
