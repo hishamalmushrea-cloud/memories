@@ -21,6 +21,8 @@ import com.memorymap.data.remote.PlaceRecord
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.util.ImageOptimizer
+import com.memorymap.util.UploadBytes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -267,4 +269,36 @@ class TemporaryMediaFileStore(private val root: java.io.File) : MediaFileStore {
         file.writeBytes(bytes)
         true
     }.getOrDefault(false)
+}
+
+/**
+ * An optimizer that hands the uploader whatever the test tells it to.
+ *
+ * It answers a question no decoder is needed to settle: does an upload put the
+ * prepared bytes in the bucket, under the extension that came with them, and
+ * leave the file on the device untouched? Left unset it passes the file through
+ * unchanged, which is what keeps every other upload test about the bucket rather
+ * than about this one.
+ */
+class RecordingImageOptimizer : ImageOptimizer {
+
+    /** The bytes to hand over instead of the file's, or null to pass them through. */
+    var replacement: ByteArray? = null
+
+    /** The extension to hand over with [replacement]. */
+    var extension: String = "jpg"
+
+    /** Every path the uploader asked about. */
+    val asked = mutableListOf<String>()
+
+    override fun prepare(
+        path: String,
+        type: MediaType,
+        bytes: ByteArray,
+        fallbackExtension: String,
+    ): UploadBytes {
+        asked += path
+        val prepared = replacement ?: return UploadBytes(bytes, fallbackExtension)
+        return UploadBytes(prepared, extension)
+    }
 }

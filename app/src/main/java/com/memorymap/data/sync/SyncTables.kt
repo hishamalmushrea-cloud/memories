@@ -25,6 +25,7 @@ import com.memorymap.data.remote.PlaceRecord
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.SyncStatus
+import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.SyncTime
 import java.time.LocalDateTime
 
@@ -482,6 +483,7 @@ class MediaSyncTable(
     private val api: SyncApi,
     private val storage: MediaStorage,
     private val files: MediaFileStore,
+    private val images: ImageOptimizer,
     private val clock: () -> String = { LocalDateTime.now().toString() },
 ) : SyncTable<MediaRecord> {
 
@@ -577,12 +579,23 @@ class MediaSyncTable(
      * The account is read here rather than carried on the row because the bucket
      * policy keys on it, and an attachment reaches its account only through the
      * record that owns it.
+     *
+     * What leaves the device is the prepared copy, not the file: a photo is
+     * shrunk and its metadata stripped on the way out, and the key is built from
+     * the extension that copy actually has rather than from the local name. The
+     * file on this device is only ever read.
      */
     private suspend fun upload(row: MediaEntity, userId: String, now: String): String {
         val bytes = files.read(row.uri)
             ?: throw IllegalStateException("The file of an attachment is missing")
-        val key = MediaObjectKey.of(userId, row.id, MediaObjectKey.extensionOf(row.uri))
-        if (!storage.upload(key, bytes)) {
+        val prepared = images.prepare(
+            path = row.uri,
+            type = MediaType.fromName(row.mediaType) ?: MediaType.PHOTO,
+            bytes = bytes,
+            fallbackExtension = MediaObjectKey.extensionOf(row.uri),
+        )
+        val key = MediaObjectKey.of(userId, row.id, prepared.extension)
+        if (!storage.upload(key, prepared.bytes)) {
             throw IllegalStateException("An attachment could not be uploaded")
         }
         dao.setStoragePath(row.id, key, now)

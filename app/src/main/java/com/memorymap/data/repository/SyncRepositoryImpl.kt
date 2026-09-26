@@ -22,6 +22,7 @@ import com.memorymap.data.sync.SyncTable
 import com.memorymap.domain.model.SyncOutcome
 import com.memorymap.domain.model.SyncState
 import com.memorymap.domain.repository.SyncRepository
+import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.MmLog
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -51,6 +52,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val api: SyncApi,
     private val storage: MediaStorage,
     private val files: MediaFileStore,
+    private val images: ImageOptimizer,
     private val supabase: SupabaseClientProvider,
 ) : SyncRepository {
 
@@ -124,7 +126,7 @@ class SyncRepositoryImpl @Inject constructor(
         EntrySyncTable(entryDao, api),
         // Last, and after the records it points at: an attachment names the
         // memory or event that owns it, so those rows have to exist first.
-        MediaSyncTable(mediaDao, api, storage, files),
+        MediaSyncTable(mediaDao, api, storage, files, images),
     )
 
     private suspend fun writeMeta(userId: String, watermark: String?, outcome: String) {

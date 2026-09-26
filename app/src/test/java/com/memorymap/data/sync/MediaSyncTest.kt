@@ -9,6 +9,7 @@ import com.memorymap.data.local.entities.MemoryEntity
 import com.memorymap.data.remote.MediaObjectKey
 import com.memorymap.data.remote.MediaRecord
 import com.memorymap.domain.model.SyncStatus
+import com.memorymap.testing.RecordingImageOptimizer
 import com.memorymap.testing.RecordingMediaStorage
 import com.memorymap.testing.RecordingSyncApi
 import com.memorymap.testing.TemporaryMediaFileStore
@@ -47,6 +48,7 @@ class MediaSyncTest {
     private lateinit var api: RecordingSyncApi
     private lateinit var storage: RecordingMediaStorage
     private lateinit var files: MediaFileStore
+    private lateinit var images: RecordingImageOptimizer
     private lateinit var table: MediaSyncTable
 
     private val userId = "user-1"
@@ -62,11 +64,13 @@ class MediaSyncTest {
         api = RecordingSyncApi()
         storage = RecordingMediaStorage()
         files = TemporaryMediaFileStore(temporaryFolder.root)
+        images = RecordingImageOptimizer()
         table = MediaSyncTable(
             dao = db.mediaDao(),
             api = api,
             storage = storage,
             files = files,
+            images = images,
             clock = { "2024-06-01T10:00:00" },
         )
         db.memoryDao().upsert(
@@ -133,6 +137,53 @@ class MediaSyncTest {
         assertEquals("$userId/media-1.jpg", row!!.storagePath)
         // Recorded rather than assumed: the key has to outlive the request.
         assertNotNull(row.updatedAt)
+    }
+
+    @Test
+    fun `what reaches the bucket is the prepared copy, not the file`() = runTest {
+        attach(optIn = true)
+        val prepared = byteArrayOf(9, 9, 9)
+        images.replacement = prepared
+        images.extension = "jpg"
+
+        table.pushUpserts(table.pending(userId))
+
+        assertEquals(listOf(prepared.toList()), storage.objects.map { it.value.toList() })
+        assertEquals("$userId/media-1.jpg", api.mediaSent.single().storagePath)
+        // The file on this device is read, never rewritten: the original is what
+        // the user keeps, and only the copy that leaves the device is changed.
+        assertEquals(
+            byteArrayOf(1, 2, 3, 4, 5).toList(),
+            File(db.mediaDao().getById("media-1")!!.uri).readBytes().toList(),
+        )
+    }
+
+    @Test
+    fun `the key follows the extension the preparation reported`() = runTest {
+        // The extension is not cosmetic: it is what the next device names its own
+        // file after. A preparation that reports one has to be believed, or a
+        // photo would arrive wearing the wrong format.
+        attach(optIn = true)
+        images.replacement = byteArrayOf(7)
+        images.extension = "webp"
+
+        table.pushUpserts(table.pending(userId))
+
+        assertEquals("$userId/media-1.webp", db.mediaDao().getById("media-1")!!.storagePath)
+        assertEquals(setOf("$userId/media-1.webp"), storage.objects.keys)
+    }
+
+    @Test
+    fun `an attachment the optimizer passes through keeps its own bytes and name`() = runTest {
+        attach(optIn = true)
+
+        table.pushUpserts(table.pending(userId))
+
+        // Nothing is configured, so the preparation hands back what it was given:
+        // this is the pass-through the other upload tests are built on, and it is
+        // also what an image the optimizer cannot improve looks like.
+        assertEquals(listOf(db.mediaDao().getById("media-1")!!.uri), images.asked)
+        assertEquals(5, storage.objects.getValue("$userId/media-1.jpg").size)
     }
 
     @Test

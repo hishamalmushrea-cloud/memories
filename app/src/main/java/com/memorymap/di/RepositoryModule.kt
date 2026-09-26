@@ -31,6 +31,8 @@ import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.domain.repository.SearchRepository
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
+import com.memorymap.util.AndroidImageOptimizer
+import com.memorymap.util.ImageOptimizer
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -91,6 +93,17 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMediaFileStore(impl: LocalMediaFileStore): MediaFileStore
+
+    /**
+     * What a photo looks like by the time it is uploaded.
+     *
+     * Behind its interface for the same reason the bucket is: the sync tests
+     * hand the uploader a stand-in and check that it sends what it was given,
+     * which is a claim no decoder is needed to prove.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindImageOptimizer(impl: AndroidImageOptimizer): ImageOptimizer
 
     @Binds
     @Singleton

@@ -99,6 +99,28 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 
 الحذف **ناعم**: يبقى الصف كشاهد (`deleted_at`) حتى يؤكد الخادم الحذف، فلا تعود البيانات المحذوفة بعد إعادة الاتصال.
 
+## الصور قبل الرفع
+
+الرفع لا يرسل الملف الأصلي، ولا يفكّ ترميز صورة لا يحتاج إلى تغييرها:
+
+```text
+قراءة ترويسة JPEG  →  الاتجاه + المقاس        (بلا فك ترميز، بلا ذاكرة)
+        │
+        ├── صورتها أصلًا في اتجاهها الصحيح وداخل الحد
+        │      └── تُحذف شرائح Exif و XMP وفوتوشوب والتعليقات، والبكسلات تُنسخ كما هي
+        │
+        └── أكبر من الحد، أو تحتاج تدويرًا أو انعكاسًا
+               └── فك ترميز بعيّنة → تدوير/انعكاس → تصغير → JPEG بجودة 82
+                      └── تُستخدم فقط إن جاءت أصغر من الأصل
+```
+
+- الحد 2048 بكسل على الضلع الأطول، والجودة 82، ولا تُكبَّر صورة أبدًا.
+- صورة تحتاج تدويرًا لا تُفصل عن ترويستها إلا بعد تدوير بكسلاتها فعلًا، وإلا جاءت
+  في السحابة راقدة على جنبها.
+- PNG وGIF وHEIC وأي صورة يتعذّر قراءة اتجاهها تُرفع كما هي مع بياناتها، لأن
+  إعادة كتابتها تخاطر بالصورة نفسها.
+- الملف المحلي لا يتغيّر أبدًا: التحضير يقع على النسخة التي تخرج من الجهاز وحدها.
+
 ## الاختبارات
 
 ```bash
@@ -115,6 +137,9 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 | `MemoryRepositoryImplTest` | كتابة محلية + `PENDING_CREATE`، شاهد الحذف، البحث، الروابط |
 | `DiaryDatabaseTest` | تجميع عدّادات اليوم من استعلام Room الحقيقي |
 | `DayViewModelTest` | شاشة اليوم تعرض أحداثها وتحفظ مذكرات اليوم |
+| `JpegMetadataTest` | قراءة ترويسة JPEG: الاتجاه بترتيبَي البايت، ورفض الترويسة التالفة |
+| `ImageOptimizerTest` | ما لا يجوز لمسه: PNG، وما ليس صورة، وصورة يتعذّر قراءة اتجاهها |
+| `ImageOptimizerTransformTest` | اتجاهات Exif الثمانية: موضع كل ركن، والتصغير داخل الحد |
 
 ## التحقق المستمر
 
@@ -179,3 +204,11 @@ navigation shell, the full Room schema with repositories, Supabase email
 authentication with Keystore-backed session storage and an offline local account,
 and a CI pipeline that builds and tests every push. The full specification lives
 in [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+
+An uploaded photo is not the file: it is turned the way its Exif orientation
+says, scaled to a longest edge of 2048 pixels and written at quality 82, and only
+kept when the result is smaller than the original. Photos already upright and
+inside the limit keep their pixels byte for byte and lose only the metadata
+around them, and anything that cannot be rewritten faithfully — PNG, GIF, HEIC, or
+an orientation that cannot be read — is uploaded untouched. The local file is
+never modified.

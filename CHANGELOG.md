@@ -23,6 +23,21 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- Photos are prepared before they leave the device, as the medium specification
+  asks. An upload is not the file: a JPEG is turned the way its Exif orientation
+  says, scaled to a longest edge of 2048 pixels and written at quality 82, and the
+  rewritten copy is used only when it came out smaller than the original — so
+  "compression" can never cost you bytes. A photo already upright and inside the
+  limit is not re-encoded at all: its metadata segments are removed and its pixels
+  are copied over byte for byte. The location, the camera model and the timestamp
+  therefore do not reach the bucket, while the file on the device keeps them.
+  Whatever this cannot rewrite faithfully is uploaded as it is — a PNG, a GIF, an
+  HEIC, or a photo whose stored orientation cannot be read — and a photo whose
+  pixels have to be turned is never parted from its Exif block unless the pixels
+  were turned first. The header reader, the size rules and the eight orientation
+  transforms are all unit tested, including where each corner of a photographed
+  test pattern ends up.
+
 - Attachments can be sent to the cloud, one at a time and only when asked.
   Nothing uploads on its own: an attachment carries an explicit request, the
   sync worker carries it out, and until then the row shows that it is waiting.

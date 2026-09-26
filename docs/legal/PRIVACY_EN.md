@@ -36,6 +36,23 @@ use the app.
 - Photos, audio recordings and videos are stored in the app's private storage on
   your device.
 - Video stays local by default; uploading it is an explicit, optional action.
+- **What leaves the device is not the original.** A photo you choose to upload is
+  scaled so that its longest edge is 2048 pixels and written out as a JPEG, and
+  the metadata wrapped around the picture — Exif, XMP, Photoshop and comment
+  segments, which is where the capture location, the camera model and the
+  timestamp live — is removed before it is sent. A photo that is already the
+  right way up and inside that limit is not re-encoded at all: the metadata is
+  dropped and the pixels are copied over untouched.
+- Photos this cannot rewrite faithfully are uploaded exactly as they are,
+  metadata included: a PNG (which may be a screenshot with transparency), a GIF
+  (which may be moving), an HEIC (which does not decode on the oldest supported
+  phones), and any photo whose stored orientation cannot be read. Rewriting those
+  would risk the picture itself, and a file you asked to back up is better off in
+  the cloud than damaged or missing.
+- The file on your device is never modified. Only the uploaded copy is prepared,
+  so your phone — and any backup you export — keeps the originals. A device that
+  restores from the cloud gets the prepared copy instead, which is the trade-off
+  that makes backing up a phone full of photos possible on a free project.
 
 ## 5) When you connect a Supabase account (optional)
 
