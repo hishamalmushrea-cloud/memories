@@ -186,6 +186,33 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 الترشيح والترتيب يعتمدان على `Geo.nearby` — نفس حساب المسافة المختبَر في
 `GeoTest` — بلا حساب جديد ولا مكتبة جديدة.
 
+## حذف الحساب
+
+شاشة الملف الشخصي فيها زرّان مختلفان، وكل واحد منهما يقول ما يفعله بالضبط:
+
+- **حذف كل بياناتي المحلية**: يمحو أرشيف هذا الجهاز وحده. ومعه مربعان اختياريان:
+  حذف الملفات التي رفعتها إلى المخزن، وحذف سجلاتك من الخادم مع بقاء الحساب.
+- **حذف الحساب نهائيًا**: يحذف الحساب نفسه من مشروع Supabase المربوط — السجلات
+  والملفات المرفوعة وصف الملف الشخصي ومستخدم المصادقة — ثم يمحو أرشيف هذا الجهاز
+  ويغلق الجلسة. ويظهر فقط حين يكون هناك مشروع مربوط أصلًا.
+
+الترتيب مقصود، وهو الضمانة: **لا يُمحى الجهاز إلا بعد أن يؤكد الخادم أن الحساب
+حُذف**. فإن تعذّر الوصول إلى الخادم لم يُحذف شيء — لا في الحساب ولا على الجهاز —
+وقالت النافذة ذلك بصراحة. والعكس (محو الجهاز ثم إبلاغ المستخدم بالفشل) يتركه بلا
+أرشيف محلي وحساب ما زال يحتفظ بكل شيء، وهو أسوأ ما يمكن أن يحدث هنا.
+
+المخزن خارج ذلك كله: `storage.objects` ليس تابعًا لـ`auth.users` فلا يحذفه حذفُ
+الحساب، ولهذا يحذف التطبيق الملفات المرفوعة أولًا — أي قبل أن تُحذف السجلات التي
+تحمل مفاتيحها — ولهذا أيضًا تقول رسالة «ما بقي في المخزن» إن الحذف من لوحة تحكم
+المشروع هو الطريق الوحيد بعد ذلك.
+
+الحذف نفسه يتم عبر دالتين في [`supabase/schema.sql`](supabase/schema.sql)
+— `delete_my_data()` و`delete_my_account()` — كلتاهما `security definer` وتتحققان
+من `auth.uid()`، فلا تستطيعان لمس حساب غير حساب المستدعي، وكلتاهما ممنوعة على
+`public` وممنوحة لـ`authenticated` فقط. و`SupabaseContractTest` يقرأ الملفين
+ويفشل إن تغيّر اسم على جهة واحدة، أو فقدت دالة `security definer`، أو صار الحذفان
+يؤديان الشيء نفسه.
+
 ## الاختبارات
 
 ```bash
@@ -207,6 +234,9 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 | `ImageOptimizerTest` | ما لا يجوز لمسه: PNG، وما ليس صورة، وصورة يتعذّر قراءة اتجاهها |
 | `ImageOptimizerTransformTest` | اتجاهات Exif الثمانية: موضع كل ركن، والتصغير داخل الحد |
 | `CameraControlsTest` | إعدادات الكاميرا: الوضعان، ودورة الفلاش، وحدّ الثانية الواحدة للتسجيل، ومطابقة كل إعداد لثابته في CameraX |
+| `AccountDeletionTest` | المحو المحلي: كل صف، وكل ملف، والعلامة المائية؛ وحذف نسخ السحابة، وأن خادمًا لا يُبلَغ يُبلَّغ عنه ولا يُرمى استثناءً |
+| `SupabaseAuthRepositoryTest` | حالة عدم وجود مشروع، وفشل الحذف يبقي الجلسة، ونجاحه ينهيها |
+| `ProfileViewModelTest` | ترتيب الحذف: ملفات المخزن ثم الخادم ثم الجهاز، وأن فشل الخادم لا يمحو شيئًا على الجهاز |
 
 ## التحقق المستمر
 
@@ -295,6 +325,14 @@ navigation shell, the full Room schema with repositories, Supabase email
 authentication with Keystore-backed session storage and an offline local account,
 and a CI pipeline that builds and tests every push. The full specification lives
 in [`MemoryMap_Full_Prompt.md`](MemoryMap_Full_Prompt.md).
+
+Deleting the account is implemented, not delegated: the profile screen offers a
+local wipe (with optional removal of the uploaded files and of the server's copy
+of the records) and a separate, confirmed account deletion that calls
+`delete_my_account()` on the connected project. The device is wiped only after
+the server confirms, so a request that fails leaves both halves intact and says
+so. The storage bucket is outside the cascade, so the uploaded files are deleted
+first, while the rows holding their keys still exist.
 
 An uploaded photo is not the file: it is turned the way its Exif orientation
 says, scaled to a longest edge of 2048 pixels and written at quality 82, and only

@@ -6,8 +6,27 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-Nothing yet: the release below has not been tagged yet, so it still takes new
-work.
+### Added
+
+- Deleting the account from the app itself, which until now was something only
+  the Supabase dashboard could do. The profile screen has two separate actions by
+  design: the local wipe (which now also offers to delete the records from the
+  server, and deletes the uploaded files when it does, because their keys live on
+  the rows that are about to go) and a confirmed account deletion that calls
+  `delete_my_account()`, removing the records, the profile row and the auth user
+  so the email address can be used again. The order is the guarantee: the device
+  is wiped only after the server confirms, and a failed request leaves both
+  halves untouched and says so in as many words. Both functions are
+  `security definer`, act on `auth.uid()` only and are revoked from `public`.
+
+### Fixed
+
+- The "could not be removed from the cloud" message told the user that deleting
+  the account from the Supabase dashboard would take the remaining attachments
+  with it. It would not: `storage.objects` is not a child of `auth.users`, so
+  nothing cascades into it, and files whose keys were already gone would simply
+  stay in the bucket. The message now says the bucket survives the account and
+  points at the two things that do work.
 
 ## [0.1.0] - 2026-09-26
 

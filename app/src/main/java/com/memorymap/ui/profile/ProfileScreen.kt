@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.memorymap.R
 import com.memorymap.domain.model.AuthState
+import com.memorymap.domain.repository.AuthRepository
 import androidx.navigation.NavHostController
 import com.memorymap.domain.model.SyncOutcome
 import com.memorymap.domain.model.SyncState
@@ -120,10 +122,44 @@ fun ProfileScreen(
                 )
                 OutlinedButton(
                     onClick = viewModel::requestDeleteLocalData,
-                    enabled = !state.isWiping,
+                    enabled = !state.isWiping && !state.isDeletingAccount,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(if (state.isWiping) R.string.wipe_running else R.string.wipe_action))
+                }
+            }
+        }
+
+        // Only with a project connected: without one there is no account
+        // anywhere but this device, and the card above already does that.
+        if (state.cloudConfigured) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.account_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Text(
+                        text = stringResource(R.string.account_intro),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = viewModel::requestDeleteAccount,
+                        enabled = !state.isDeletingAccount && !state.isWiping,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (state.isDeletingAccount) {
+                                    R.string.account_running
+                                } else {
+                                    R.string.account_action
+                                },
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -134,6 +170,7 @@ fun ProfileScreen(
         // button's promise is "on this device", and ticking this would spend
         // bytes that may still be the only copy another device can fetch.
         var deleteCloudCopies by rememberSaveable { mutableStateOf(false) }
+        var deleteServerRecords by rememberSaveable { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = viewModel::cancelDeleteLocalData,
             title = { Text(stringResource(R.string.wipe_confirm_title)) },
@@ -159,7 +196,30 @@ fun ProfileScreen(
                             )
                         }
                         Text(
-                            text = stringResource(R.string.wipe_cloud_hint),
+                            text = stringResource(
+                                if (deleteServerRecords) {
+                                    R.string.wipe_cloud_hint_included
+                                } else {
+                                    R.string.wipe_cloud_hint
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (state.cloudConfigured) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = deleteServerRecords,
+                                onCheckedChange = { deleteServerRecords = it },
+                            )
+                            Text(
+                                text = stringResource(R.string.wipe_server_records),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.wipe_server_records_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -167,7 +227,11 @@ fun ProfileScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.confirmDeleteLocalData(deleteCloudCopies) }) {
+                TextButton(
+                    onClick = {
+                        viewModel.confirmDeleteLocalData(deleteCloudCopies, deleteServerRecords)
+                    },
+                ) {
                     Text(stringResource(R.string.wipe_confirm_action))
                 }
             },
@@ -217,10 +281,106 @@ fun ProfileScreen(
                             )
                         }
                     }
+                    // Asked for, and the answer either way. "Nothing was
+                    // deleted there" has to be said, or the user closes this
+                    // believing an archive is gone when it is not.
+                    when (state.serverRecordsRemoved) {
+                        true -> Text(
+                            text = stringResource(R.string.wipe_server_done),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+
+                        false -> Text(
+                            text = stringResource(R.string.wipe_server_failed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+
+                        null -> Unit
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = viewModel::dismissWipeSummary) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    if (state.accountConfirmationVisible) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDeleteAccount,
+            title = { Text(stringResource(R.string.account_confirm_title)) },
+            text = { Text(stringResource(R.string.account_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeleteAccount) {
+                    Text(stringResource(R.string.account_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelDeleteAccount) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    state.accountDeletion?.let { deletion ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissAccountResult,
+            title = {
+                Text(
+                    stringResource(
+                        if (deletion == AuthRepository.Deletion.DELETED) {
+                            R.string.account_done_title
+                        } else {
+                            R.string.account_failed_title
+                        },
+                    ),
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(
+                            when (deletion) {
+                                AuthRepository.Deletion.DELETED -> R.string.account_done_body
+                                AuthRepository.Deletion.NOT_CONFIGURED ->
+                                    R.string.account_failed_not_configured
+
+                                AuthRepository.Deletion.FAILED -> R.string.account_failed_body
+                            },
+                        ),
+                    )
+                    // The failure case has to be explicit about this: nothing on
+                    // this device was touched, because the server is still the
+                    // only place the account exists.
+                    if (deletion != AuthRepository.Deletion.DELETED) {
+                        Text(
+                            text = stringResource(R.string.account_failed_kept),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // And if the uploads were already gone when the server
+                    // refused, it says that too: "nothing was deleted" would be
+                    // false, and the files cannot be brought back.
+                    val cloud = state.cloudRemoval
+                    if (deletion != AuthRepository.Deletion.DELETED && cloud != null && cloud.removed > 0) {
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.wipe_cloud_done,
+                                cloud.removed,
+                                cloud.removed,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::dismissAccountResult) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },

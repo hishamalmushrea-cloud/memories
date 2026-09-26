@@ -488,11 +488,21 @@ create trigger media_stamp_updated_at before insert or update on public.media
     for each row execute function public.stamp_updated_at();
 
 -- =============================================================================
--- Account deletion
+-- Deletion, from the app
 -- =============================================================================
--- Deleting the auth user cascades through profiles and removes every row and,
--- through the storage policies above, leaves the owner able to purge their
--- files first from the in-app "delete my data" flow.
+-- Two functions, and the difference between them is what the user asked for.
+--
+-- Both are `security definer`, which is the point: the client holds only the
+-- anon key and the user's own JWT, so it has no rights on `auth.users` at all.
+-- A function that runs as its owner - the role that applied this file, which is
+-- `postgres` in the SQL editor - can do what the client cannot, and both check
+-- `auth.uid()` so they can only ever touch the caller's own account.
+--
+-- Neither one deletes anything in the storage buckets. `storage.objects` is not
+-- a child of `auth.users`, so nothing cascades into it; the app deletes its
+-- uploaded files first, while the rows holding their keys still exist.
+
+-- Everything the account wrote, keeping the account itself.
 create or replace function public.delete_my_data()
 returns void
 language plpgsql
@@ -503,3 +513,24 @@ begin
     delete from public.profiles where id = auth.uid();
 end;
 $$;
+
+-- The account as well: the profile row goes through the cascade above, and the
+-- auth user goes here, which is what frees the email address for reuse.
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    delete from auth.users where id = auth.uid();
+end;
+$$;
+
+-- New functions are executable by PUBLIC by default; saying it explicitly is
+-- how a reader knows the intent, and revoking first makes the grant true even
+-- if a later migration changes the default.
+revoke all on function public.delete_my_data() from public;
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_data() to authenticated;
+grant execute on function public.delete_my_account() to authenticated;

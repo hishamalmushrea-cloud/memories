@@ -20,6 +20,13 @@ import com.memorymap.data.remote.MemoryRecord
 import com.memorymap.data.remote.PersonRecord
 import com.memorymap.data.remote.PlaceRecord
 import com.memorymap.data.remote.SyncApi
+import com.memorymap.data.remote.AccountApi
+import com.memorymap.domain.model.CloudRemoval
+import com.memorymap.domain.model.SyncState
+import com.memorymap.domain.model.WipeSummary
+import com.memorymap.domain.model.User
+import com.memorymap.domain.repository.SyncRepository
+import com.memorymap.domain.repository.UserRepository
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.util.ImageOptimizer
@@ -67,6 +74,99 @@ class FakeAuthRepository(userId: String?) : AuthRepository {
 
     override suspend fun continueOffline(displayName: String?): User =
         User(id = id.value ?: "local-user", email = "", displayName = displayName.orEmpty())
+
+    /** What the next [deleteAccount] answers. Change it to drive a failure. */
+    var deletionResult: AuthRepository.Deletion = AuthRepository.Deletion.NOT_CONFIGURED
+
+    var deleteAccountCalls: Int = 0
+        private set
+
+    /** Set to false to check that a failed deletion does not end the session. */
+    var signOutOnDelete: Boolean = true
+
+    override suspend fun deleteAccount(): AuthRepository.Deletion {
+        deleteAccountCalls++
+        if (deletionResult == AuthRepository.Deletion.DELETED && signOutOnDelete) id.value = null
+        return deletionResult
+    }
+}
+
+/**
+ * The two server-side deletions, recorded rather than sent.
+ *
+ * A wipe has to behave correctly when the server is unreachable, and that is a
+ * property of the caller, not of Postgrest: this fails on demand so the caller's
+ * answer can be checked without a socket.
+ */
+/**
+ * A user repository that answers with fixed summaries and records the calls.
+ *
+ * The profile screen's destructive actions are a sequence - uploads first, then
+ * the server, then this device - and the sequence is the thing worth testing:
+ * this keeps the order and the arguments of every call it received.
+ */
+class RecordingUserRepository(
+    var wipeSummary: WipeSummary = WipeSummary(memories = 3, entries = 2, mediaFiles = 1),
+    var cloudRemoval: CloudRemoval = CloudRemoval(removed = 2),
+    var serverRecordsRemoved: Boolean = true,
+    var uploadedCount: Int = 2,
+) : UserRepository {
+
+    /** Every call, in order, as `name(userId)`. */
+    val calls: MutableList<String> = mutableListOf()
+
+    override fun watchCurrentUser(): Flow<User?> = flowOf(null)
+
+    override suspend fun getById(id: String): User? = null
+
+    override suspend fun save(user: User) = Unit
+
+    override suspend fun deleteLocalData(userId: String): WipeSummary {
+        calls += "deleteLocalData($userId)"
+        return wipeSummary
+    }
+
+    override suspend fun uploadedAttachmentPaths(userId: String): List<String> {
+        calls += "uploadedAttachmentPaths($userId)"
+        return List(uploadedCount) { "$userId/attachment-$it.jpg" }
+    }
+
+    override suspend fun deleteCloudCopies(userId: String): CloudRemoval {
+        calls += "deleteCloudCopies($userId)"
+        return cloudRemoval
+    }
+
+    override suspend fun deleteServerRecords(): Boolean {
+        calls += "deleteServerRecords"
+        return serverRecordsRemoved
+    }
+}
+
+/** A sync double that never runs and reports an idle queue. */
+class FakeSyncRepository : SyncRepository {
+
+    override fun watchState(userId: String?): Flow<SyncState> = flowOf(SyncState())
+
+    override suspend fun syncNow(userId: String?): SyncState = SyncState()
+}
+
+class RecordingAccountApi(var failing: Boolean = false) : AccountApi {
+
+    var recordsDeletions: Int = 0
+        private set
+
+    var accountDeletions: Int = 0
+        private set
+
+    override suspend fun deleteRecords() {
+        recordsDeletions++
+        if (failing) throw IllegalStateException("the server could not be reached")
+    }
+
+    override suspend fun deleteAccount() {
+        accountDeletions++
+        if (failing) throw IllegalStateException("the server could not be reached")
+    }
 }
 
 /**

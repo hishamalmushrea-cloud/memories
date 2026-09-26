@@ -11,6 +11,7 @@ import com.memorymap.data.local.dao.SyncMetaDao
 import com.memorymap.data.local.dao.PersonDao
 import com.memorymap.data.local.dao.PlaceDao
 import com.memorymap.data.local.dao.UserDao
+import com.memorymap.data.remote.AccountApi
 import com.memorymap.data.remote.MediaStorage
 import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.Emotion
@@ -45,6 +46,7 @@ class UserRepositoryImpl @Inject constructor(
     private val mediaDao: MediaDao,
     private val syncMetaDao: SyncMetaDao,
     private val storage: MediaStorage,
+    private val accountApi: AccountApi,
 ) : UserRepository {
 
     override fun watchCurrentUser(): Flow<User?> = userDao.watchFirst().map { it?.toDomain() }
@@ -110,6 +112,20 @@ class UserRepositoryImpl @Inject constructor(
             remaining = keys.size - removed.coerceIn(0, keys.size),
         )
     }
+
+    /**
+     * Asks the server to delete the account's own rows, and says whether that
+     * happened.
+     *
+     * Nothing is thrown: this runs inside a wipe that has to finish either way,
+     * and the honest answer - "the server still has your records" - is more
+     * useful to the user than an exception that leaves them guessing which half
+     * of the button ran.
+     */
+    override suspend fun deleteServerRecords(): Boolean =
+        runCatching { accountApi.deleteRecords() }
+            .onFailure { error -> MmLog.e("Could not delete the records on the server", error) }
+            .isSuccess
 }
 
 @Singleton

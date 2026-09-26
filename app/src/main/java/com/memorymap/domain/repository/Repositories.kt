@@ -100,13 +100,25 @@ interface UserRepository {
     /**
      * Removes the uploaded copies of this account's attachments.
      *
-     * This is the one cloud action the app can take on the user's behalf, and it
-     * is deliberately narrow: it deletes files, not the account. An account is
-     * removed from the Supabase dashboard, which the app has no business doing.
-     *
      * The count of what is left is returned rather than thrown, because a wipe
-     * that cannot reach the network still has to finish and still has to say
-     * what it could not do.
+     * that cannot reach the network still has to finish and still has to say what
+     * it could not do.
      */
     suspend fun deleteCloudCopies(userId: String): CloudRemoval
+
+    /**
+     * Deletes the server's copy of everything this account wrote, keeping the
+     * account itself.
+     *
+     * This is the "remove my archive from the server too" half of deleting local
+     * data, and it is not a replacement for [deleteLocalData]: a user who is
+     * leaving a device but keeping the account wants the rows gone everywhere,
+     * and a user who has no project configured is not offered it at all.
+     *
+     * It returns whether the server confirmed, rather than throwing, so the wipe
+     * it is part of can finish and report honestly. Uploaded files are not
+     * covered: the keys to them live on the rows this call removes, so the caller
+     * deletes those first.
+     */
+    suspend fun deleteServerRecords(): Boolean
 }

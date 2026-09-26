@@ -1,6 +1,8 @@
 package com.memorymap.di
 
+import com.memorymap.data.remote.AccountApi
 import com.memorymap.data.remote.SecureSessionStore
+import com.memorymap.data.remote.PostgrestAccountApi
 import com.memorymap.BuildConfig
 import com.memorymap.data.map.MapProviders
 import com.memorymap.data.remote.MediaStorage
@@ -83,6 +85,17 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSyncApi(impl: PostgrestSyncApi): SyncApi
+
+    /**
+     * The two deletions that only the server can carry out.
+     *
+     * Bound behind its interface like `SyncApi`, so the failure that matters —
+     * a deletion that cannot reach the server and must not be reported as done —
+     * is testable against a double that fails on demand.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindAccountApi(impl: PostgrestAccountApi): AccountApi
 
     /** The bucket, behind its interface, for the same reason `SyncApi` is. */
     @Binds

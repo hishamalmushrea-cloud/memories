@@ -5,5 +5,5 @@ First release.
 • A life timeline, people, places and search.
 • Photos, audio and video, with an in-app camera.
 • Optional sync with your own Supabase project, and a status for every record.
-• Backup and import, and a complete deletion of your data.
+• Backup and import, full data deletion, and deleting the account itself.
 • "Near by": what is within a kilometre of you, ordered by distance.

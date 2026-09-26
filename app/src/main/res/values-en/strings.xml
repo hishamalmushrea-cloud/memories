@@ -259,6 +259,26 @@
     <string name="wipe_confirm_body">Your archive will be permanently removed from this device, together with every media file, and the session will end. Take a backup first if you want to keep a copy.</string>
     <string name="wipe_confirm_action">Delete permanently</string>
     <string name="wipe_done_title">Deleted</string>
+
+    <string name="wipe_server_records">Also delete my records from the server</string>
+    <string name="wipe_server_records_hint">Your memories, events, notes, people and places are deleted from your Supabase project. This cannot be undone. Backups on your device are not affected.</string>
+    <string name="wipe_cloud_hint_included">Your uploaded files go with them: their keys are deleted with the records, so the app could never reach them again.</string>
+    <string name="wipe_server_done">Your records were deleted from the server.</string>
+    <string name="wipe_server_failed">Your records were not deleted from the server: it could not be reached. They are still there, and only what was on this device is gone.</string>
+
+    <string name="account_title">Delete the account</string>
+    <string name="account_intro">Deletes your account itself from the connected Supabase project: every record, every uploaded file, your email address, and everything on this device. It cannot be undone or recovered later.</string>
+    <string name="account_action">Delete the account permanently</string>
+    <string name="account_running">Deleting the account…</string>
+    <string name="account_confirm_title">Delete the account and all its data?</string>
+    <string name="account_confirm_body">Your account will be deleted from the connected Supabase project with all its records and files, then this device's archive is deleted and the session ends. Take a backup first if you want to keep anything; there is no undo.</string>
+    <string name="account_confirm_action">Delete the account permanently</string>
+    <string name="account_done_title">Account deleted</string>
+    <string name="account_done_body">The account was deleted from the server with its records and files, and this device's archive was deleted.</string>
+    <string name="account_failed_title">The account was not deleted</string>
+    <string name="account_failed_body">The server could not be reached and nothing was deleted: neither in your account nor on this device. Check the connection and try again.</string>
+    <string name="account_failed_not_configured">No Supabase project is connected, so there is no account on a server to delete. Use "Delete all my local data".</string>
+    <string name="account_failed_kept">Your archive on this device is untouched.</string>
     <string name="wipe_done_body">Removed %1$d records and %2$d media files from this device.</string>
 
     <!-- Linking a record to people and places -->
@@ -292,8 +312,8 @@
         <item quantity="other">Removed %1$d attachments from the cloud.</item>
     </plurals>
     <plurals name="wipe_cloud_left">
-        <item quantity="one">%1$d attachment could not be removed from the cloud. Deleting your account is done from the Supabase dashboard, and removing the user there takes it with it.</item>
-        <item quantity="other">%1$d attachments could not be removed from the cloud. Deleting your account is done from the Supabase dashboard, and removing the user there takes them with it.</item>
+        <item quantity="one">%1$d attachment could not be removed from the cloud and is still in the bucket. Deleting the account does not empty the bucket, so try the button above again or remove it from your project dashboard.</item>
+        <item quantity="other">%1$d attachments could not be removed from the cloud and are still in the bucket. Deleting the account does not empty the bucket, so try the button above again or remove them from your project dashboard.</item>
     </plurals>
 
     <!-- In-app camera -->

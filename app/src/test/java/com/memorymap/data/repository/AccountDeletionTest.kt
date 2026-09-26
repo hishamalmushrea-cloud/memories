@@ -14,6 +14,7 @@ import com.memorymap.data.local.entities.UserEntity
 import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.SyncStatus
+import com.memorymap.testing.RecordingAccountApi
 import com.memorymap.testing.RecordingMediaStorage
 import com.memorymap.util.MediaStore
 import java.io.File
@@ -45,6 +46,7 @@ class AccountDeletionTest {
     private lateinit var context: Context
     private lateinit var repository: UserRepositoryImpl
     private lateinit var storage: RecordingMediaStorage
+    private lateinit var accountApi: RecordingAccountApi
 
     private val userId = "user-1"
     private val otherUserId = "user-2"
@@ -56,6 +58,7 @@ class AccountDeletionTest {
             .allowMainThreadQueries()
             .build()
         storage = RecordingMediaStorage()
+        accountApi = RecordingAccountApi()
         repository = UserRepositoryImpl(
             context = context,
             userDao = db.userDao(),
@@ -67,6 +70,7 @@ class AccountDeletionTest {
             mediaDao = db.mediaDao(),
             syncMetaDao = db.syncMetaDao(),
             storage = storage,
+            accountApi = accountApi,
         )
     }
 
@@ -203,6 +207,29 @@ class AccountDeletionTest {
         assertEquals(0, removal.removed)
         assertEquals(1, removal.remaining)
         assertEquals(emptyList<String>(), storage.removed)
+    }
+
+    @Test
+    fun `asking for the server copies deletes the account's rows there`() = runTest {
+        seedArchive()
+
+        val removed = repository.deleteServerRecords()
+
+        assertTrue(removed)
+        assertEquals(1, accountApi.recordsDeletions)
+    }
+
+    @Test
+    fun `an unreachable server reports that the records are still there`() = runTest {
+        seedArchive()
+        accountApi.failing = true
+
+        val removed = repository.deleteServerRecords()
+
+        // The answer, not an exception: this runs inside a wipe that has to
+        // finish, and the user has to be told which half did not happen.
+        assertFalse(removed)
+        assertEquals(1, accountApi.recordsDeletions)
     }
 
     @Test

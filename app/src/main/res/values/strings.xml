@@ -259,6 +259,26 @@
     <string name="wipe_confirm_body">سيُحذف أرشيفك من هذا الجهاز نهائيًا مع كل ملفات الوسائط، وستُغلق الجلسة. خذ نسخة احتياطية أولًا إن كنت تريد الاحتفاظ بنسخة.</string>
     <string name="wipe_confirm_action">حذف نهائي</string>
     <string name="wipe_done_title">تم الحذف</string>
+
+    <string name="wipe_server_records">احذف سجلاتي من الخادم أيضًا</string>
+    <string name="wipe_server_records_hint">تُحذف الذكريات والأحداث والملاحظات والأشخاص والأماكن من مشروعك على Supabase. لا يمكن التراجع. نسخك الاحتياطية على جهازك لا تتأثر.</string>
+    <string name="wipe_cloud_hint_included">ملفاتك المرفوعة تُحذف معها، لأن مفاتيحها تُحذف مع السجلات ولن يستطيع التطبيق الوصول إليها بعد الآن.</string>
+    <string name="wipe_server_done">حُذفت سجلاتك من الخادم.</string>
+    <string name="wipe_server_failed">لم تُحذف سجلاتك من الخادم: تعذّر الوصول إليه. هي باقية هناك، وحُذف ما على هذا الجهاز فقط.</string>
+
+    <string name="account_title">حذف الحساب</string>
+    <string name="account_intro">يحذف حسابك نفسه من مشروع Supabase المربوط: كل سجلاتك، وملفاتك المرفوعة، وبريدك المسجَّل، وكل ما على هذا الجهاز. لا يمكن التراجع، ولا يمكن استرجاعه لاحقًا.</string>
+    <string name="account_action">حذف الحساب نهائيًا</string>
+    <string name="account_running">جارٍ حذف الحساب…</string>
+    <string name="account_confirm_title">حذف الحساب وكل بياناته؟</string>
+    <string name="account_confirm_body">سيُحذف حسابك من مشروع Supabase المربوط مع كل سجلاته وملفاته، ثم يُحذف أرشيف هذا الجهاز، وتُغلق الجلسة. خذ نسخة احتياطية أولًا إن كنت تريد الاحتفاظ بشيء؛ لا يوجد تراجع.</string>
+    <string name="account_confirm_action">احذف الحساب نهائيًا</string>
+    <string name="account_done_title">تم حذف الحساب</string>
+    <string name="account_done_body">حُذف الحساب من الخادم مع سجلاته وملفاته، وحُذف أرشيف هذا الجهاز.</string>
+    <string name="account_failed_title">لم يُحذف الحساب</string>
+    <string name="account_failed_body">تعذّر الوصول إلى الخادم، ولا شيء حُذف: لا في حسابك ولا على هذا الجهاز. تحقّق من الاتصال ثم أعد المحاولة.</string>
+    <string name="account_failed_not_configured">لا يوجد مشروع Supabase مربوط، فلا يوجد حساب على خادم ليُحذف. استخدم «حذف كل بياناتي المحلية».</string>
+    <string name="account_failed_kept">أرشيفك على هذا الجهاز كما هو.</string>
     <string name="wipe_done_body">حُذف %1$d سجلًا و%2$d ملف وسائط من هذا الجهاز.</string>
 
     <!-- Linking a record to people and places -->
@@ -301,11 +321,11 @@
     </plurals>
     <plurals name="wipe_cloud_left">
         <item quantity="zero">لم يبقَ شيء في السحابة.</item>
-        <item quantity="one">تعذّر حذف مرفق واحد من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيله معه.</item>
-        <item quantity="two">تعذّر حذف مرفقين من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلهما معه.</item>
-        <item quantity="few">تعذّر حذف %1$d مرفقات من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
-        <item quantity="many">تعذّر حذف %1$d مرفقًا من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
-        <item quantity="other">تعذّر حذف %1$d مرفق من السحابة. حذف الحساب يتم من لوحة تحكم مشروع Supabase، وحذف المستخدم هناك يزيلها معه.</item>
+        <item quantity="one">تعذّر حذف مرفق واحد من السحابة فبقي في المخزن. مخزن الملفات لا يُفرَّغ بحذف الحساب، فإما أن تعيد المحاولة من الزر أعلاه أو تحذفه من لوحة تحكم مشروعك.</item>
+        <item quantity="two">تعذّر حذف مرفقين من السحابة فبقيا في المخزن. مخزن الملفات لا يُفرَّغ بحذف الحساب، فإما أن تعيد المحاولة من الزر أعلاه أو تحذفهما من لوحة تحكم مشروعك.</item>
+        <item quantity="few">تعذّر حذف %1$d مرفقات من السحابة فبقيت في المخزن. مخزن الملفات لا يُفرَّغ بحذف الحساب، فإما أن تعيد المحاولة من الزر أعلاه أو تحذفها من لوحة تحكم مشروعك.</item>
+        <item quantity="many">تعذّر حذف %1$d مرفقًا من السحابة فبقيت في المخزن. مخزن الملفات لا يُفرَّغ بحذف الحساب، فإما أن تعيد المحاولة من الزر أعلاه أو تحذفها من لوحة تحكم مشروعك.</item>
+        <item quantity="other">تعذّر حذف %1$d مرفق من السحابة فبقيت في المخزن. مخزن الملفات لا يُفرَّغ بحذف الحساب، فإما أن تعيد المحاولة من الزر أعلاه أو تحذفها من لوحة تحكم مشروعك.</item>
     </plurals>
 
     <!-- In-app camera -->

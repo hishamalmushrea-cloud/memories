@@ -40,6 +40,18 @@ data class ProfileUiState(
     val uploadedCount: Int = 0,
     /** Set when the user also asked for the uploaded copies to go. */
     val cloudRemoval: CloudRemoval? = null,
+    /**
+     * Whether the server still has this account's records after a wipe.
+     *
+     * Null when the question was never asked - no project is connected - so the
+     * summary can stay silent instead of claiming something it does not know.
+     */
+    val serverRecordsRemoved: Boolean? = null,
+    /** True while the account-deletion confirmation is on screen. */
+    val accountConfirmationVisible: Boolean = false,
+    val isDeletingAccount: Boolean = false,
+    /** Set once the server has answered about deleting the account. */
+    val accountDeletion: AuthRepository.Deletion? = null,
 )
 
 /**
@@ -148,16 +160,19 @@ class ProfileViewModel @Inject constructor(
      * Irreversible, so it only runs from the confirmation, and the summary of
      * what went is kept on screen afterwards: "everything is gone" is not the
      * same information as "412 records and 38 files are gone".
-     */
-    /**
-     * Destroys the local archive and ends the session.
      *
-     * [deleteCloudCopies] is the user's answer to the second question, and it is
-     * carried out first, while the rows that hold the bucket keys still exist.
-     * The local wipe runs either way: a bucket that cannot be reached must not
-     * be able to keep the user's archive on their own device.
+     * The order is forced by what each step needs. The uploaded copies go first,
+     * while the rows that hold their bucket keys still exist. The server's copy
+     * of the records goes next, for the same reason: the request names the rows
+     * by account, but there is no point leaving files in a bucket whose rows are
+     * about to be deleted everywhere. The local wipe runs last and runs either
+     * way, because a network that cannot be reached must not be able to keep the
+     * user's archive on their own device.
      */
-    fun confirmDeleteLocalData(deleteCloudCopies: Boolean = false) {
+    fun confirmDeleteLocalData(
+        deleteCloudCopies: Boolean = false,
+        deleteServerRecords: Boolean = false,
+    ) {
         val userId = authRepository.currentUserId.value ?: return
         viewModelScope.launch {
             _state.update {
@@ -166,13 +181,19 @@ class ProfileViewModel @Inject constructor(
                     isWiping = true,
                     uploadedCount = 0,
                     cloudRemoval = null,
+                    serverRecordsRemoved = null,
                 )
             }
-            val cloud = if (deleteCloudCopies) {
+            // Deleting the records on the server while keeping the uploaded
+            // files would leave them unreachable from anywhere, so the files go
+            // with them whether or not that box was ticked. The screen says so
+            // next to the box.
+            val cloud = if (deleteCloudCopies || deleteServerRecords) {
                 userRepository.deleteCloudCopies(userId)
             } else {
                 null
             }
+            val server = if (deleteServerRecords) userRepository.deleteServerRecords() else null
             val summary = userRepository.deleteLocalData(userId)
             authRepository.signOut()
             _state.update {
@@ -180,6 +201,7 @@ class ProfileViewModel @Inject constructor(
                     isWiping = false,
                     wipeSummary = summary,
                     cloudRemoval = cloud,
+                    serverRecordsRemoved = server,
                     stats = null,
                     peopleCount = 0,
                 )
@@ -188,6 +210,71 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun dismissWipeSummary() {
-        _state.update { it.copy(wipeSummary = null, cloudRemoval = null) }
+        _state.update {
+            it.copy(wipeSummary = null, cloudRemoval = null, serverRecordsRemoved = null)
+        }
+    }
+
+    /**
+     * Opens the confirmation for deleting the account itself.
+     *
+     * Only reachable when a project is connected: an offline install has no
+     * account anywhere but this device, and deleting local data already is that.
+     */
+    fun requestDeleteAccount() {
+        _state.update { it.copy(accountConfirmationVisible = true, accountDeletion = null) }
+    }
+
+    fun cancelDeleteAccount() {
+        _state.update { it.copy(accountConfirmationVisible = false) }
+    }
+
+    fun dismissAccountResult() {
+        _state.update { it.copy(accountDeletion = null) }
+    }
+
+    /**
+     * Deletes the account on the server, then everything on this device.
+     *
+     * The device is wiped only after the server confirms, and that order is the
+     * whole point: if the request fails, the user keeps both their archive and a
+     * truthful error. Wiping first and reporting a failure afterwards would leave
+     * them with nothing on the device and an account still holding their records
+     * - the one outcome nobody asked for.
+     */
+    fun confirmDeleteAccount() {
+        val userId = authRepository.currentUserId.value ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(accountConfirmationVisible = false, isDeletingAccount = true) }
+            // The uploads go first, while the rows that hold their keys still
+            // exist and the session is still valid: after the account is gone
+            // there is nothing left to name them by and no token to remove them
+            // with, which would leave the files in the bucket for good.
+            val cloud = if (authRepository.isCloudConfigured) {
+                userRepository.deleteCloudCopies(userId)
+            } else {
+                null
+            }
+            val deletion = authRepository.deleteAccount()
+
+            if (deletion != AuthRepository.Deletion.DELETED) {
+                _state.update {
+                    it.copy(isDeletingAccount = false, accountDeletion = deletion, cloudRemoval = cloud)
+                }
+                return@launch
+            }
+
+            val summary = userRepository.deleteLocalData(userId)
+            _state.update {
+                it.copy(
+                    isDeletingAccount = false,
+                    accountDeletion = deletion,
+                    cloudRemoval = cloud,
+                    wipeSummary = summary,
+                    stats = null,
+                    peopleCount = 0,
+                )
+            }
+        }
     }
 }

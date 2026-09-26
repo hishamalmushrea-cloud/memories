@@ -2,6 +2,7 @@ package com.memorymap.data.repository
 
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.local.entities.UserEntity
+import com.memorymap.data.remote.AccountApi
 import com.memorymap.data.remote.ProfileRecord
 import com.memorymap.data.remote.SupabaseClientProvider
 import com.memorymap.domain.model.AuthState
@@ -11,6 +12,7 @@ import com.memorymap.domain.repository.LOCAL_USER_ID
 import com.memorymap.util.MmLog
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
 import java.time.LocalDateTime
@@ -38,6 +40,7 @@ import kotlinx.coroutines.launch
 class SupabaseAuthRepository @Inject constructor(
     private val supabaseProvider: SupabaseClientProvider,
     private val database: MemoryMapDatabase,
+    private val accountApi: AccountApi,
 ) : AuthRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -157,6 +160,39 @@ class SupabaseAuthRepository @Inject constructor(
         // The local profile row stays: the archive belongs to the user and must
         // survive a sign-out. Only the session is dropped.
         onSignedOut()
+    }
+
+    /**
+     * Removes the account on the server, then the session on this device.
+     *
+     * The server does the whole job in one call - the records, the profile row
+     * and the auth user - so there is no half-deleted state to report. That is
+     * also why the order here is the opposite of a wipe: the server goes first,
+     * and a failure stops everything after it. A device wiped before a failed
+     * deletion would leave the user with nothing locally and an account still
+     * holding their records, which is the one outcome nobody asked for.
+     *
+     * The session is then dropped locally rather than signed out over the
+     * network, because there is no account left to sign out of.
+     */
+    override suspend fun deleteAccount(): AuthRepository.Deletion {
+        // Not a network check: `isAvailable` only reads the build configuration.
+        // Without a project there is no account on a server, so an unconfigured
+        // build must say so instead of reporting a deletion it did not make.
+        if (!supabaseProvider.isAvailable) return AuthRepository.Deletion.NOT_CONFIGURED
+
+        runCatching { accountApi.deleteAccount() }.onFailure { error ->
+            MmLog.e("Deleting the account failed", error)
+        }.onSuccess {
+            // Best effort, and last: the account no longer exists, so a session
+            // that cannot be cleared here and now is a stale token, not data.
+            runCatching { supabaseProvider.get()?.auth?.signOut(SignOutScope.LOCAL) }
+                .onFailure { MmLog.w("The session could not be cleared after deleting the account", it) }
+            onSignedOut()
+        }.fold(
+            onSuccess = { AuthRepository.Deletion.DELETED },
+            onFailure = { AuthRepository.Deletion.FAILED },
+        )
     }
 
     override suspend fun continueOffline(displayName: String?): User {

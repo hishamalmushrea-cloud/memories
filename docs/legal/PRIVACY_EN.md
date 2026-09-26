@@ -87,16 +87,29 @@ cloud service is temporarily unavailable.
   many media files it removed.
 - **The cloud copies, at deletion time**: the confirmation tells you how many
   attachments you uploaded to the connected Supabase project, and lets you delete
-  those files along with the local archive. The box is unchecked by default,
-  because the button promises to clear **this device** and because a cloud copy
-  may be the only one another device can still fetch. Note that **once the wipe
-  has run the app can never delete them**, because their keys go with the rows -
-  which is why the count is given before the deletion and not after it.
-- **What the in-app deletion does not do**: it does not delete your Supabase
-  account for you and does not pretend to. Account deletion happens in the
-  Supabase dashboard of the project you connected, and deleting the auth user
-  there removes the profile row and, through the schema's cascade, every row that
-  belonged to it.
+  those files along with the local archive. It also offers to delete **your
+  records from the server itself** while keeping the account. Both boxes are
+  unchecked by default, because the button promises to clear **this device** and
+  because a cloud copy may be the only one another device can still fetch. If you
+  do ask for the records to go, the uploaded files go with them without a second
+  question: their keys are deleted with the records, so there would be no way for
+  the app to reach them afterwards. Note that **once the wipe has run the app can
+  never delete them**, which is why the count is given before the deletion and
+  not after it.
+- **Deleting the account itself**: from the profile screen, after a separate
+  confirmation, the app deletes your account from the connected Supabase project:
+  your records, your uploaded files, your profile row and the auth user itself,
+  which frees your email address for signing up again. Nothing is left on the
+  server. **The order is deliberate**: the device's archive is wiped only after
+  the server confirms the deletion. If the server cannot be reached, nothing is
+  deleted - neither in your account nor on your device - and the app says so
+  rather than claiming a success that did not happen. With no project connected
+  there is no account on a server at all, and it says that too.
+- **What the in-app deletion does not do**: it does not delete your account from
+  the Supabase dashboard for you, and it cannot delete an account that was never
+  on a server. Everything above goes through your own project; if you would
+  rather do it from the dashboard, deleting the auth user there removes the
+  profile row and, through the schema's cascade, every row that belonged to it.
 - **No operating-system backup**: the app opts out of Android's automatic
   backup, so your database and your media are never copied to a third party's
   servers by the system. If you want a copy, you take one yourself with

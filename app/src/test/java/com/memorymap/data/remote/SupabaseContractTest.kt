@@ -28,6 +28,8 @@ class SupabaseContractTest {
     private val recordsSource =
         RepoFiles.read("app/src/main/java/com/memorymap/data/remote/SyncRecords.kt")
     private val api = RepoFiles.read("app/src/main/java/com/memorymap/data/remote/PostgrestSyncApi.kt")
+    private val accountApi =
+        RepoFiles.read("app/src/main/java/com/memorymap/data/remote/AccountApi.kt")
 
     private data class Column(val name: String, val notNull: Boolean, val hasDefault: Boolean)
 
@@ -48,6 +50,10 @@ class SupabaseContractTest {
     )
 
     /** The tables the client names in its own constants. */
+    /** The two names [AccountApi] passes to `rpc`, so a rename on either side fails here. */
+    private val DELETE_RECORDS = "delete_my_data"
+    private val DELETE_ACCOUNT = "delete_my_account"
+
     private val clientTables: Set<String> =
         Regex("const val TABLE_\\w+ = \"(\\w+)\"").findAll(api)
             .map { it.groupValues[1] }
@@ -293,6 +299,89 @@ class SupabaseContractTest {
         val sent = enumEntries("app/src/main/java/com/memorymap/domain/model/Models.kt", "MediaOwner")
 
         assertEquals("media.owner_type accepts these and MediaOwner has those", accepted, sent.toSet())
+    }
+
+    @Test
+    fun `the deletions the client asks for are the ones the schema defines`() {
+        val called = deletionFunctions()
+
+        // Asserted as a count as well as a set: a matcher that silently reads
+        // nothing would make every assertion below pass on an empty list.
+        assertEquals(setOf("delete_my_data", "delete_my_account"), called.toSet())
+        assertEquals(2, called.size)
+        for (name in called) {
+            assertTrue(
+                "the schema must define public.$name()",
+                sql.contains("create or replace function public.$name("),
+            )
+        }
+    }
+
+    @Test
+    fun `the two deletions keep different promises, so neither can be swapped for the other`() {
+        val records = functionDefinition(DELETE_RECORDS)
+        val account = functionDefinition(DELETE_ACCOUNT)
+
+        // The rows and nothing else: the user asking to clear the server while
+        // keeping the account must still be able to sign in afterwards.
+        assertTrue(records.contains("delete from public.profiles where id = auth.uid()"))
+        // The account itself, which is what frees the email address.
+        assertTrue(account.contains("delete from auth.users where id = auth.uid()"))
+        // And the rows go with it, or the account would be gone while its
+        // archive stayed behind: every table cascades from profiles.
+        assertTrue(
+            "profiles must cascade from the auth user",
+            Regex("""references auth\.users \(id\) on delete cascade""").containsMatchIn(sql),
+        )
+    }
+
+    @Test
+    fun `both deletions run with rights the client does not have, for the caller only`() {
+        for (name in deletionFunctions()) {
+            val definition = functionDefinition(name)
+            assertTrue("$name must say security definer", definition.contains("security definer"))
+            assertTrue(
+                "$name must pin its search path",
+                definition.contains("set search_path = public"),
+            )
+            // A definer function that did not check the caller could delete
+            // another account's rows, and the anon key is public.
+            assertTrue("$name must act on the caller only", definition.contains("auth.uid()"))
+        }
+    }
+
+    @Test
+    fun `each deletion is executable by a signed-in user and by nobody else`() {
+        for (name in deletionFunctions()) {
+            assertTrue(
+                "$name must be revoked from public",
+                sql.contains("revoke all on function public.$name() from public;"),
+            )
+            assertTrue(
+                "$name must be granted to authenticated",
+                sql.contains("grant execute on function public.$name() to authenticated;"),
+            )
+        }
+    }
+
+    /** The names the client passes to `rpc`, read from the file that passes them. */
+    private fun deletionFunctions(): List<String> =
+        Regex("""const val DELETE_\w+ = "(\w+)"""")
+            .findAll(accountApi)
+            .map { it.groupValues[1] }
+            .toList()
+
+    /**
+     * A function's whole definition, from `create or replace` to its closing body.
+     *
+     * Empty when the function is not there, so a test that asks for a definition
+     * fails on the name rather than quietly matching some other part of the file.
+     */
+    private fun functionDefinition(name: String): String {
+        val start = sql.indexOf("create or replace function public.$name(")
+        if (start < 0) return ""
+        val end = sql.indexOf("\$\$;", start)
+        return if (end < 0) "" else sql.substring(start, end)
     }
 
     private fun parseTables(): Map<String, List<Column>> {
