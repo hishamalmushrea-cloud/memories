@@ -264,7 +264,6 @@ class SupabaseContractTest {
             windows.all { it.groupValues[1] == "gte" },
         )
     }
-    }
 
     @Test
     fun `the enums the client sends are the enums the server accepts`() {

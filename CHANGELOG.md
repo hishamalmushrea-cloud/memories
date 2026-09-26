@@ -32,6 +32,15 @@ prompt asks for, in order, each one built, tested and reviewed before the next.
   `updated_at` on arrival with `greatest(client value, now())` so a row written
   after a watermark is always greater than it.
 
+- A Kotlin file with an unbalanced bracket is now caught in a second, before
+  Gradle starts, instead of fifteen minutes into a CI run that reports it as
+  "Expecting a top level declaration" somewhere else in the file. That is not
+  hypothetical: it happened, in the contract test, and the message pointed at a
+  different line than the mistake. `ci/check-balance.py` walks every Kotlin file
+  past strings, raw strings, character literals and comments, and fails when a
+  bracket has no partner. It is not a parser and does not pretend to be: types,
+  names and arity still need the compiler, which still runs on every push.
+
 - The account row in `profiles` now exists before anything is uploaded, which it
   did not. Every table's `user_id` is a foreign key to `public.profiles`, nothing
   in the app wrote that row, and the schema had no trigger creating it either:

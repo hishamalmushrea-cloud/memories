@@ -214,8 +214,8 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
-استعلامات Room، ترتيب الاستيراد، قيود المتجر) → gradlew help →
-testDebugUnitTest → lintDebug → assembleDebug → assembleRelease
+استعلامات Room، ترتيب الاستيراد، قيود المتجر، توازن الأقواس) → gradlew help →
+testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRelease
 ```
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.

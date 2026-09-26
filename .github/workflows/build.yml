@@ -80,6 +80,13 @@ jobs:
       - name: Check no import follows a declaration
         run: python3 ci/check-import-order.py
 
+      # Last of the cheap checks, and the one with the smallest scope: it can
+      # only see brackets. It exists because a spliced edit once closed a class
+      # early and the compiler reported it fifteen minutes later as "Expecting a
+      # top level declaration" somewhere else in the file.
+      - name: Check every Kotlin file is structurally balanced
+        run: python3 ci/check-balance.py
+
       - name: Check the store listing stays inside the store limits
         run: python3 ci/check-store-metadata.py
 
