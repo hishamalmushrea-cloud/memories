@@ -82,8 +82,10 @@ class SyncTimeTest {
 
     @Test
     fun `what is written now carries its offset`() {
-        assertTrue(SyncTime.nowText().endsWith("Z"))
-        assertEquals(Instant.parse(SyncTime.nowText()), SyncTime.instant(SyncTime.nowText()))
+        val written = SyncTime.nowText()
+
+        assertTrue("expected an instant, got $written", written.endsWith("Z"))
+        assertEquals(Instant.parse(written), SyncTime.instant(written))
     }
 
     /**
@@ -107,7 +109,8 @@ class SyncTimeTest {
             val afterTheFlight = SyncTime.asInstantText("2026-09-26T09:00:00")
 
             assertEquals("2026-09-26T07:00:00Z", beforeTheFlight)
-            assertEquals("2026-09-26T09:00:00Z", afterTheFlight)
+            // Late September: London is still on summer time, an hour ahead of UTC.
+            assertEquals("2026-09-26T08:00:00Z", afterTheFlight)
             assertTrue(
                 "the later edit must compare as later",
                 SyncTime.instant(afterTheFlight)!!.isAfter(SyncTime.instant(beforeTheFlight)!!),
