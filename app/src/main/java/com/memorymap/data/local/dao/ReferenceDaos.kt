@@ -295,6 +295,21 @@ interface MediaDao {
     suspend fun syncSnapshot(ids: List<String>): List<LocalRow>
 
     /**
+     * The bucket keys of every attachment this account has uploaded.
+     *
+     * Read before the rows go, because afterwards nothing on this device knows
+     * the keys any more and the objects would be unreachable from the app for
+     * good. Ordered so a caller that reports its work does so predictably.
+     */
+    @Query(
+        "SELECT storage_path FROM media WHERE storage_path IS NOT NULL " +
+            "AND (owner_id IN (SELECT id FROM memories WHERE user_id = :userId) " +
+            "OR owner_id IN (SELECT id FROM daily_entries WHERE user_id = :userId)) " +
+            "ORDER BY storage_path ASC",
+    )
+    suspend fun uploadedPaths(userId: String): List<String>
+
+    /**
      * The account that owns an attachment, reached through the record it belongs
      * to.
      *

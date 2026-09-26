@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.memorymap.data.repository.LifeStatsCalculator
 import com.memorymap.domain.model.AuthState
+import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.LifeStats
 import com.memorymap.domain.model.SyncState
 import com.memorymap.domain.model.WipeSummary
@@ -32,6 +33,13 @@ data class ProfileUiState(
     val isWiping: Boolean = false,
     /** Set once a wipe has finished, so the result can be reported. */
     val wipeSummary: WipeSummary? = null,
+    /**
+     * How many attachments this account uploaded, known only while the
+     * confirmation is open - it is read before the rows that hold the answer.
+     */
+    val uploadedCount: Int = 0,
+    /** Set when the user also asked for the uploaded copies to go. */
+    val cloudRemoval: CloudRemoval? = null,
 )
 
 /**
@@ -108,12 +116,30 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch { authRepository.signOut() }
     }
 
+    /**
+     * Opens the confirmation, and works out what else is at stake.
+     *
+     * The count of uploaded copies is read here because it cannot be read
+     * afterwards: the keys live on the rows the wipe is about to delete. Shown
+     * now, it is a fact the user can act on; shown never, the objects would be
+     * unreachable from the app for good.
+     */
     fun requestDeleteLocalData() {
+        val userId = authRepository.currentUserId.value
         _state.update { it.copy(wipeConfirmationVisible = true) }
+        if (userId == null) return
+        viewModelScope.launch {
+            val uploaded = runCatching { userRepository.uploadedAttachmentPaths(userId).size }
+                .getOrElse { error ->
+                    MmLog.e("Could not count the uploaded attachments", error)
+                    0
+                }
+            _state.update { it.copy(uploadedCount = uploaded) }
+        }
     }
 
     fun cancelDeleteLocalData() {
-        _state.update { it.copy(wipeConfirmationVisible = false) }
+        _state.update { it.copy(wipeConfirmationVisible = false, uploadedCount = 0) }
     }
 
     /**
@@ -123,17 +149,45 @@ class ProfileViewModel @Inject constructor(
      * what went is kept on screen afterwards: "everything is gone" is not the
      * same information as "412 records and 38 files are gone".
      */
-    fun confirmDeleteLocalData() {
+    /**
+     * Destroys the local archive and ends the session.
+     *
+     * [deleteCloudCopies] is the user's answer to the second question, and it is
+     * carried out first, while the rows that hold the bucket keys still exist.
+     * The local wipe runs either way: a bucket that cannot be reached must not
+     * be able to keep the user's archive on their own device.
+     */
+    fun confirmDeleteLocalData(deleteCloudCopies: Boolean = false) {
         val userId = authRepository.currentUserId.value ?: return
         viewModelScope.launch {
-            _state.update { it.copy(wipeConfirmationVisible = false, isWiping = true) }
+            _state.update {
+                it.copy(
+                    wipeConfirmationVisible = false,
+                    isWiping = true,
+                    uploadedCount = 0,
+                    cloudRemoval = null,
+                )
+            }
+            val cloud = if (deleteCloudCopies) {
+                userRepository.deleteCloudCopies(userId)
+            } else {
+                null
+            }
             val summary = userRepository.deleteLocalData(userId)
             authRepository.signOut()
-            _state.update { it.copy(isWiping = false, wipeSummary = summary, stats = null, peopleCount = 0) }
+            _state.update {
+                it.copy(
+                    isWiping = false,
+                    wipeSummary = summary,
+                    cloudRemoval = cloud,
+                    stats = null,
+                    peopleCount = 0,
+                )
+            }
         }
     }
 
     fun dismissWipeSummary() {
-        _state.update { it.copy(wipeSummary = null) }
+        _state.update { it.copy(wipeSummary = null, cloudRemoval = null) }
     }
 }

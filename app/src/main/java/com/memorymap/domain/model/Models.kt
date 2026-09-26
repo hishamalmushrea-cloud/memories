@@ -181,6 +181,21 @@ data class WipeSummary(
     val isEmpty: Boolean get() = totalRecords == 0 && mediaFiles == 0
 }
 
+/**
+ * What happened to the attachments this account had uploaded.
+ *
+ * Separate from [WipeSummary], which counts what went from this device. These
+ * are files on somebody else's disk, and [remaining] is not a failure to hide:
+ * once the local rows are gone nothing on this device knows the keys any more,
+ * so whatever is left has to be said out loud while the user can still act on it.
+ */
+data class CloudRemoval(
+    val removed: Int = 0,
+    val remaining: Int = 0,
+) {
+    val isEmpty: Boolean get() = removed == 0 && remaining == 0
+}
+
 /** Converts an epoch-millis timestamp to the device zone. */
 fun Instant.toLocal(zone: ZoneId = ZoneId.systemDefault()): LocalDateTime =
     LocalDateTime.ofInstant(this, zone)

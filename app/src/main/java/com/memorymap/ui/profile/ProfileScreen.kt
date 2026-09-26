@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -16,6 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -125,12 +129,40 @@ fun ProfileScreen(
     }
 
     if (state.wipeConfirmationVisible) {
+        // The choice about the uploaded copies defaults to leaving them. The
+        // button's promise is "on this device", and ticking this would spend
+        // bytes that may still be the only copy another device can fetch.
+        var deleteCloudCopies by rememberSaveable { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = viewModel::cancelDeleteLocalData,
             title = { Text(stringResource(R.string.wipe_confirm_title)) },
-            text = { Text(stringResource(R.string.wipe_confirm_body)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.wipe_confirm_body))
+                    if (state.uploadedCount > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = deleteCloudCopies,
+                                onCheckedChange = { deleteCloudCopies = it },
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.wipe_cloud_choice,
+                                    state.uploadedCount,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.wipe_cloud_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmDeleteLocalData) {
+                TextButton(onClick = { viewModel.confirmDeleteLocalData(deleteCloudCopies) }) {
                     Text(stringResource(R.string.wipe_confirm_action))
                 }
             },
@@ -147,13 +179,32 @@ fun ProfileScreen(
             onDismissRequest = viewModel::dismissWipeSummary,
             title = { Text(stringResource(R.string.wipe_done_title)) },
             text = {
-                Text(
-                    stringResource(
-                        R.string.wipe_done_body,
-                        summary.totalRecords,
-                        summary.mediaFiles,
-                    ),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(
+                            R.string.wipe_done_body,
+                            summary.totalRecords,
+                            summary.mediaFiles,
+                        ),
+                    )
+                    // Said here, and not only on the way in: whatever is left is
+                    // now unreachable from the app.
+                    state.cloudRemoval?.let { cloud ->
+                        if (cloud.removed > 0) {
+                            Text(
+                                stringResource(R.string.wipe_cloud_done, cloud.removed),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        if (cloud.remaining > 0) {
+                            Text(
+                                stringResource(R.string.wipe_cloud_left, cloud.remaining),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = viewModel::dismissWipeSummary) {

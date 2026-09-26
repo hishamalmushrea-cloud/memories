@@ -229,6 +229,15 @@ class RecordingMediaStorage : MediaStorage {
         objects.remove(objectKey)
         return true
     }
+
+    override suspend fun removeAll(objectKeys: List<String>): Int {
+        if (failing) return 0
+        // Counts what it was asked to remove, as the real bucket does: the
+        // request either succeeds for the batch or throws for it.
+        removed += objectKeys
+        objectKeys.forEach { objects.remove(it) }
+        return objectKeys.size
+    }
 }
 
 /**

@@ -273,4 +273,10 @@
     <string name="editor_media_uploading">Waiting to upload</string>
     <string name="editor_media_uploaded">Uploaded to the cloud</string>
     <string name="editor_media_upload_cancel">Cancel the upload</string>
+
+    <!-- The uploaded copies, which outlive a local wipe. -->
+    <string name="wipe_cloud_choice">Also delete the cloud copies (%1$d uploaded)</string>
+    <string name="wipe_cloud_hint">These are files you uploaded to the connected Supabase project. If you leave them, they stay on that server, and the app will no longer be able to delete them: their keys go with the rows.</string>
+    <string name="wipe_cloud_done">Removed %1$d attachment(s) from the cloud.</string>
+    <string name="wipe_cloud_left">%1$d attachment(s) could not be removed from the cloud. Deleting your account is done from the Supabase dashboard, and removing the user there takes them with it.</string>
 </resources>

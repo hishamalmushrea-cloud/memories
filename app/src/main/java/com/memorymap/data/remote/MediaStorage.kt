@@ -21,6 +21,18 @@ interface MediaStorage {
 
     /** Removes the object at [objectKey]. */
     suspend fun remove(objectKey: String): Boolean
+
+    /**
+     * Removes many objects, returning how many went.
+     *
+     * Separate from [remove] because the two have different jobs. A single
+     * object is removed as part of synchronising one attachment, where a failure
+     * has to stop the run and leave the row queued. A whole account's worth is
+     * removed once, at the end, where the only useful answer is a count: the
+     * rows that knew those keys are about to be deleted, so there is no second
+     * attempt to make.
+     */
+    suspend fun removeAll(objectKeys: List<String>): Int
 }
 
 /**

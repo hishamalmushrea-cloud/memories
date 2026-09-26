@@ -64,12 +64,18 @@ cloud service is temporarily unavailable.
   once** from the profile screen. A clear confirmation always precedes a
   permanent deletion, and the app tells you afterwards how many records and how
   many media files it removed.
-- **What the in-app deletion does not do**: it clears this device only. If you
-  connected a Supabase project, the rows already uploaded stay on that server
-  until you delete them there. The app cannot delete a Supabase account for you
-  and does not pretend to; account deletion happens in the Supabase dashboard of
-  the project you connected. Deleting the auth user there removes the profile row
-  and, through the schema's cascade, every row that belonged to it.
+- **The cloud copies, at deletion time**: the confirmation tells you how many
+  attachments you uploaded to the connected Supabase project, and lets you delete
+  those files along with the local archive. The box is unchecked by default,
+  because the button promises to clear **this device** and because a cloud copy
+  may be the only one another device can still fetch. Note that **once the wipe
+  has run the app can never delete them**, because their keys go with the rows -
+  which is why the count is given before the deletion and not after it.
+- **What the in-app deletion does not do**: it does not delete your Supabase
+  account for you and does not pretend to. Account deletion happens in the
+  Supabase dashboard of the project you connected, and deleting the auth user
+  there removes the profile row and, through the schema's cascade, every row that
+  belonged to it.
 - **No operating-system backup**: the app opts out of Android's automatic
   backup, so your database and your media are never copied to a third party's
   servers by the system. If you want a copy, you take one yourself with

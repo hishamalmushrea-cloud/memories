@@ -1,5 +1,6 @@
 package com.memorymap.domain.repository
 
+import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.DayContentCounts
 import com.memorymap.domain.model.Memory
@@ -82,8 +83,30 @@ interface UserRepository {
      * the sync bookmark.
      *
      * This is irreversible and cannot be undone from the app, which is why the
-     * caller has to confirm it explicitly. It touches this device only; cloud
-     * data is a separate step the user takes on the server.
+     * caller has to confirm it explicitly. It touches this device only: the
+     * copies this account uploaded are the subject of [deleteCloudCopies], which
+     * the user asks for separately.
      */
     suspend fun deleteLocalData(userId: String): WipeSummary
+
+    /**
+     * The bucket keys of everything this account uploaded from this device.
+     *
+     * Read before a wipe, never after: the keys live on the attachment rows, and
+     * once those are gone nothing here knows what to delete.
+     */
+    suspend fun uploadedAttachmentPaths(userId: String): List<String>
+
+    /**
+     * Removes the uploaded copies of this account's attachments.
+     *
+     * This is the one cloud action the app can take on the user's behalf, and it
+     * is deliberately narrow: it deletes files, not the account. An account is
+     * removed from the Supabase dashboard, which the app has no business doing.
+     *
+     * The count of what is left is returned rather than thrown, because a wipe
+     * that cannot reach the network still has to finish and still has to say
+     * what it could not do.
+     */
+    suspend fun deleteCloudCopies(userId: String): CloudRemoval
 }

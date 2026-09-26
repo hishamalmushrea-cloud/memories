@@ -6,6 +6,21 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- The uploaded copies of your attachments can now be deleted, which they could
+  not be before. Deleting your local archive left them in the bucket with
+  nothing able to reach them: the keys live on the rows the wipe removes, so
+  after it ran the app had lost them for good. The confirmation now says how
+  many attachments you uploaded and offers to delete them, unchecked by default
+  — the button promises to clear *this device*, and a cloud copy may be the only
+  one another device can still fetch. Whatever is left over is reported by count
+  in the result, because that is the last moment the app can tell you.
+
+  The privacy policy said the app would not touch cloud data at all. It now says
+  what the app actually does: files it uploaded, on request, and never the
+  account itself.
+
 ### Added
 
 - Attachments can be sent to the cloud, one at a time and only when asked.

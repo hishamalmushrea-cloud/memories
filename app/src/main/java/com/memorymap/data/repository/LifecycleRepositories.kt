@@ -11,6 +11,8 @@ import com.memorymap.data.local.dao.SyncMetaDao
 import com.memorymap.data.local.dao.PersonDao
 import com.memorymap.data.local.dao.PlaceDao
 import com.memorymap.data.local.dao.UserDao
+import com.memorymap.data.remote.MediaStorage
+import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.Emotion
 import com.memorymap.domain.model.LifeStats
 import com.memorymap.domain.model.MonthCount
@@ -21,6 +23,7 @@ import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.domain.repository.UserRepository
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.util.MediaStore
+import com.memorymap.util.MmLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import javax.inject.Inject
@@ -41,6 +44,7 @@ class UserRepositoryImpl @Inject constructor(
     private val placeDao: PlaceDao,
     private val mediaDao: MediaDao,
     private val syncMetaDao: SyncMetaDao,
+    private val storage: MediaStorage,
 ) : UserRepository {
 
     override fun watchCurrentUser(): Flow<User?> = userDao.watchFirst().map { it?.toDomain() }
@@ -77,6 +81,34 @@ class UserRepositoryImpl @Inject constructor(
         userDao.deleteAll()
 
         summary.copy(mediaFiles = MediaStore.clear(context))
+    }
+
+    override suspend fun uploadedAttachmentPaths(userId: String): List<String> =
+        mediaDao.uploadedPaths(userId)
+
+    /**
+     * Deletes the uploaded files of one account, and says how many are left.
+     *
+     * Nothing here throws. A wipe cannot be blocked by a network, and the count
+     * that comes back is the honest answer either way: an unreachable bucket
+     * leaves every object unremoved, and the caller can tell the user while the
+     * keys are still known.
+     */
+    override suspend fun deleteCloudCopies(userId: String): CloudRemoval {
+        val keys = runCatching { mediaDao.uploadedPaths(userId) }.getOrElse { error ->
+            MmLog.e("Could not read the uploaded attachments", error)
+            return CloudRemoval()
+        }
+        if (keys.isEmpty()) return CloudRemoval()
+
+        val removed = runCatching { storage.removeAll(keys) }.getOrElse { error ->
+            MmLog.e("Could not remove the uploaded attachments", error)
+            0
+        }
+        return CloudRemoval(
+            removed = removed.coerceIn(0, keys.size),
+            remaining = keys.size - removed.coerceIn(0, keys.size),
+        )
     }
 }
 

@@ -2,6 +2,9 @@ package com.memorymap.data.remote
 
 import com.memorymap.util.MmLog
 import io.github.jan.supabase.storage.storage
+
+/** Small enough that a batch's paths stay a reasonable request. */
+private const val BATCH_SIZE = 100
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,6 +54,27 @@ class SupabaseMediaStorage @Inject constructor(
     }.getOrElse { error ->
         MmLog.e("Could not remove an attachment", error)
         false
+    }
+
+    /**
+     * Removes in batches, because the keys travel in the request.
+     *
+     * A batch that fails does not stop the rest: the caller is deleting an
+     * account and the number that could not be removed is what it reports, so
+     * one bad key must not leave the others behind as well.
+     */
+    override suspend fun removeAll(objectKeys: List<String>): Int {
+        if (objectKeys.isEmpty()) return 0
+        val bucket = bucket() ?: return 0
+        return objectKeys.chunked(BATCH_SIZE).sumOf { batch ->
+            runCatching {
+                bucket.delete(batch)
+                batch.size
+            }.getOrElse { error ->
+                MmLog.e("Could not remove a batch of attachments", error)
+                0
+            }
+        }
     }
 
     /** Null when the project is not configured, which is a supported way to run. */

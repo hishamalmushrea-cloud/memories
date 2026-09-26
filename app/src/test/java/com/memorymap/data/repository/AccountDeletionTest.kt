@@ -11,7 +11,10 @@ import com.memorymap.data.local.entities.PersonEntity
 import com.memorymap.data.local.entities.PlaceEntity
 import com.memorymap.data.local.entities.SyncMetaEntity
 import com.memorymap.data.local.entities.UserEntity
+import com.memorymap.domain.model.CloudRemoval
 import com.memorymap.domain.model.MediaType
+import com.memorymap.domain.model.SyncStatus
+import com.memorymap.testing.RecordingMediaStorage
 import com.memorymap.util.MediaStore
 import java.io.File
 import kotlinx.coroutines.test.runTest
@@ -41,6 +44,7 @@ class AccountDeletionTest {
     private lateinit var db: MemoryMapDatabase
     private lateinit var context: Context
     private lateinit var repository: UserRepositoryImpl
+    private lateinit var storage: RecordingMediaStorage
 
     private val userId = "user-1"
     private val otherUserId = "user-2"
@@ -51,6 +55,7 @@ class AccountDeletionTest {
         db = Room.inMemoryDatabaseBuilder(context, MemoryMapDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+        storage = RecordingMediaStorage()
         repository = UserRepositoryImpl(
             context = context,
             userDao = db.userDao(),
@@ -61,6 +66,7 @@ class AccountDeletionTest {
             placeDao = db.placeDao(),
             mediaDao = db.mediaDao(),
             syncMetaDao = db.syncMetaDao(),
+            storage = storage,
         )
     }
 
@@ -96,7 +102,12 @@ class AccountDeletionTest {
     )
 
     /** A real file on disk plus the row that points at it. */
-    private fun attachment(id: String, ownerId: String): MediaEntity {
+    private fun attachment(
+        id: String,
+        ownerId: String,
+        storagePath: String? = null,
+        requested: Boolean = false,
+    ): MediaEntity {
         val file = File(MediaStore.dir(context, MediaType.PHOTO), "$ownerId-$id.jpg")
         file.writeText("pretend image bytes")
         return MediaEntity(
@@ -108,6 +119,8 @@ class AccountDeletionTest {
             mimeType = "image/jpeg",
             createdAt = "2024-03-01T10:00:00",
             syncStatus = "SYNCED",
+            storagePath = storagePath,
+            uploadRequested = requested,
         )
     }
 
@@ -137,6 +150,69 @@ class AccountDeletionTest {
         assertEquals(1, summary.places)
         assertEquals(2, summary.mediaFiles)
         assertEquals(5, summary.totalRecords)
+    }
+
+    @Test
+    fun `the uploaded copies are listed before anything is deleted`() = runTest {
+        seedArchive()
+        db.memoryDao().upsert(memory("other-m1", otherUserId))
+        db.mediaDao().upsert(attachment("up-1", "m1", storagePath = "user-1/up-1.jpg", requested = true))
+        // Asked for but not uploaded: there is no key, so nothing to remove.
+        db.mediaDao().upsert(attachment("up-2", "m1", requested = true))
+        db.mediaDao().upsert(
+            attachment("other", "other-m1", storagePath = "user-2/other.jpg", requested = true),
+        )
+
+        val paths = repository.uploadedAttachmentPaths(userId)
+
+        // Only the objects this account put in the bucket, and only the ones
+        // actually uploaded: a request that has not been carried out yet has no
+        // key, so there is nothing on the server to remove.
+        assertEquals(listOf("user-1/up-1.jpg"), paths)
+    }
+
+    @Test
+    fun `asking for the cloud copies removes them and reports the total`() = runTest {
+        seedArchive()
+        db.memoryDao().upsert(memory("other-m1", otherUserId))
+        db.mediaDao().upsert(attachment("up-1", "m1", storagePath = "user-1/up-1.jpg", requested = true))
+        db.mediaDao().upsert(attachment("up-2", "m2", storagePath = "user-1/up-2.jpg", requested = true))
+        db.mediaDao().upsert(
+            attachment("other", "other-m1", storagePath = "user-2/other.jpg", requested = true),
+        )
+
+        val removal = repository.deleteCloudCopies(userId)
+
+        assertEquals(2, removal.removed)
+        assertEquals(0, removal.remaining)
+        assertEquals(setOf("user-1/up-1.jpg", "user-1/up-2.jpg"), storage.removed.toSet())
+        // Another account's object was never even mentioned.
+        assertFalse(storage.removed.contains("user-2/other.jpg"))
+    }
+
+    @Test
+    fun `an unreachable bucket leaves the copies and says how many`() = runTest {
+        seedArchive()
+        db.mediaDao().upsert(attachment("up-1", "m1", storagePath = "user-1/up-1.jpg", requested = true))
+        storage.failing = true
+
+        val removal = repository.deleteCloudCopies(userId)
+
+        // Nothing thrown: a wipe cannot be held hostage by a network. The count
+        // is the honest answer, and it is the last moment it can be given.
+        assertEquals(0, removal.removed)
+        assertEquals(1, removal.remaining)
+        assertEquals(emptyList<String>(), storage.removed)
+    }
+
+    @Test
+    fun `an account with nothing uploaded has nothing to remove`() = runTest {
+        seedArchive()
+
+        val removal = repository.deleteCloudCopies(userId)
+
+        assertEquals(CloudRemoval(), removal)
+        assertEquals(emptyList<String>(), storage.removed)
     }
 
     @Test
