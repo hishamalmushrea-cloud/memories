@@ -96,6 +96,24 @@ jobs:
       - name: Check the string resources before aapt2 has to
         run: python3 ci/check-strings.py
 
+      # The migration is the one part of this project that no Android build looks
+      # at: it is SQL, and the only thing that read it before was a test reading it
+      # as text. Here it is applied - twice - to a real PostgreSQL, and then driven
+      # as a signed-in user and as an anonymous one to see what the policies
+      # actually do. The runner image ships PostgreSQL; the wheel bundles its own
+      # server for the case where nothing else is installed.
+      - name: Check the Supabase schema on a real PostgreSQL
+        run: |
+          set -uo pipefail
+          if ! command -v initdb >/dev/null 2>&1 && ! ls /usr/lib/postgresql/*/bin/initdb >/dev/null 2>&1; then
+            python3 -m pip install --quiet --break-system-packages pgserver \
+              || python3 -m pip install --quiet --user pgserver || true
+          fi
+          {
+            echo "### Supabase schema"
+            python3 ci/check-schema.py
+          } 2>&1 | tee /tmp/schema.log || true
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 
@@ -255,6 +273,14 @@ jobs:
             done
 
             echo
+            echo "### Supabase schema"
+            if [ -f /tmp/schema.log ]; then
+              grep -E "^(ok:|schema check:|note:|FAIL|ERROR)" /tmp/schema.log | head -n 40 || true
+            else
+              echo "(the schema check did not run)"
+            fi
+
+            echo
             echo "### Room schema"
             find app/schemas -type f 2>/dev/null || echo "(none)"
 
@@ -316,6 +342,10 @@ jobs:
         run: |
           if [ -f /tmp/security.log ] && ! grep -q "security check: PASS" /tmp/security.log; then
             echo "::error::the security check failed"
+            exit 1
+          fi
+          if [ -f /tmp/schema.log ] && ! grep -q "schema check: PASS" /tmp/schema.log; then
+            echo "::error::the Supabase schema check failed"
             exit 1
           fi
           for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do

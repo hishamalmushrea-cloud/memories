@@ -8,6 +8,19 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- The Supabase schema is now executed instead of only read. `ci/check-schema.py`
+  starts a throwaway PostgreSQL - the system one when it exists, otherwise the
+  server the `pgserver` wheel bundles - creates the shapes the migration assumes
+  (`supabase/verify/00_supabase_stubs.sql`: `auth.users`, `auth.uid()`,
+  `auth.role()`, `storage.buckets`, `storage.objects`, `storage.foldername()`, the
+  three roles and Supabase's own default privileges), applies `supabase/schema.sql`
+  **twice** from its real path with `ON_ERROR_STOP`, and runs
+  `supabase/verify/10_checks.sql`: twenty-two behavioural checks performed as
+  `authenticated` and as `anon` rather than as the owner of the tables, so nothing
+  bypasses Row Level Security. It then reads the table and RPC names out of the
+  client's own code and fails if the server does not have them. The whole thing
+  takes about a second, and it is wired into `build.yml` as a hard gate.
+
 - Deleting the account from the app itself, which until now was something only
   the Supabase dashboard could do. The profile screen has two separate actions by
   design: the local wipe (which now also offers to delete the records from the
@@ -20,6 +33,29 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   `security definer`, act on `auth.uid()` only and are revoked from `public`.
 
 ### Fixed
+
+- The migration could not be applied twice. `create type`, `create table`,
+  `create index`, `create policy` and the six `updated_at` triggers all failed on
+  a second run, which is what a half-finished paste into the SQL Editor followed by
+  a second paste looks like: an error in the middle of a migration that is half
+  applied. Types are now guarded with `duplicate_object`, tables and indexes are
+  `if not exists`, every policy is dropped before it is created, and every trigger
+  is dropped before it is created.
+
+- `places.sync_status` and `people.sync_status` were `text` while the same column on
+  the other four synchronised tables was the `sync_state` enum, so two of the six
+  would have accepted a status the client could not parse back. All six are the
+  enum now, and a check in `supabase/verify/10_checks.sql` reads the applied
+  schema's column types rather than the file's text to say so.
+
+- `anon` could execute `delete_my_data()` and `delete_my_account()`. The schema
+  revoked them from `public` and granted them to `authenticated`, which is not
+  enough on a real project: Supabase sets `alter default privileges in schema
+  public grant all on functions to postgres, anon, authenticated, service_role`,
+  so every new function is executable by the role whose key ships inside every
+  APK. The revoke now names `public, anon` for both deletion functions and for the
+  two trigger functions, and the check that found this now fails the build if an
+  anonymous caller can execute either one.
 
 - `SupabaseAuthRepository.deleteAccount` declared `AuthRepository.Deletion` and
   ended with a `runCatching { ... }.fold(...)` chain, which reads as a return and

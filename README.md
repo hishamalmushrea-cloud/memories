@@ -213,6 +213,50 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 ويفشل إن تغيّر اسم على جهة واحدة، أو فقدت دالة `security definer`، أو صار الحذفان
 يؤديان الشيء نفسه.
 
+## التحقق من مخطط Supabase
+
+`supabase/schema.sql` كان أكبر بند غير متحقَّق منه في المشروع: ملف SQL لم يُنفَّذ على
+أي قاعدة بيانات قط، ولا شيء في بناء أندرويد يقرأ SQL أصلًا. الآن يُنفَّذ فعليًا:
+
+```bash
+python3 ci/check-schema.py
+# schema check: PASS (24 guarantees, applied twice to a real PostgreSQL)
+```
+
+ما يفعله بالترتيب:
+
+1. يشغّل PostgreSQL مؤقتًا — نسخة النظام إن وُجدت (وعلى GitHub Runner توجد، ومعها
+   `pgcrypto`)، وإلا النسخة التي يحملها `pgserver`.
+2. ينشئ أشكال Supabase التي يفترضها الملف في
+   [`supabase/verify/00_supabase_stubs.sql`](supabase/verify/00_supabase_stubs.sql):
+   `auth.users`، `auth.uid()`، `auth.role()`، `storage.buckets`/`storage.objects`
+   و`storage.foldername()`، والأدوار الثلاثة، والصلاحيات الافتراضية — بما فيها
+   `alter default privileges ... grant all on functions to anon, authenticated,
+   service_role` الذي تضعه Supabase فعلًا لكل دالة جديدة.
+3. يُطبّق [`supabase/schema.sql`](supabase/schema.sql) **بنصّه وبمساره**، مرتين، مع
+   `ON_ERROR_STOP`، فيُبلَّغ عن رقم السطر الحقيقي في الملف عند أول خطأ.
+4. ينفّذ [`supabase/verify/10_checks.sql`](supabase/verify/10_checks.sql): 22 فحصًا
+   سلوكيًا بصفة `authenticated` وبصفة `anon` — لا بصفة مالك الجداول، فلا شيء
+   يتجاوز RLS.
+5. يقرأ أسماء الجداول والدوال من كود العميل (`PostgrestSyncApi.kt`، `AccountApi.kt`)
+   ويتأكد من وجودها في القاعدة.
+
+وأهم ما كشفه التشغيل الحقيقي (كله مُصلَح):
+
+- **الملف لم يكن قابلًا لإعادة التطبيق**: `create type` و`create table` و`create
+  policy` و`create trigger` كانت كلها تفشل في التطبيق الثاني، فمن يقصّ الملف في
+  محرّر SQL مرتين — أو انقطع تطبيقه في المنتصف — كان يقع على خطأ في منتصف هجرة
+  نصفها مطبَّق. صارت الأنواع داخل كتل تتحمّل `duplicate_object`، والجداول
+  والفهارس `if not exists`، وكل سياسة تُسقَط قبل إنشائها.
+- **`anon` كان يستطيع تنفيذ `delete_my_data()` و`delete_my_account()`**: البرنامج
+  كان يُسقط الصلاحية عن `public` فقط، لكن Supabase تمنح كل دالة جديدة تنفيذًا
+  لـ`anon` عبر صلاحياتها الافتراضية، ومفتاح `anon` يسافر داخل كل نسخة من التطبيق.
+  صار الإسقاط يسمّي `public, anon` صراحة، وكذلك دالتا المُشغِّل.
+
+> ما لم يُتحقَّق منه بعد، وهذا مهم: لا GoTrue ولا PostgREST ولا خدمة التخزين جزء من
+> هذا الفحص. ما تم هو أن المخطط الصحيح يُطبَّق ويُعيد التطبيق ويفعل ما يقول على
+> PostgreSQL 16 حقيقي. أول تشغيل على مشروع Supabase فعلي يبقى أول تشغيل.
+
 ## الاختبارات
 
 ```bash
@@ -245,8 +289,8 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
 استعلامات Room، ترتيب الاستيراد، قيود المتجر، نصوص الموارد، توازن الأقواس،
-إرجاع القيم) → gradlew help → testDebugUnitTest → lintDebug → assembleDebug →
-assembleRelease + bundleRelease
+إرجاع القيم) → فحص مخطط Supabase على PostgreSQL حقيقي → gradlew help →
+testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRelease
 ```
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
@@ -265,6 +309,11 @@ assembleRelease + bundleRelease
 > العربية يحمل صيغه الست، ولا فاصلة عليا (`'`) غير مُهرَّبة، والوسائط (`%1$d`)
 > متطابقة بين اللغتين. الرسالة التي يعطيها aapt2 لخطأ كهذا تقول «Invalid unicode
 > escape sequence in string» ولا تسمّي الحرف ولا السبب.
+
+> ملاحظة: مخطط Supabase يُفحص بتشغيله لا بقراءته. `ci/check-schema.py` يشغّل
+> PostgreSQL حقيقيًا، يُطبّق الملف مرتين، ثم ينفّذ 22 فحصًا سلوكيًا بصفة مستخدم
+> مسجَّل وبصفة زائر مجهول: العزل بين الحسابين، وأوضاع الظهور الثلاثة، ومجلدات
+> التخزين، ودالّتا الحذف. التفصيل في «التحقق من مخطط Supabase» أعلاه.
 
 > ملاحظة: مخطط Room المُصدَّر (`app/schemas/`) يولّده KSP أثناء البناء، وهو
 > مستثنى من Git حاليًا لأن توكن CI في هذا المستودع لا يملك صلاحية الدفع.

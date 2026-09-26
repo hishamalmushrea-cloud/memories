@@ -353,9 +353,13 @@ class SupabaseContractTest {
     @Test
     fun `each deletion is executable by a signed-in user and by nobody else`() {
         for (name in deletionFunctions()) {
+            // `anon` is named separately, and that is the whole point: Supabase
+            // grants execute on new functions to `anon` through its default
+            // privileges, so a revoke from `public` alone leaves the key that
+            // ships inside every APK able to call these.
             assertTrue(
-                "$name must be revoked from public",
-                sql.contains("revoke all on function public.$name() from public;"),
+                "$name must be revoked from public and anon",
+                sql.contains("revoke all on function public.$name() from public, anon;"),
             )
             assertTrue(
                 "$name must be granted to authenticated",
@@ -391,7 +395,7 @@ class SupabaseContractTest {
 
         sql.lines().forEach { raw ->
             val line = raw.trim()
-            val start = Regex("""^create table public\.(\w+) \(""").find(line)
+            val start = Regex("""^create table (?:if not exists )?public\.(\w+) \(""").find(line)
             when {
                 start != null -> {
                     table = start.groupValues[1]
