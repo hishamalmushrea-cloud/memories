@@ -79,10 +79,22 @@ class ProfileViewModelTest {
         userRepository = users,
     )
 
+    /**
+     * The same screen on an install with a Supabase project connected.
+     *
+     * The fake reports no project by default, and without one the screen offers
+     * neither cloud action; every test about the uploads or the server has to say
+     * which install it is describing.
+     */
+    private fun cloudViewModel(): ProfileViewModel {
+        auth.cloudConfigured = true
+        return viewModel()
+    }
+
     @Test
     fun `opening the wipe confirmation counts the uploaded attachments`() = runTest {
         users.uploadedCount = 4
-        val vm = viewModel()
+        val vm = cloudViewModel()
 
         vm.requestDeleteLocalData()
         dispatcher.scheduler.advanceUntilIdle()
@@ -110,7 +122,7 @@ class ProfileViewModelTest {
     @Test
     fun `a refused deletion deletes nothing on this device`() = runTest {
         auth.deletionResult = AuthRepository.Deletion.FAILED
-        val vm = viewModel()
+        val vm = cloudViewModel()
 
         vm.confirmDeleteAccount()
         dispatcher.scheduler.advanceUntilIdle()
@@ -142,7 +154,7 @@ class ProfileViewModelTest {
     fun `a refusal after the uploads were removed reports them instead of claiming nothing went`() = runTest {
         auth.deletionResult = AuthRepository.Deletion.FAILED
         users.cloudRemoval = CloudRemoval(removed = 2)
-        val vm = viewModel()
+        val vm = cloudViewModel()
 
         vm.confirmDeleteAccount()
         dispatcher.scheduler.advanceUntilIdle()
@@ -158,7 +170,7 @@ class ProfileViewModelTest {
     @Test
     fun `a confirmed deletion wipes the device and shows what went`() = runTest {
         auth.deletionResult = AuthRepository.Deletion.DELETED
-        val vm = viewModel()
+        val vm = cloudViewModel()
 
         vm.confirmDeleteAccount()
         dispatcher.scheduler.advanceUntilIdle()
@@ -178,7 +190,7 @@ class ProfileViewModelTest {
     @Test
     fun `asking to delete the server records does it and reports the answer`() = runTest {
         users.serverRecordsRemoved = false
-        val vm = viewModel()
+        val vm = cloudViewModel()
 
         vm.confirmDeleteLocalData(deleteServerRecords = true)
         dispatcher.scheduler.advanceUntilIdle()

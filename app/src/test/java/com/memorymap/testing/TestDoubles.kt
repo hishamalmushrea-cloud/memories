@@ -56,7 +56,14 @@ class FakeAuthRepository(userId: String?) : AuthRepository {
         },
     )
 
-    override val isCloudConfigured: Boolean = false
+    /**
+     * Whether a Supabase project is connected. False by default, which is the
+     * install most of these tests describe - an offline account with no server
+     * anywhere. A test about the cloud half of a wipe sets it to true.
+     */
+    var cloudConfigured: Boolean = false
+
+    override val isCloudConfigured: Boolean get() = cloudConfigured
 
     override suspend fun restoreSession() = Unit
 
