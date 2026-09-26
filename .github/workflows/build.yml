@@ -186,6 +186,9 @@ jobs:
               errors = 0
               warnings = 0
               shown = []
+              # Counted by rule so a run that adds three warnings says which
+              # three, instead of only that the total moved.
+              by_rule = {}
               for path in paths:
                   root = ET.parse(path).getroot()
                   for issue in root.iter("issue"):
@@ -199,7 +202,18 @@ jobs:
                           shown.append("- [%s] %s\n  %s\n  %s" % (issue.get("id"), issue.get("message", ""), where, (issue.get("explanation") or "")[:220]))
                       elif sev == "Warning":
                           warnings += 1
+                          loc = issue.find("location")
+                          where = "?"
+                          if loc is not None:
+                              where = loc.get("file", "?").split("/memories/")[-1] + ":" + loc.get("line", "?")
+                          entry = by_rule.setdefault(issue.get("id"), [0, where])
+                          entry[0] += 1
               print("errors=%d warnings=%d" % (errors, warnings))
+              if by_rule:
+                  print()
+                  print("Warnings by rule:")
+                  for rule, (count, where) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
+                      print("- %s x%d (first at %s)" % (rule, count, where))
               if shown:
                   print()
                   print("\n".join(shown[:40]))

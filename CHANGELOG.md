@@ -77,6 +77,10 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   mistake cost a whole ten-minute build cycle to discover - three times over.
   It runs before Gradle now, so it reports itself immediately.
 
+- The CI report now lists lint warnings by rule with a count and one example
+  location. It already listed compiler warnings that way; lint printed only a
+  total, which is why a run that added three of them could not say which three.
+
 - A third build guard, for an `import` that follows a declaration, which Kotlin
   allows only at the beginning of a file. It comes from appending to an import
   when a patch meant to add a file-level constant.
