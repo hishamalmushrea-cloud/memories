@@ -1,14 +1,18 @@
 package com.memorymap.data.repository
 
 import com.memorymap.data.local.dao.DailyEntryDao
+import com.memorymap.data.local.MediaFileStore
+import com.memorymap.data.local.dao.MediaDao
 import com.memorymap.data.local.dao.MemoryDao
 import com.memorymap.data.local.dao.PersonDao
 import com.memorymap.data.local.dao.PlaceDao
 import com.memorymap.data.local.dao.SyncMetaDao
 import com.memorymap.data.local.entities.SyncMetaEntity
+import com.memorymap.data.remote.MediaStorage
 import com.memorymap.data.remote.SupabaseClientProvider
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.data.sync.EntrySyncTable
+import com.memorymap.data.sync.MediaSyncTable
 import com.memorymap.data.sync.MemorySyncTable
 import com.memorymap.data.sync.PersonSyncTable
 import com.memorymap.data.sync.PlaceSyncTable
@@ -40,10 +44,13 @@ import kotlinx.coroutines.flow.flowOf
 class SyncRepositoryImpl @Inject constructor(
     private val memoryDao: MemoryDao,
     private val entryDao: DailyEntryDao,
+    private val mediaDao: MediaDao,
     private val personDao: PersonDao,
     private val placeDao: PlaceDao,
     private val metaDao: SyncMetaDao,
     private val api: SyncApi,
+    private val storage: MediaStorage,
+    private val files: MediaFileStore,
     private val supabase: SupabaseClientProvider,
 ) : SyncRepository {
 
@@ -115,6 +122,9 @@ class SyncRepositoryImpl @Inject constructor(
         PlaceSyncTable(placeDao, api),
         MemorySyncTable(memoryDao, api),
         EntrySyncTable(entryDao, api),
+        // Last, and after the records it points at: an attachment names the
+        // memory or event that owns it, so those rows have to exist first.
+        MediaSyncTable(mediaDao, api, storage, files),
     )
 
     private suspend fun writeMeta(userId: String, watermark: String?, outcome: String) {

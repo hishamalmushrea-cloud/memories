@@ -268,4 +268,10 @@
     <string name="editor_places_needs_location">لا أماكن بعد. حدد موقع السجل أولًا ليصبح إضافة مكان ممكنة.</string>
     <string name="editor_place_needs_location">لا يمكن إضافة مكان دون تحديد الموقع أولًا.</string>
     <string name="editor_places_pick_elsewhere">لا أماكن بعد. تُنشأ الأماكن من الخريطة أو من ذكرى لها موقع.</string>
+
+    <!-- Attachments are local unless the user asks otherwise. -->
+    <string name="editor_media_upload">رفع إلى السحابة</string>
+    <string name="editor_media_uploading">بانتظار الرفع</string>
+    <string name="editor_media_uploaded">مرفوع إلى السحابة</string>
+    <string name="editor_media_upload_cancel">إلغاء الرفع</string>
 </resources>

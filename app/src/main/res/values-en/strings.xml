@@ -267,4 +267,10 @@
     <string name="editor_places_needs_location">No places yet. Set the record\'s location first to make adding a place possible.</string>
     <string name="editor_place_needs_location">A place cannot be added without a location.</string>
     <string name="editor_places_pick_elsewhere">No places yet. Places are created from the map or from a memory that has a location.</string>
+
+    <!-- Attachments are local unless the user asks otherwise. -->
+    <string name="editor_media_upload">Upload to the cloud</string>
+    <string name="editor_media_uploading">Waiting to upload</string>
+    <string name="editor_media_uploaded">Uploaded to the cloud</string>
+    <string name="editor_media_upload_cancel">Cancel the upload</string>
 </resources>

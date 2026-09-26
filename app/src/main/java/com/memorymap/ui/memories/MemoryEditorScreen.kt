@@ -20,6 +20,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CloudDone
+import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.GraphicEq
@@ -367,7 +369,11 @@ fun MemoryEditorScreen(
 
         // --- Current attachments ---
         state.attachments.forEach { item ->
-            AttachmentRow(item = item, onRemove = { viewModel.removeAttachment(item) })
+            AttachmentRow(
+                item = item,
+                onRemove = { viewModel.removeAttachment(item) },
+                onToggleUpload = { viewModel.toggleUpload(item) },
+            )
         }
 
         Button(
@@ -456,7 +462,11 @@ fun MemoryEditorScreen(
 }
 
 @Composable
-private fun AttachmentRow(item: MediaItem, onRemove: () -> Unit) {
+private fun AttachmentRow(
+    item: MediaItem,
+    onRemove: () -> Unit,
+    onToggleUpload: () -> Unit,
+) {
     Card(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -492,6 +502,45 @@ private fun AttachmentRow(item: MediaItem, onRemove: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // Three states, and only two of them are a choice: an attachment
+                // that is already in the cloud shows what it is, and one that is
+                // not offers the decision. Nothing uploads without a tap here.
+                when {
+                    item.isUploaded -> Text(
+                        text = stringResource(R.string.editor_media_uploaded),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+
+                    item.uploadRequested -> Text(
+                        text = stringResource(R.string.editor_media_uploading),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    else -> Text(
+                        text = stringResource(R.string.editor_media_upload),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            IconButton(onClick = onToggleUpload, enabled = !item.isUploaded) {
+                Icon(
+                    if (item.isUploaded) Icons.Outlined.CloudDone else Icons.Outlined.CloudUpload,
+                    contentDescription = stringResource(
+                        if (item.uploadRequested) {
+                            R.string.editor_media_upload_cancel
+                        } else {
+                            R.string.editor_media_upload
+                        },
+                    ),
+                    tint = if (item.uploadRequested || item.isUploaded) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
             }
             IconButton(onClick = onRemove) {
                 Icon(

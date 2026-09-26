@@ -74,6 +74,9 @@ jobs:
       - name: Check that no comment separates a modifier from what it modifies
         run: python3 ci/check-detached-comments.py
 
+      - name: Check every Room query is the query it appears to be
+        run: python3 ci/check-queries.py
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 

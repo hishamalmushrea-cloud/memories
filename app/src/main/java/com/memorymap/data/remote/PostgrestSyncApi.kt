@@ -49,6 +49,21 @@ class PostgrestSyncApi @Inject constructor(
             }
             .decodeList()
 
+    override suspend fun upsertMedia(rows: List<MediaRecord>) {
+        if (rows.isEmpty()) return
+        table(TABLE_MEDIA).upsert(rows)
+    }
+
+    override suspend fun fetchMedia(userId: String, since: String?): List<MediaRecord> =
+        table(TABLE_MEDIA)
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    if (since != null) gt("updated_at", since)
+                }
+            }
+            .decodeList()
+
     override suspend fun upsertPeople(rows: List<PersonRecord>) {
         if (rows.isEmpty()) return
         table(TABLE_PEOPLE).upsert(rows)
@@ -156,5 +171,6 @@ class PostgrestSyncApi @Inject constructor(
         const val TABLE_MEMORY_PLACE = "memory_place"
         const val TABLE_ENTRY_PERSON = "daily_entry_person"
         const val TABLE_ENTRY_PLACE = "daily_entry_place"
+        const val TABLE_MEDIA = "media"
     }
 }

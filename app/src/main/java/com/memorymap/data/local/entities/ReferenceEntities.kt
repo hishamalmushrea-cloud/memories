@@ -120,6 +120,33 @@ data class MediaEntity(
     @ColumnInfo(name = "created_at")
     val createdAt: String,
 
+    /**
+     * Moves whenever the row changes, which for an attachment means a delete or
+     * an upload. Defaulted to [createdAt] because every attachment starts out
+     * unchanged; a column added in migration 4 backfills it the same way.
+     */
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: String = createdAt,
+
+    /**
+     * Where the bytes live in the cloud, or null while they are only here.
+     *
+     * Room has no column for this before migration 4: an attachment used to be
+     * local by definition.
+     */
+    @ColumnInfo(name = "storage_path")
+    val storagePath: String? = null,
+
+    /**
+     * True only when the user asked for this attachment to go to the cloud.
+     *
+     * Uploading is never automatic. The column exists so the request survives a
+     * restart, and so the attachment keeps a visible state until the sync worker
+     * has actually sent it.
+     */
+    @ColumnInfo(name = "upload_requested")
+    val uploadRequested: Boolean = false,
+
     @ColumnInfo(name = "sync_status")
     val syncStatus: String,
 

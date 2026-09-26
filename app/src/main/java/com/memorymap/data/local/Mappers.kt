@@ -141,9 +141,12 @@ object Mappers {
         height = height,
         durationMs = durationMs,
         createdAt = createdAt.toDateTime() ?: LocalDateTime.now(),
+        updatedAt = updatedAt.toDateTime() ?: (createdAt.toDateTime() ?: LocalDateTime.now()),
         syncStatus = SyncStatus.fromName(syncStatus),
         lastSyncedAt = lastSyncedAt.toDateTime(),
         deletedAt = deletedAt.toDateTime(),
+        storagePath = storagePath,
+        uploadRequested = uploadRequested,
     )
 
     fun MediaItem.toEntity(): MediaEntity = MediaEntity(
@@ -157,9 +160,12 @@ object Mappers {
         height = height,
         durationMs = durationMs,
         createdAt = createdAt.iso(),
+        updatedAt = updatedAt.iso(),
         syncStatus = syncStatus.name,
         lastSyncedAt = lastSyncedAt?.iso(),
         deletedAt = deletedAt?.iso(),
+        storagePath = storagePath,
+        uploadRequested = uploadRequested,
     )
 
     // --- People / places ---

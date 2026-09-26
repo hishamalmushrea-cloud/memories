@@ -72,6 +72,17 @@ class MediaRepositoryImpl @Inject constructor(
         deleteFile(item.uri)
     }
 
+    override suspend fun requestUpload(id: String) {
+        // The stamp moves with the request so the queue sees it: rows are read
+        // oldest-first by `updated_at`, and a request that did not move it would
+        // sort as something that had already been dealt with.
+        mediaDao.requestUpload(id, LocalDateTime.now().toString())
+    }
+
+    override suspend fun cancelUpload(id: String) {
+        mediaDao.cancelUpload(id)
+    }
+
     /** Attachment URIs are app-private file paths, so the file is removed directly. */
     private fun deleteFile(uri: String) {
         runCatching { MediaStore.delete(File(uri)) }

@@ -2,6 +2,7 @@ package com.memorymap.testing
 
 import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.DailyEntry
+import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Person
 import com.memorymap.domain.model.Place
@@ -9,6 +10,9 @@ import com.memorymap.domain.model.User
 import com.memorymap.data.remote.EntryPersonLink
 import com.memorymap.data.remote.EntryPlaceLink
 import com.memorymap.data.remote.EntryRecord
+import com.memorymap.data.local.MediaFileStore
+import com.memorymap.data.remote.MediaRecord
+import com.memorymap.data.remote.MediaStorage
 import com.memorymap.data.remote.MemoryPersonLink
 import com.memorymap.data.remote.MemoryPlaceLink
 import com.memorymap.data.remote.MemoryRecord
@@ -121,6 +125,7 @@ class RecordingSyncApi : SyncApi {
     val entriesSent = mutableListOf<EntryRecord>()
     val peopleSent = mutableListOf<PersonRecord>()
     val placesSent = mutableListOf<PlaceRecord>()
+    val mediaSent = mutableListOf<MediaRecord>()
 
     /** Each replace call, so a test can tell an unlink from a no-op. */
     val memoryPeopleReplacements = mutableListOf<Pair<List<String>, List<MemoryPersonLink>>>()
@@ -135,6 +140,7 @@ class RecordingSyncApi : SyncApi {
     var memoryPlacesToReturn: List<MemoryPlaceLink> = emptyList()
     var entryPeopleToReturn: List<EntryPersonLink> = emptyList()
     var entryPlacesToReturn: List<EntryPlaceLink> = emptyList()
+    var mediaToReturn: List<MediaRecord> = emptyList()
 
     override suspend fun upsertMemories(rows: List<MemoryRecord>) {
         memoriesSent += rows
@@ -183,4 +189,73 @@ class RecordingSyncApi : SyncApi {
     override suspend fun fetchEntryPeople(entryIds: List<String>) = entryPeopleToReturn
 
     override suspend fun fetchEntryPlaces(entryIds: List<String>) = entryPlacesToReturn
+
+    override suspend fun upsertMedia(rows: List<MediaRecord>) {
+        mediaSent += rows
+    }
+
+    override suspend fun fetchMedia(userId: String, since: String?) = mediaToReturn
+}
+
+/**
+ * A bucket in memory.
+ *
+ * Enough to tell an attachment that was uploaded from one that was not, and to
+ * make an upload fail on demand, which is the only way a test can reach the
+ * retry path without a project.
+ */
+class RecordingMediaStorage : MediaStorage {
+
+    val objects = mutableMapOf<String, ByteArray>()
+    val removed = mutableListOf<String>()
+
+    /** When set, every call fails, as an unreachable bucket would. */
+    var failing = false
+
+    override suspend fun upload(objectKey: String, bytes: ByteArray): Boolean {
+        if (failing) return false
+        objects[objectKey] = bytes
+        return true
+    }
+
+    override suspend fun download(objectKey: String): ByteArray? {
+        if (failing) return null
+        return objects[objectKey]
+    }
+
+    override suspend fun remove(objectKey: String): Boolean {
+        if (failing) return false
+        removed += objectKey
+        objects.remove(objectKey)
+        return true
+    }
+}
+
+/**
+ * Attachment bytes on a real directory, with no Android context.
+ *
+ * The production store adds the app's private folder and a naming rule; what a
+ * sync test needs is somewhere for the bytes to actually land.
+ */
+class TemporaryMediaFileStore(private val root: java.io.File) : MediaFileStore {
+
+    override fun exists(localPath: String) = java.io.File(localPath).exists()
+
+    override fun read(localPath: String) = runCatching {
+        java.io.File(localPath).takeIf { it.exists() }?.readBytes()
+    }.getOrNull()
+
+    override fun pathFor(
+        type: MediaType,
+        ownerId: String,
+        mediaId: String,
+        extension: String,
+    ): String = java.io.File(root, "${ownerId}_$mediaId.$extension").absolutePath
+
+    override fun write(localPath: String, bytes: ByteArray): Boolean = runCatching {
+        val file = java.io.File(localPath)
+        file.parentFile?.mkdirs()
+        file.writeBytes(bytes)
+        true
+    }.getOrDefault(false)
 }

@@ -27,6 +27,25 @@ object MediaStore {
         return File(dir(context, type), "${ownerId}_${System.currentTimeMillis()}.$safeExtension")
     }
 
+    /**
+     * Where an attachment belongs when its bytes are not here yet.
+     *
+     * [newFile] embeds the clock, which is right for something being captured on
+     * this device and useless for something arriving from another one: the row
+     * has to name its file before the bytes exist, and the same attachment has
+     * to land on the same path every time. Keying on the ids gives both.
+     */
+    fun derivedFile(
+        context: Context,
+        type: MediaType,
+        ownerId: String,
+        mediaId: String,
+        extension: String,
+    ): File {
+        val safeExtension = extension.trimStart('.').lowercase().ifBlank { "bin" }
+        return File(dir(context, type), "${ownerId}_$mediaId.$safeExtension")
+    }
+
     /** Deletes a media file and reports whether anything was removed. */
     fun delete(file: File): Boolean = runCatching { file.takeIf { it.exists() }?.delete() ?: false }.getOrDefault(false)
 

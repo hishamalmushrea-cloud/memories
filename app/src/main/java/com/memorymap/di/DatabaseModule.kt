@@ -31,6 +31,7 @@ object DatabaseModule {
             .addMigrations(
                 MemoryMapDatabase.MIGRATION_1_2,
                 MemoryMapDatabase.MIGRATION_2_3,
+                MemoryMapDatabase.MIGRATION_3_4,
             )
             .fallbackToDestructiveMigrationOnDowngrade()
             .build()

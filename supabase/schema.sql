@@ -151,8 +151,14 @@ create table public.media (
     height         integer,
     duration_ms    bigint,
     created_at     timestamptz not null default now(),
+    -- Every synchronised table needs a stamp that moves when the row changes,
+    -- because a download asks for rows changed since a watermark. An attachment
+    -- keeps its created_at forever, so without this a deletion would fall
+    -- outside every later window and never reach another device.
+    updated_at     timestamptz not null default now(),
     sync_status    sync_state not null default 'PENDING_CREATE',
-    last_synced_at timestamptz
+    last_synced_at timestamptz,
+    deleted_at     timestamptz
 );
 
 create index media_owner_idx on public.media (owner_type, owner_id);

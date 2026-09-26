@@ -54,6 +54,49 @@ class MediaRepositoryImplTest {
     fun tearDown() = db.close()
 
     @Test
+    fun `an attachment starts out local and can be asked for`() = runTest {
+        val item = item(MediaType.PHOTO, file("a.jpg"))
+        repository.attach(item)
+        assertFalse(repository.getFor(MediaOwner.MEMORY, memoryId).single().uploadRequested)
+
+        repository.requestUpload(item.id)
+
+        val asked = repository.getFor(MediaOwner.MEMORY, memoryId).single()
+        assertTrue(asked.uploadRequested)
+        // Queued for the next run rather than only flagged, or the worker would
+        // never look at it.
+        assertEquals(SyncStatus.PENDING_UPDATE, asked.syncStatus)
+    }
+
+    @Test
+    fun `the request can be withdrawn while the bytes are still only here`() = runTest {
+        val item = item(MediaType.PHOTO, file("a.jpg"))
+        repository.attach(item)
+        repository.requestUpload(item.id)
+
+        repository.cancelUpload(item.id)
+
+        val cancelled = repository.getFor(MediaOwner.MEMORY, memoryId).single()
+        assertFalse(cancelled.uploadRequested)
+        assertFalse(cancelled.isUploaded)
+    }
+
+    @Test
+    fun `the request cannot be withdrawn once the bytes are in the cloud`() = runTest {
+        val item = item(MediaType.PHOTO, file("a.jpg"))
+        repository.attach(item)
+        db.mediaDao().setStoragePath(item.id, "user-1/${item.id}.jpg", "2024-06-01T00:00:00")
+
+        repository.cancelUpload(item.id)
+
+        // Clearing it would leave an object in the bucket that nothing on the
+        // server points at. Removing the attachment is the way to delete it.
+        val still = repository.getFor(MediaOwner.MEMORY, memoryId).single()
+        assertTrue(still.isUploaded)
+        assertTrue(still.uploadRequested)
+    }
+
+    @Test
     fun `an attachment is stored and read back for its owner only`() = runTest {
         repository.attach(item(MediaType.PHOTO, file("a.jpg")))
         repository.attach(item(MediaType.PHOTO, file("b.jpg")))

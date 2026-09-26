@@ -74,11 +74,19 @@ data class MediaItem(
     val height: Int? = null,
     val durationMs: Long? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
+    val updatedAt: LocalDateTime = createdAt,
     val syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
     val lastSyncedAt: LocalDateTime? = null,
     val deletedAt: LocalDateTime? = null,
+    /** Where the bytes live in the cloud, or null while they are only here. */
+    val storagePath: String? = null,
+    /** True only when the user asked for this attachment to go to the cloud. */
+    val uploadRequested: Boolean = false,
 ) {
     val isDeleted: Boolean get() = deletedAt != null
+
+    /** True once the bytes are in the cloud as well as on this device. */
+    val isUploaded: Boolean get() = storagePath != null
 }
 
 /** Which table a [MediaItem] belongs to. */

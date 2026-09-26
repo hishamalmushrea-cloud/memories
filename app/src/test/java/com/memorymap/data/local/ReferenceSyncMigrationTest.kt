@@ -75,11 +75,69 @@ class ReferenceSyncMigrationTest {
     }
 
     /**
+     * The version 3 shape of `media`, with one row in it.
+     *
+     * Populated for the same reason the people and places one is: the columns
+     * added here include a `NOT NULL` one, and SQLite only refuses that on a
+     * table that already holds rows.
+     */
+    @Test
+    fun `an attachment gains a stamp, a place for its bytes and no request`() {
+        val db = openVersion3WithAnAttachment()
+
+        MemoryMapDatabase.MIGRATION_3_4.migrate(db)
+
+        db.query(
+            "SELECT updated_at, storage_path, upload_requested, created_at FROM media " +
+                "WHERE id = 'm1'",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            // Backfilled from created_at, because an empty stamp loses every
+            // conflict comparison and would let a deletion pass unseen.
+            assertEquals("2024-01-01T00:00:00", cursor.getString(0))
+            assertTrue("nothing has been uploaded yet", cursor.isNull(1))
+            // Opted out, which is the honest answer for a row that predates the
+            // feature: uploading is never something this app decides alone.
+            assertEquals(0, cursor.getInt(2))
+            assertEquals("2024-01-01T00:00:00", cursor.getString(3))
+        }
+        db.close()
+    }
+
+    /**
      * The version 2 shape of the two tables, with one row in each.
      *
      * Populated on purpose: adding a `NOT NULL` column to an empty table proves
      * nothing about what happens to an installed archive.
      */
+    /** The version 3 shape of `media`, which had no cloud columns at all. */
+    private fun openVersion3WithAnAttachment(): SupportSQLiteDatabase {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(null)
+            .callback(
+                object : SupportSQLiteOpenHelper.Callback(3) {
+                    override fun onCreate(db: SupportSQLiteDatabase) = Unit
+                    override fun onUpgrade(db: SupportSQLiteDatabase, old: Int, new: Int) = Unit
+                },
+            )
+            .build()
+        val db = FrameworkSQLiteOpenHelperFactory().create(configuration).writableDatabase
+        db.execSQL(
+            "CREATE TABLE media (" +
+                "id TEXT NOT NULL PRIMARY KEY, owner_type TEXT NOT NULL, owner_id TEXT NOT NULL, " +
+                "media_type TEXT NOT NULL, uri TEXT NOT NULL, mime_type TEXT, width INTEGER, " +
+                "height INTEGER, duration_ms INTEGER, created_at TEXT NOT NULL, " +
+                "sync_status TEXT NOT NULL, last_synced_at TEXT, deleted_at TEXT)",
+        )
+        db.execSQL(
+            "INSERT INTO media (id, owner_type, owner_id, media_type, uri, created_at, sync_status) " +
+                "VALUES ('m1', 'MEMORY', 'memory-1', 'PHOTO', '/tmp/a.jpg', " +
+                "'2024-01-01T00:00:00', 'SYNCED')",
+        )
+        return db
+    }
+
     private fun openVersion2WithArchive(): SupportSQLiteDatabase {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)

@@ -245,6 +245,42 @@ class MemoryEditorViewModel @Inject constructor(
     }
 
     /** Removes an attachment: a stored one becomes a tombstone, a pending one is deleted. */
+    /**
+     * Opts an attachment in or out of the cloud.
+     *
+     * An attachment that already exists is changed in the database, and the
+     * watched list brings the answer back - so the row always shows what is
+     * stored, not what the tap hoped for. One that has not been saved yet has no
+     * row to change, so its flag is held here and written by the save that
+     * creates it.
+     */
+    fun toggleUpload(item: MediaItem) {
+        val isPending = _state.value.pendingAttachments.any { it.id == item.id }
+        if (isPending) {
+            _state.update { state ->
+                state.copy(
+                    pendingAttachments = state.pendingAttachments.map { attachment ->
+                        if (attachment.id == item.id) {
+                            attachment.copy(uploadRequested = !attachment.uploadRequested)
+                        } else {
+                            attachment
+                        }
+                    },
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            runCatching {
+                if (item.uploadRequested) {
+                    mediaRepository.cancelUpload(item.id)
+                } else {
+                    mediaRepository.requestUpload(item.id)
+                }
+            }.onFailure { MmLog.e("Unable to change an attachment's upload state", it) }
+        }
+    }
+
     fun removeAttachment(item: MediaItem) {
         viewModelScope.launch {
             runCatching {

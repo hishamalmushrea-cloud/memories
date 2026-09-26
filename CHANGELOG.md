@@ -6,6 +6,41 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Attachments can be sent to the cloud, one at a time and only when asked.
+  Nothing uploads on its own: an attachment carries an explicit request, the
+  sync worker carries it out, and until then the row shows that it is waiting.
+  Removing an uploaded attachment deletes the object from the bucket as well,
+  and hides the count of attachments that have left this device.
+
+  The bytes go to a key of the form `{user id}/{attachment id}.{extension}`.
+  That shape is not a preference: the storage policies in `supabase/schema.sql`
+  decide access with `(storage.foldername(name))[1] = auth.uid()::text`, so an
+  object stored anywhere else belongs to nobody and is refused by the bucket.
+  The row is written after the bytes for the same kind of reason - the server's
+  `storage_path` is `not null`, so a row naming an object that is not there yet
+  would be a lie the next device would act on.
+
+  An attachment arriving from another device brings its bytes with it. The local
+  file is never removed by any of this, so a copy is added, never moved; and an
+  attachment nobody opted into never leaves this device at all, which is why it
+  has nothing to delete on the server when it is removed.
+
+  `media` gained `updated_at` and `deleted_at` on the server, and the local table
+  gained `updated_at`, `storage_path` and `upload_requested` in migration 3 to
+  4. The stamp is the load-bearing part: a download asks for rows changed since a
+  watermark, and an attachment deleted on another device keeps its original
+  `created_at`, so without a stamp that moves, the deletion would fall outside
+  every later window and never arrive.
+
+- A build guard that reads every Room `@Query` and fails when it is not the query
+  it appears to be: when the SQL names a parameter the function does not declare,
+  or when two string literals stand next to each other with no `+` between them.
+  Kotlin does not join those, so the query silently becomes its first fragment -
+  seven shipped that way once, and five of them compiled happily while losing
+  their `ORDER BY` and their `deleted_at IS NULL` clauses.
+
 ### Fixed
 
 - Backups were written but could never be read back. `DocumentFile.createFile`

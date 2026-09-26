@@ -3,12 +3,16 @@ package com.memorymap.di
 import com.memorymap.data.remote.SecureSessionStore
 import com.memorymap.BuildConfig
 import com.memorymap.data.map.MapProviders
+import com.memorymap.data.remote.MediaStorage
+import com.memorymap.data.remote.SupabaseMediaStorage
 import com.memorymap.data.remote.PostgrestSyncApi
 import com.memorymap.data.remote.SupabaseConfig
 import com.memorymap.data.remote.SyncApi
 import com.memorymap.data.repository.BackupRepositoryImpl
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.SupabaseAuthRepository
+import com.memorymap.data.local.LocalMediaFileStore
+import com.memorymap.data.local.MediaFileStore
 import com.memorymap.data.repository.MediaRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
@@ -77,6 +81,16 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSyncApi(impl: PostgrestSyncApi): SyncApi
+
+    /** The bucket, behind its interface, for the same reason `SyncApi` is. */
+    @Binds
+    @Singleton
+    abstract fun bindMediaStorage(impl: SupabaseMediaStorage): MediaStorage
+
+    /** Attachments' bytes on this device, so the sync layer needs no context. */
+    @Binds
+    @Singleton
+    abstract fun bindMediaFileStore(impl: LocalMediaFileStore): MediaFileStore
 
     @Binds
     @Singleton

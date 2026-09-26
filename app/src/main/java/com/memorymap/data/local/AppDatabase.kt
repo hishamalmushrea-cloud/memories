@@ -63,7 +63,7 @@ abstract class MemoryMapDatabase : RoomDatabase() {
     abstract fun syncMetaDao(): SyncMetaDao
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 4
         const val NAME = "memorymap.db"
 
         /**
@@ -107,6 +107,31 @@ abstract class MemoryMapDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE `$table` ADD COLUMN `last_synced_at` TEXT")
                     db.execSQL("UPDATE `$table` SET `updated_at` = `created_at` WHERE `updated_at` = ''")
                 }
+            }
+        }
+
+        /**
+         * Lets an attachment travel to the cloud, and only when asked.
+         *
+         * `updated_at` is added for the same reason `people` and `places` needed
+         * it: a download asks for rows changed since a watermark, and an
+         * attachment that was deleted would otherwise carry its original
+         * `created_at` and fall outside every later window, so the deletion would
+         * never reach another device. Backfilled from `created_at` because no
+         * attachment has ever been edited.
+         *
+         * `upload_requested` defaults to 0, which is the honest answer for every
+         * row that exists before this migration: nothing here has been uploaded,
+         * and uploading is never something the app decides on its own.
+         */
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `media` ADD COLUMN `updated_at` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `media` ADD COLUMN `storage_path` TEXT")
+                db.execSQL(
+                    "ALTER TABLE `media` ADD COLUMN `upload_requested` INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL("UPDATE `media` SET `updated_at` = `created_at` WHERE `updated_at` = ''")
             }
         }
     }

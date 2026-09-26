@@ -47,4 +47,24 @@ interface MediaRepository {
      * leaves an editor without saving. No row exists, so none is written.
      */
     suspend fun discard(item: MediaItem)
+
+    /**
+     * Asks for one attachment to be sent to the cloud.
+     *
+     * This is the only way an attachment ever leaves this device. Nothing here
+     * uploads anything by itself: the request is recorded and the sync worker
+     * carries it out, so the answer survives a restart and the attachment can
+     * show that it is waiting.
+     */
+    suspend fun requestUpload(id: String)
+
+    /**
+     * Withdraws that request.
+     *
+     * Refused once the bytes are in the bucket, because clearing the request
+     * then would leave an object nothing on the server points at. Removing an
+     * uploaded attachment deletes the object through the ordinary tombstone
+     * path, which is what is left.
+     */
+    suspend fun cancelUpload(id: String)
 }

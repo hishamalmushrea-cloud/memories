@@ -87,6 +87,30 @@ data class PlaceRecord(
  * that owns them and are replaced wholesale, which is what makes an unlink
  * reach another device instead of being merged back in.
  */
+/**
+ * An attachment's row, which is metadata only: the bytes live in a bucket at
+ * [storagePath], and the two are written in that order so a row never names
+ * an object that is not there yet.
+ */
+@Serializable
+data class MediaRecord(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("owner_type") val ownerType: String,
+    @SerialName("owner_id") val ownerId: String,
+    @SerialName("media_type") val mediaType: String,
+    @SerialName("storage_path") val storagePath: String,
+    @SerialName("mime_type") val mimeType: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    @SerialName("duration_ms") val durationMs: Long? = null,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    @SerialName("sync_status") val syncStatus: String = "SYNCED",
+    @SerialName("last_synced_at") val lastSyncedAt: String? = null,
+)
+
 @Serializable
 data class MemoryPersonLink(
     @SerialName("memory_id") val memoryId: String,
@@ -159,4 +183,17 @@ interface SyncApi {
     suspend fun fetchEntryPeople(entryIds: List<String>): List<EntryPersonLink>
 
     suspend fun fetchEntryPlaces(entryIds: List<String>): List<EntryPlaceLink>
+
+    /** Sends the metadata of attachments whose bytes are already in the bucket. */
+    suspend fun upsertMedia(rows: List<MediaRecord>)
+
+    /**
+     * Attachments changed since [since].
+     *
+     * Filtered on `updated_at`, like every other table: an attachment deleted on
+     * another device keeps its original `created_at`, so a window built on that
+     * column would step straight over the tombstone and the deletion would never
+     * arrive.
+     */
+    suspend fun fetchMedia(userId: String, since: String?): List<MediaRecord>
 }
