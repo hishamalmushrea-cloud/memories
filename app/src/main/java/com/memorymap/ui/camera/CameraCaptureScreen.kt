@@ -164,7 +164,14 @@ fun CameraCaptureScreen(
         val file = MediaStore.newFile(context, MediaType.VIDEO, ownerId, "mp4")
         val options = FileOutputOptions.Builder(file).build()
         val pending = useCase.output.prepareRecording(context, options)
-        val request = if (hasMicrophonePermission(context)) pending.withAudioEnabled(false) else pending
+
+        // `withAudioEnabled` needs the microphone permission, so the check is made
+        // here rather than from a helper: the permission is asked for by the screen
+        // that owns the voice notes, and a shot is not interrupted to request it.
+        val canRecordSound =
+            ContextCompat.checkSelfPermission(context, RECORD_AUDIO_PERMISSION) ==
+                PackageManager.PERMISSION_GRANTED
+        val request = if (canRecordSound) pending.withAudioEnabled(false) else pending
 
         val started = runCatching {
             request.start(executor) { event -> onRecordEvent(event, file) }
@@ -512,6 +519,7 @@ private val CameraFlash.label: Int
 private fun hasCameraPermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, CAMERA_PERMISSION) == PackageManager.PERMISSION_GRANTED
 
+/** Whether a video recorded now could carry sound at all. */
 private fun hasMicrophonePermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, RECORD_AUDIO_PERMISSION) ==
         PackageManager.PERMISSION_GRANTED
