@@ -80,6 +80,9 @@ jobs:
       - name: Check no import follows a declaration
         run: python3 ci/check-import-order.py
 
+      - name: Check the store listing stays inside the store limits
+        run: python3 ci/check-store-metadata.py
+
       - name: Check the Gradle configuration
         run: ./gradlew help --no-daemon --stacktrace
 

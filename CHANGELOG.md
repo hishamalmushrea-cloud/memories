@@ -6,6 +6,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+Nothing yet: the release below has not been tagged yet, so it still takes new
+work.
+
+## [0.1.0] - 2026-09-26
+
+The first release. Everything below was written before it: the ten phases the
+prompt asks for, in order, each one built, tested and reviewed before the next.
+
 ### Fixed
 
 - The uploaded copies of your attachments can now be deleted, which they could
@@ -22,6 +30,20 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   account itself.
 
 ### Added
+
+- The release pipeline is prepared and rehearsed, and the app is still published
+  nowhere. The store listing now exists as files that both F-Droid and Google
+  Play read - `fastlane/metadata/android/{ar,en-US}/` with the title, the short
+  and full descriptions and a changelog per `versionCode` - and
+  `ci/check-store-metadata.py` fails the build when a field is over the limit the
+  stores enforce or when a version bump arrives without its changelog file. The
+  release workflow can be run by hand to rehearse a release: it runs the security
+  gate, the metadata check, the tests, `lintRelease`, builds both the APK and the
+  AAB and prints what a tag push would publish, then stops. Only `refs/tags/v*`
+  reaches the publishing step. The signing, F-Droid and Play steps, the Data
+  safety answers and the still-missing store images are written down in
+  `docs/RELEASE.md`, including that screenshots must come from a real device
+  rather than a mock-up.
 
 - "Near by" is a screen instead of a note saying which phase would build it. It
   lists the memories and events inside one kilometre of a position you ask for,
@@ -534,3 +556,6 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 The following are placeholders that state which phase implements them instead of
 showing fake data: nearby (Phase 5 follow-up) and backup export/import
 (Phase 8).
+
+[Unreleased]: https://github.com/hishamalmushrea-cloud/memories/commits/main
+[0.1.0]: https://github.com/hishamalmushrea-cloud/memories/releases/tag/v0.1.0

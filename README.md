@@ -189,7 +189,9 @@ PENDING_CREATE · PENDING_UPDATE · PENDING_DELETE · SYNCED · SYNC_ERROR
 `.github/workflows/build.yml` ينفذ على كل push:
 
 ```text
-verify-dependencies → gradlew help → testDebugUnitTest → lintDebug → assembleDebug
+verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
+استعلامات Room، ترتيب الاستيراد، قيود المتجر) → gradlew help →
+testDebugUnitTest → lintDebug → assembleDebug → assembleRelease
 ```
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
@@ -201,6 +203,26 @@ verify-dependencies → gradlew help → testDebugUnitTest → lintDebug → ass
 > مستثنى من Git حاليًا لأن توكن CI في هذا المستودع لا يملك صلاحية الدفع.
 > يُفضّل عمل commit له يدويًا مرة واحدة ثم إزالة الاستثناء من `.gitignore`،
 > ليصبح أي تغيير في المخطط diff قابلًا للمراجعة.
+
+## النشر
+
+المشروع **مهيأ للنشر، ولم يُنشر بعد** — لا يوجد أي إصدار على GitHub ولا على أي
+متجر، ولن يُقال عكس ذلك قبل أن يحدث فعلًا.
+
+- **GitHub Releases**: `.github/workflows/release.yml` يعمل عند دفع وسم `v*`،
+  ويشغّل بوابة الأمان والاختبارات و`lintRelease`، ثم يبني APK و AAB وينشر
+  الإصدار. وتشغيله يدويًا من تبويب Actions يعيد كل ذلك ثم يتوقف بلا نشر،
+  فالتجربة ممكنة دون إنشاء إصدار.
+- **بيانات المتجر**: [`fastlane/metadata/android/`](fastlane/metadata/android)
+  بالعربية (`ar`) والإنجليزية (`en-US`): الاسم، الوصف المختصر، الوصف الكامل،
+  وسجل تغييرات لكل `versionCode`. ويتحقق `ci/check-store-metadata.py` من حدود
+  المتجر قبل كل بناء، فلا يُرفع وصف مقطوع.
+- **F-Droid**: يبني من المصدر، والوصف أعلاه هو ما يُقرأ هناك؛ ينقص قبل أول
+  إصدار حقيقي: لقطات شاشة حقيقية من جهاز.
+- **Google Play**: يُرفع `AAB` من `./gradlew bundleRelease`، وينقص قبل الرفع:
+  أيقونة ٥١٢×٥١٢ وصورة عرض ١٠٢٤×٥٠٠ ولقطات شاشة، وتعبئة نموذج Data safety
+  (الأجوبة مكتوبة في [`docs/RELEASE.md`](docs/RELEASE.md)).
+- **التوقيع والخطوات التفصيلية**: [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ## الخارطة
 
