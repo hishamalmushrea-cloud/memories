@@ -488,7 +488,7 @@ jobs:
             if [ -f /tmp/signing-tools.log ]; then
               # The guard's own words: which reader answered, which certificate it read,
               # and the first line of anything that failed.
-              grep -E "^   (ok|the)|^FAIL|check:" /tmp/signing-tools.log | head -20 || true
+              grep -E "^   |^FAIL|check:" /tmp/signing-tools.log | head -25 || true
             else
               echo "(the signing tools check did not run)"
             fi

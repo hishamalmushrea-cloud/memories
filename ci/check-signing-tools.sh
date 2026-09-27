@@ -228,6 +228,25 @@ if [ -f "$JAR" ]; then
         echo "   ok   1. the reader found $actual in the signed archive"
     else
         fail "the reader returned '$actual' for an archive signed with $expected"
+        # What the reader saw, in the reader's own words. "The reader returned nothing"
+        # describes the reader; the question is whether the archive is not signed, or its
+        # signature is not one this JDK will read. A CI failure with no way to tell those
+        # apart is what this block exists to prevent, and the first version of this check
+        # produced exactly that.
+        echo "   keytool says:"
+        keytool -printcert -jarfile "$JAR" 2>&1 | head -6 | sed 's/^/   | /' || true
+        echo "   the archive contains:"
+        python3 -c "
+import sys, zipfile
+for info in zipfile.ZipFile(sys.argv[1]).infolist():
+    print(f'{info.filename} ({info.file_size} bytes)')" "$JAR" 2>&1 | sed 's/^/   | /' || true
+        echo "   the signature material holds:"
+        python3 -c "
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    for name in archive.namelist():
+        if name.upper().startswith('META-INF/') and name.upper().endswith(('.RSA', '.DSA', '.EC', '.SF')):
+            print(f'{name}: {len(archive.read(name))} bytes')" "$JAR" 2>&1 | sed 's/^/   | /' || true
     fi
 
     expect_failure "2a. --release refuses a certificate that is not the release one" \
