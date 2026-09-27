@@ -79,6 +79,19 @@ jobs:
       - name: Lint
         run: ./gradlew lintRelease --no-daemon --stacktrace
 
+      # The tiles are checked before the signing, because they are the other thing a
+      # release must not get wrong: the default host is the public OpenStreetMap server,
+      # which their policy allows a development build to use and forbids a distributed app
+      # to use without prior permission. This is the same shape of decision as the signing
+      # one below, and it is asked before anything is built.
+      - name: Decide whether this run may use the configured map tiles
+        env:
+          MAP_TILE_SERVER: ${{ vars.MEMORYMAP_TILE_SERVER }}
+          MAP_TILE_KEY: ${{ secrets.MEMORYMAP_TILE_KEY }}
+          MAP_ATTRIBUTION: ${{ vars.MEMORYMAP_TILE_ATTRIBUTION }}
+          MEMORYMAP_OSM_PERMITTED: ${{ vars.MEMORYMAP_OSM_PERMITTED }}
+        run: python3 ci/check-tile-provider.py --from-build
+
       # The decision, before anything is built. On a version tag the four secrets must
       # be there and the artifact is then checked against the recorded certificate; a
       # manual run may deliberately go without them, because it cannot publish and a
@@ -118,14 +131,26 @@ jobs:
         run: bash ci/prepare-signing-keystore.sh
 
       - name: Build the signed release APK and bundle
+        env:
+          MAP_TILE_SERVER: ${{ vars.MEMORYMAP_TILE_SERVER }}
+          MAP_TILE_KEY: ${{ secrets.MEMORYMAP_TILE_KEY }}
+          MAP_ATTRIBUTION: ${{ vars.MEMORYMAP_TILE_ATTRIBUTION }}
         run: |
           set -euo pipefail
           . /tmp/signing/signing.env
+          # The tile settings reach Gradle as properties, the same way the signing ones
+          # do. An empty property is not passed: the build file's `.ifBlank` default has to
+          # stay in charge when nothing is configured, or the map would get an empty URL.
+          TILE_ARGS=()
+          [ -n "${MAP_TILE_SERVER:-}" ] && TILE_ARGS+=("-PMAP_TILE_SERVER=$MAP_TILE_SERVER")
+          [ -n "${MAP_TILE_KEY:-}" ] && TILE_ARGS+=("-PMAP_TILE_KEY=$MAP_TILE_KEY")
+          [ -n "${MAP_ATTRIBUTION:-}" ] && TILE_ARGS+=("-PMAP_ATTRIBUTION=$MAP_ATTRIBUTION")
           ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace \
             -PMEMORYMAP_KEYSTORE="$SIGNING_KEYSTORE" \
             -PMEMORYMAP_KEYSTORE_PASSWORD="$SIGNING_STORE_PASSWORD" \
             -PMEMORYMAP_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
-            -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD"
+            -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD" \
+            "${TILE_ARGS[@]}"
 
       # Reading the certificate out of the artifact is the only way to know which key
       # signed it: every configuration that can go wrong here goes wrong silently, and

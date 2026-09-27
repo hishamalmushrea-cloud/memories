@@ -217,6 +217,33 @@ gh release create v<version> \
   --notes-file CHANGELOG.md
 ```
 
+## 4b) The map tiles a release will use
+
+The default tile host is the public OpenStreetMap server, which is fine for a development
+build and **not** fine for a distributed app without prior permission from the OSM
+Foundation (docs/SERVICE_LIMITS.md §2). `release.yml` refuses a `v*` tag while that is
+still the case, so a release cannot go out by accident:
+
+```bash
+python3 ci/check-tile-provider.py                      # is the source consistent?
+python3 ci/check-tile-provider.py \
+  --ref "$GITHUB_REF" --tile-server "$MAP_TILE_SERVER" # what would the policy decide?
+```
+
+Pick a provider (the options and their limits are in §2.2 of that document) and set:
+
+| Where | Name | Value |
+|---|---|---|
+| repository **variable** | `MEMORYMAP_TILE_SERVER` | the template, e.g. `https://api.maptiler.com/maps/basic-v2/{z}/{x}/{y}.png?key={key}` |
+| repository **variable** | `MEMORYMAP_TILE_ATTRIBUTION` | the credit that host requires |
+| repository **secret** | `MEMORYMAP_TILE_KEY` | the key, when the host wants one |
+| repository **variable** | `MEMORYMAP_OSM_PERMITTED` | `true` **only** if permission was granted for the public OSM tiles |
+| `local.properties` (never committed) | `MAP_TILE_SERVER`, `MAP_ATTRIBUTION`, `MAP_TILE_KEY`, `MAP_MAX_ZOOM` | the same values for a local build |
+
+For a local build the names have no `MEMORYMAP_` prefix because they are build inputs, not
+CI secrets to publish. The key is never committed: `ci/check-keystore-leaks.py` reads the
+index for key-shaped files, and `local.properties` is ignored.
+
 ## 5) F-Droid preparation
 
 F-Droid builds from source, so the repository itself must be reproducible:

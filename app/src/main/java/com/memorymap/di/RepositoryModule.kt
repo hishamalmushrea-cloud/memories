@@ -151,6 +151,9 @@ abstract class RepositoryModule {
         fun provideMapProvider(): MapProvider = MapProviders.fromConfig(
             tileTemplate = BuildConfig.MAP_TILE_SERVER,
             attribution = BuildConfig.MAP_ATTRIBUTION,
+            id = BuildConfig.MAP_TILE_PROVIDER_ID,
+            maxZoom = BuildConfig.MAP_MAX_ZOOM,
+            apiKey = BuildConfig.MAP_TILE_KEY,
         )
 
         @Provides

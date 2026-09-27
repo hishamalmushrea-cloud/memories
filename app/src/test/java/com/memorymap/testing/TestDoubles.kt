@@ -27,9 +27,21 @@ import com.memorymap.domain.model.WipeSummary
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
 import com.memorymap.domain.repository.AuthRepository
+import com.memorymap.domain.repository.BackupOutcome
+import com.memorymap.domain.repository.BackupRepository
+import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.domain.repository.SearchRepository
+import com.memorymap.domain.model.DayContentCounts
+import com.memorymap.domain.model.SearchFilter
+import com.memorymap.domain.model.SearchResults
+import com.memorymap.domain.usecase.SearchQuery
+import com.memorymap.util.backup.BackupCounts
+import com.memorymap.util.backup.BackupManifest
+import java.time.LocalDate
+import kotlinx.coroutines.flow.MutableSharedFlow
 import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.UploadBytes
 import kotlinx.coroutines.flow.Flow
@@ -508,5 +520,212 @@ class RecordingImageOptimizer : ImageOptimizer {
         asked += path
         val prepared = replacement ?: return UploadBytes(bytes, fallbackExtension)
         return UploadBytes(prepared, extension)
+    }
+}
+
+
+/**
+ * An auth repository that remembers what it was asked to do.
+ *
+ * `FakeAuthRepository` answers "who is signed in" and nothing else, which is all most
+ * tests need. The sign-in screen needs more than that: whether a second tap while a
+ * request is in flight sends a second request, whether the email was trimmed before it
+ * was sent, and which call each mode made. Those are questions about the calls, so this
+ * double keeps them.
+ *
+ * The results are settable rather than fixed, because a failure is a case the screen has
+ * to render and not an exception to avoid.
+ */
+class RecordingAuthRepository(
+    userId: String? = "user-1",
+    var signInResult: AuthRepository.Result = AuthRepository.Result.Success,
+    var signUpResult: AuthRepository.Result = AuthRepository.Result.Success,
+    var resetResult: AuthRepository.Result = AuthRepository.Result.Success,
+) : AuthRepository {
+
+    private val id = MutableStateFlow(userId)
+
+    /** Every call this double received, in order, as `name(argument, ...)`. */
+    val calls = mutableListOf<String>()
+
+    override val currentUserId: StateFlow<String?> = id.asStateFlow()
+
+    override val authState: StateFlow<AuthState> = MutableStateFlow(
+        if (userId == null) AuthState.SignedOut
+        else AuthState.SignedIn(User(id = userId, email = "", displayName = ""), false),
+    )
+
+    override val isCloudConfigured: Boolean = true
+
+    override suspend fun restoreSession() {
+        calls += "restoreSession"
+    }
+
+    override suspend fun signUp(email: String, password: String, displayName: String): AuthRepository.Result {
+        calls += "signUp($email,$password,$displayName)"
+        return signUpResult
+    }
+
+    override suspend fun signIn(email: String, password: String): AuthRepository.Result {
+        calls += "signIn($email,$password)"
+        return signInResult
+    }
+
+    override suspend fun resetPassword(email: String): AuthRepository.Result {
+        calls += "resetPassword($email)"
+        return resetResult
+    }
+
+    override suspend fun signOut() {
+        calls += "signOut"
+        id.value = null
+    }
+
+    override suspend fun continueOffline(displayName: String?): User {
+        calls += "continueOffline(${displayName.orEmpty()})"
+        val user = User(id = id.value ?: "local-user", email = "", displayName = displayName.orEmpty())
+        id.value = user.id
+        return user
+    }
+
+    override suspend fun deleteAccount(): AuthRepository.Deletion {
+        calls += "deleteAccount"
+        return AuthRepository.Deletion.NOT_CONFIGURED
+    }
+}
+
+/**
+ * A backup repository with settable answers.
+ *
+ * The export/import screen is a sequence of decisions - what the archive says, whether it
+ * is a format this build can read, and what happens after the person confirms - and every
+ * one of them has a branch that only runs when the answer is not the happy one. This
+ * double lets a test choose the answer per call and check what the screen did with it.
+ */
+class RecordingBackupRepository(
+    var exportOutcome: BackupOutcome = BackupOutcome.Exported(manifest(), mediaCopied = 0, mediaMissing = 0),
+    var importOutcome: BackupOutcome = BackupOutcome.Imported(BackupCounts(), mediaRestored = 0, skipped = 0),
+    var manifestToInspect: BackupManifest? = manifest(),
+) : BackupRepository {
+
+    val calls = mutableListOf<String>()
+
+    /** Everything [inspect] was asked about, so a test can see the folder that was picked. */
+    val inspected = mutableListOf<String>()
+
+    override suspend fun export(userId: String, treeUri: String): BackupOutcome {
+        calls += "export($userId,$treeUri)"
+        return exportOutcome
+    }
+
+    override suspend fun inspect(treeUri: String): BackupManifest? {
+        calls += "inspect($treeUri)"
+        inspected += treeUri
+        return manifestToInspect
+    }
+
+    override suspend fun import(userId: String, treeUri: String): BackupOutcome {
+        calls += "import($userId,$treeUri)"
+        return importOutcome
+    }
+
+    companion object {
+        /** A manifest that [BackupPlanner.validate] accepts. */
+        fun manifest(
+            formatVersion: Int = 1,
+            createdAtEpochMs: Long = 1_700_000_000_000L,
+        ) = BackupManifest(
+            formatVersion = formatVersion,
+            appVersion = "0.1.0",
+            createdAtEpochMs = createdAtEpochMs,
+            counts = BackupCounts(memories = 3, dailyEntries = 2, people = 1, places = 1),
+        )
+    }
+}
+
+/**
+ * A diary repository whose period flow the test drives.
+ *
+ * The week/month/year pages are one aggregation with three windows, so what is worth
+ * checking is the window: that a month asks for its first and last day, that the same
+ * window twice does not restart the collection, and that a new window replaces the old
+ * one. This records the windows and emits whatever the test pushes.
+ *
+ * The methods the period screens never call are implemented to fail loudly rather than to
+ * return something plausible, because a double that answers a question nobody asked can
+ * hide the day the question is asked for real.
+ */
+class RecordingDiaryRepository : DiaryRepository {
+
+    /** Every `watchDayCounts` window, in order. */
+    val windows = mutableListOf<Pair<LocalDate, LocalDate>>()
+
+    /** The counts the next collection emits. */
+    var counts: List<DayContentCounts> = emptyList()
+
+    /** When true, the flow fails instead of emitting: the screen must survive that. */
+    var fails: Boolean = false
+
+    private val emissions = MutableSharedFlow<List<DayContentCounts>>(replay = 1)
+
+    override fun watchDayCounts(
+        userId: String,
+        from: LocalDate,
+        to: LocalDate,
+    ): Flow<List<DayContentCounts>> {
+        windows += from to to
+        if (fails) return kotlinx.coroutines.flow.flow { throw IllegalStateException("the database is closed") }
+        return emissions
+    }
+
+    /** Pushes one emission to whoever is collecting. */
+    suspend fun emit(values: List<DayContentCounts>) {
+        counts = values
+        emissions.emit(values)
+    }
+
+    override fun watchDay(userId: String, date: LocalDate) = unused("watchDay")
+    override fun watchRange(userId: String, from: LocalDate, to: LocalDate) = unused("watchRange")
+    override fun watchLocated(userId: String) = unused("watchLocated")
+    override suspend fun getEntry(id: String) = unused("getEntry")
+    override suspend fun saveEntry(entry: DailyEntry, personIds: List<String>, placeIds: List<String>) =
+        unused("saveEntry")
+    override suspend fun peopleOf(entryId: String) = unused("peopleOf")
+    override suspend fun placesOf(entryId: String) = unused("placesOf")
+    override suspend fun deleteEntry(id: String) = unused("deleteEntry")
+    override suspend fun getDiaryNote(userId: String, date: LocalDate) = unused("getDiaryNote")
+    override suspend fun saveDiaryNote(userId: String, date: LocalDate, text: String) = unused("saveDiaryNote")
+    override suspend fun search(userId: String, query: String) = unused("search")
+
+    private fun unused(name: String): Nothing =
+        throw AssertionError("RecordingDiaryRepository.$name was called by a period screen, which never should")
+}
+
+/**
+ * A search repository that records the queries it was given.
+ *
+ * The search box has two behaviours worth proving: the query that reaches the repository is
+ * the *parsed* one (so `مع أحمد` becomes a person filter rather than a text scan), and a
+ * burst of typing produces one call rather than one per keystroke.
+ */
+class RecordingSearchRepository(
+    var results: (SearchQuery) -> SearchResults = { SearchResults(query = it) },
+) : SearchRepository {
+
+    val queries = mutableListOf<SearchQuery>()
+    val filters = mutableListOf<SearchFilter>()
+
+    /** When true, the next search throws - the screen must survive a failing database. */
+    var fails: Boolean = false
+
+    override suspend fun search(
+        userId: String,
+        query: SearchQuery,
+        filter: SearchFilter,
+    ): SearchResults {
+        queries += query
+        filters += filter
+        if (fails) throw IllegalStateException("the query plan failed")
+        return results(query)
     }
 }

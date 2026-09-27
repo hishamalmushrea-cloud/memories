@@ -118,6 +118,11 @@ jobs:
       # The rule about signing is a decision, so it is run as one: the same script the
       # release workflow consults is given every situation a run can be in, and the
       # answers are compared. A policy that is only read is a policy nobody has tested.
+      # The other half of "what would a release build ship": the tile host. The static
+      # half runs here; the release workflow asks the same script the publishing question.
+      - name: Check the tile provider configuration
+        run: python3 ci/check-tile-provider.py
+
       - name: Check the release signing policy against every situation
         run: |
           set -uo pipefail
@@ -217,6 +222,9 @@ jobs:
       # rehearsal without signing would leave untested until release day.
       - name: Prove the release build signs with the key it is given
         env:
+          MAP_TILE_SERVER: ${{ vars.MEMORYMAP_TILE_SERVER }}
+          MAP_TILE_KEY: ${{ secrets.MEMORYMAP_TILE_KEY }}
+          MAP_ATTRIBUTION: ${{ vars.MEMORYMAP_TILE_ATTRIBUTION }}
           KEYSTORE_B64: ${{ secrets.MEMORYMAP_KEYSTORE_B64 }}
           KEYSTORE_PASSWORD: ${{ secrets.MEMORYMAP_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.MEMORYMAP_KEY_ALIAS }}
@@ -229,11 +237,19 @@ jobs:
           {
             bash ci/prepare-signing-keystore.sh
             . /tmp/signing/signing.env
+            # Whatever tile configuration this repository has is passed the same way a
+            # release passes it, so the property plumbing is exercised on every push
+            # rather than first on the run that publishes.
+            TILE_ARGS=()
+            [ -n "${MAP_TILE_SERVER:-}" ] && TILE_ARGS+=("-PMAP_TILE_SERVER=$MAP_TILE_SERVER")
+            [ -n "${MAP_TILE_KEY:-}" ] && TILE_ARGS+=("-PMAP_TILE_KEY=$MAP_TILE_KEY")
+            [ -n "${MAP_ATTRIBUTION:-}" ] && TILE_ARGS+=("-PMAP_ATTRIBUTION=$MAP_ATTRIBUTION")
             ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace \
               -PMEMORYMAP_KEYSTORE="$SIGNING_KEYSTORE" \
               -PMEMORYMAP_KEYSTORE_PASSWORD="$SIGNING_STORE_PASSWORD" \
               -PMEMORYMAP_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
-              -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD"
+              -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD" \
+              "${TILE_ARGS[@]}"
             # Both artifacts, because they are read by different tools: the APK's
             # certificate comes from the APK Signing Block (no JAR signature exists at
             # minSdk 26) and the bundle's from the JAR signature. A release run would

@@ -223,6 +223,21 @@ def workflow_secrets():
     return names
 
 
+def workflow_variables():
+    """Every `vars.NAME` a workflow reads.
+
+    A repository *variable* is not a secret: it is a stated configuration value, like
+    "which tile host this release uses". They are checked here for the same reason the
+    secrets are - a value a workflow reads that no document explains is a value nobody can
+    set correctly - but they are a different family, so they are not required to appear in
+    the secrets table.
+    """
+    names = set()
+    for path in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        names |= set(re.findall(r"vars\.([A-Z][A-Z0-9_]*)", path.read_text(encoding="utf-8")))
+    return names
+
+
 def build_properties():
     """Every `-PMEMORYMAP_...` property the build itself reads."""
     text = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
@@ -299,8 +314,9 @@ def main() -> int:
                 f"document"
             )
 
-    # ------------------------------------------------------------- the secret names
+    # --------------------------------------------- the secret and variable names
     secrets = workflow_secrets()
+    variables = workflow_variables()
     properties = build_properties()
     documented = documented_names()
 
@@ -309,7 +325,12 @@ def main() -> int:
             f"a workflow reads the secret {name}, which docs/RELEASE.md never mentions - a "
             f"release would fall back to debug signing and say nothing"
         )
-    for name in sorted(documented - secrets - properties):
+    for name in sorted(variables - documented):
+        problems.append(
+            f"a workflow reads the repository variable {name}, which docs/RELEASE.md never "
+            f"mentions - nobody could set it, and the default would be used silently"
+        )
+    for name in sorted(documented - secrets - variables - properties):
         problems.append(
             f"docs/RELEASE.md tells a maintainer to create {name}, and nothing reads it"
         )
@@ -326,7 +347,8 @@ def main() -> int:
         return 1
 
     print(f"document check: PASS ({checked} numeric claims, {paths} paths and "
-          f"{len(secrets)} secret names agree with the repository)")
+          f"{len(secrets)} secret names, {len(variables)} repository variable names "
+          f"agree with the repository)")
     return 0
 
 

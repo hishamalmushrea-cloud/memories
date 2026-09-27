@@ -84,6 +84,84 @@ class TileServerMapProviderTest {
     }
 
     @Test
+    fun `a keyed template substitutes the key where it says to`() {
+        val provider = TileServerMapProvider(
+            id = "maptiler",
+            tileTemplate = "https://api.example.org/maps/basic/{z}/{x}/{y}.png?key={key}",
+            attribution = "© Example",
+            apiKey = "abc123",
+        )
+
+        assertEquals(
+            "https://api.example.org/maps/basic/3/2/1.png?key=abc123",
+            provider.tileUrl(3, 2, 1),
+        )
+        assertTrue(provider.needsApiKey())
+        assertTrue(provider.isUsable())
+    }
+
+    @Test
+    fun `a template without a key placeholder ignores the key entirely`() {
+        val provider = TileServerMapProvider(
+            id = "plain",
+            tileTemplate = template,
+            attribution = "© Example tiles",
+            apiKey = "unused",
+        )
+
+        assertEquals("https://tiles.example.org/1/0/1.png", provider.tileUrl(1, 0, 1))
+        assertTrue(!provider.needsApiKey())
+    }
+
+    @Test
+    fun `an empty key leaves the placeholder in place rather than dropping the query`() {
+        // The build refuses this case before publishing (ci/check-tile-provider.py), and
+        // the screen shows whatever the host returns for the literal URL. What must not
+        // happen is a URL assembled from half a template.
+        val provider = TileServerMapProvider(
+            id = "maptiler",
+            tileTemplate = "https://api.example.org/{z}/{x}/{y}.png?key={key}",
+            attribution = "© Example",
+            apiKey = "",
+        )
+
+        assertEquals("https://api.example.org/1/0/1.png?key={key}", provider.tileUrl(1, 0, 1))
+        assertTrue(provider.needsApiKey())
+    }
+
+    @Test
+    fun `the zoom ceiling comes from the provider, not from a constant`() {
+        val provider = MapProviders.fromConfig(
+            tileTemplate = template,
+            attribution = "© Example tiles",
+            id = "shallow",
+            maxZoom = 15,
+        )
+
+        assertEquals(15, provider.maxZoom)
+        assertTrue(provider.tileUrl(19, 1, 1).startsWith("https://tiles.example.org/15/"))
+    }
+
+    @Test
+    fun `the configured provider id travels with the provider`() {
+        val provider = MapProviders.fromConfig(
+            tileTemplate = template,
+            attribution = "© Example tiles",
+            id = "maptiler",
+        )
+
+        assertEquals("maptiler", provider.id)
+    }
+
+    @Test
+    fun `the public osm host is recognisable, because a release must not use it`() {
+        assertTrue(TileServerMapProvider.pointsAtPublicOsm(TileServerMapProvider.OSM_TEMPLATE))
+        assertTrue(!TileServerMapProvider.pointsAtPublicOsm(template))
+        assertTrue(TileServerMapProvider.isTemplateUsable(TileServerMapProvider.OSM_TEMPLATE))
+        assertTrue(!TileServerMapProvider.isTemplateUsable("https://example.org/tiles.png"))
+    }
+
+    @Test
     fun `different tiles produce different urls, so nothing collides in the cache`() {
         val provider = provider()
 

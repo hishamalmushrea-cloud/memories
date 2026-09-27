@@ -59,8 +59,25 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${secret("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("SUPABASE_ANON_KEY")}\"")
-        buildConfigField("String", "MAP_TILE_SERVER", "\"https://tile.openstreetmap.org/{z}/{x}/{y}.png\"")
-        buildConfigField("String", "MAP_ATTRIBUTION", "\"© OpenStreetMap contributors\"")
+        // The map tile source. It is a deployment fact rather than a constant: the
+        // public OpenStreetMap tiles may be used by a low-volume development build, but
+        // their policy forbids a distributed app without the foundation's prior
+        // permission (docs/SERVICE_LIMITS.md section 2). So the host, the credit it
+        // requires, the zoom it serves and the key it may need are all build settings,
+        // and ci/check-tile-provider.py refuses to publish while the effective value is
+        // still the public OSM server.
+        val tileServer = secret("MAP_TILE_SERVER")
+            .ifBlank { "https://tile.openstreetmap.org/{z}/{x}/{y}.png" }
+        val tileAttribution = secret("MAP_ATTRIBUTION")
+            .ifBlank { "© OpenStreetMap contributors" }
+        val tileId = secret("MAP_TILE_PROVIDER_ID").ifBlank { "openstreetmap" }
+        val tileKey = secret("MAP_TILE_KEY")
+        val tileMaxZoom = secret("MAP_MAX_ZOOM").toIntOrNull()?.takeIf { it in 1..22 } ?: 19
+        buildConfigField("String", "MAP_TILE_SERVER", "\"$tileServer\"")
+        buildConfigField("String", "MAP_ATTRIBUTION", "\"$tileAttribution\"")
+        buildConfigField("String", "MAP_TILE_PROVIDER_ID", "\"$tileId\"")
+        buildConfigField("String", "MAP_TILE_KEY", "\"$tileKey\"")
+        buildConfigField("int", "MAP_MAX_ZOOM", "$tileMaxZoom")
         // The largest single object this project accepts in cloud storage, which
         // is a plan setting on the Supabase side: 50 MB on the free plan, larger
         // once paid. Like the tile server, it is a deployment fact, so it is a
