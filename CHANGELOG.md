@@ -103,6 +103,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   pushes a memory together with its link set - which was empty - so the
   server's links for that memory were cleared. An archive written before this
   change still reads: the fields are optional and simply hold no links.
+- An import no longer fails when the archive names a record it does not carry.
+  Linking a memory to a person, or an event to a place, is a foreign key, and the
+  documents inside an archive are written one after another - a person deleted on
+  the exporting phone in between leaves a link with nothing behind it. SQLite
+  refused the whole import, and the user saw an operation that did nothing. A link
+  with no record behind it is now dropped and the import carries on: the records
+  are what is being restored.
 
 - On Android 12 and later nothing was declared about backup extraction, which is
   what the `DataExtractionRules` lint check points at: the platform reads

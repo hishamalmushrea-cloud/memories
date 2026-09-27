@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.documentfile.provider.DocumentFile
 import com.memorymap.BuildConfig
 import com.memorymap.data.local.Mappers
+import com.memorymap.data.local.entities.DailyEntryEntity
 import com.memorymap.data.local.dao.DailyEntryDao
 import com.memorymap.data.local.dao.MediaDao
 import com.memorymap.data.local.dao.MemoryDao
@@ -18,6 +19,7 @@ import com.memorymap.util.MmLog
 import com.memorymap.util.MediaStore
 import com.memorymap.util.backup.BackupArchive
 import com.memorymap.util.backup.BackupCounts
+import com.memorymap.util.backup.EntryBackup
 import com.memorymap.util.backup.BackupManifest
 import com.memorymap.util.backup.BackupMappers
 import com.memorymap.util.backup.BackupPlanner
@@ -218,16 +220,16 @@ class BackupRepositoryImpl @Inject constructor(
                     )
                     when (decision) {
                         BackupMerge.Decision.INSERT -> {
-                            dailyEntryDao.upsert(row.toEntity())
-                            dailyEntryDao.replacePeople(row.id, row.personIds)
-                            dailyEntryDao.replacePlaces(row.id, row.placeIds)
+                            dailyEntryDao.upsert(entryFor(row, SyncStatus.PENDING_CREATE))
+                            dailyEntryDao.replacePeople(row.id, peoplePresent(row.personIds))
+                            dailyEntryDao.replacePlaces(row.id, placesPresent(row.placeIds))
                             entriesRestored++
                         }
 
                         BackupMerge.Decision.UPDATE -> {
-                            dailyEntryDao.upsert(row.toEntity(SyncStatus.PENDING_UPDATE))
-                            dailyEntryDao.replacePeople(row.id, row.personIds)
-                            dailyEntryDao.replacePlaces(row.id, row.placeIds)
+                            dailyEntryDao.upsert(entryFor(row, SyncStatus.PENDING_UPDATE))
+                            dailyEntryDao.replacePeople(row.id, peoplePresent(row.personIds))
+                            dailyEntryDao.replacePlaces(row.id, placesPresent(row.placeIds))
                             entriesRestored++
                         }
 
@@ -259,8 +261,41 @@ class BackupRepositoryImpl @Inject constructor(
      * an empty list is then correct - there is nothing to restore.
      */
     private suspend fun restoreLinks(memoryId: String, personIds: List<String>, placeIds: List<String>) {
-        memoryDao.replacePeople(memoryId, personIds)
-        memoryDao.replacePlaces(memoryId, placeIds)
+        memoryDao.replacePeople(memoryId, peoplePresent(personIds))
+        memoryDao.replacePlaces(memoryId, placesPresent(placeIds))
+    }
+
+    /**
+     * The links in an archive that this device can actually point at.
+     *
+     * The join tables are foreign keys, so a link to a person the archive does not
+     * carry - a person deleted on the exporting phone between the export of the
+     * people document and the export of the memories, which is possible because
+     * the two are written one after the other - would fail the whole import with a
+     * constraint error the user can do nothing about. The link is dropped instead:
+     * the memory is what they are restoring.
+     */
+    private suspend fun peoplePresent(ids: List<String>): List<String> =
+        ids.filter { personDao.getById(it) != null }
+
+    private suspend fun placesPresent(ids: List<String>): List<String> =
+        ids.filter { placeDao.getById(it) != null }
+
+    /**
+     * A diary event as this device can store it.
+     *
+     * An event points at a place by id, and that is a foreign key too: an archive
+     * whose place is gone carries the id without the place. The event is kept and
+     * the pointer dropped, because its text is what the user is restoring.
+     */
+    private suspend fun entryFor(row: EntryBackup, status: SyncStatus): DailyEntryEntity {
+        val entity = with(BackupMappers) { row.toEntity(status) }
+        val placeId = entity.placeId
+        return if (placeId != null && placeDao.getById(placeId) == null) {
+            entity.copy(placeId = null)
+        } else {
+            entity
+        }
     }
 
     /**

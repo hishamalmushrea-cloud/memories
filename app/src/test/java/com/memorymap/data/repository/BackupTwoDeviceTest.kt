@@ -15,12 +15,17 @@ import com.memorymap.domain.model.SyncStatus
 import com.memorymap.domain.repository.BackupOutcome
 import com.memorymap.util.MediaStore
 import com.memorymap.util.backup.BackupArchive
+import com.memorymap.util.backup.BackupLayout
+import com.memorymap.util.backup.MemoryBackup
 import java.io.File
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -109,12 +114,14 @@ class BackupTwoDeviceTest {
         assertEquals("SHARED", memory.visibility)
 
         // The links, which are what makes a restored archive the same archive.
-        assertEquals(listOf("p1", "p2"), second.memoryDao().peopleOf("m1"))
-        assertEquals(listOf("pl1"), second.memoryDao().placesOf("m1"))
-        assertEquals(listOf("p1"), second.dailyEntryDao().peopleOf("e1"))
+        // Compared as sets: a join table has no order, and asserting one would
+        // make the test depend on insertion order rather than on the links.
+        assertEquals(setOf("p1", "p2"), second.memoryDao().peopleOf("m1").toSet())
+        assertEquals(setOf("pl1"), second.memoryDao().placesOf("m1").toSet())
+        assertEquals(setOf("p1"), second.dailyEntryDao().peopleOf("e1").toSet())
 
         // The second memory had no location and no links; it comes back with none.
-        assertEquals(emptyList<String>(), second.memoryDao().peopleOf("m2"))
+        assertTrue(second.memoryDao().peopleOf("m2").isEmpty())
         assertEquals(null, second.memoryDao().getById("m2")!!.latitude)
 
         // The attachment's bytes, in a file that exists on this phone.
@@ -164,7 +171,7 @@ class BackupTwoDeviceTest {
         // every one of them was already there, and nothing was overwritten.
         assertEquals("nothing was new, so everything was skipped", 7, again.skipped)
         // And the links are still there, not cleared by the second pass.
-        assertEquals(listOf("p1", "p2"), second.memoryDao().peopleOf("m1"))
+        assertEquals(setOf("p1", "p2"), second.memoryDao().peopleOf("m1").toSet())
     }
 
     @Test
@@ -179,7 +186,36 @@ class BackupTwoDeviceTest {
 
         // The archive is not newer than the row, so the row is skipped and its
         // links are left exactly as this phone has them.
-        assertEquals(listOf("p1"), second.memoryDao().peopleOf("m1"))
+        assertEquals(setOf("p1"), second.memoryDao().peopleOf("m1").toSet())
+    }
+
+    @Test
+    fun `an archive whose link names a record it does not carry still imports`() = runTest {
+        seedTheFirstPhone()
+        firstPhone.export(userId, treeUri)
+        // A person deleted on the exporting phone between the people document and
+        // the memories document leaves a link with no person behind it. The two
+        // documents are written one after the other, so this is a race the format
+        // can produce, and it must not turn into an import that fails with a
+        // constraint error the user can do nothing about.
+        // Rewritten through the format's own serialiser rather than by editing the
+        // text, so the test cannot pass or fail on how the writer spaces a colon.
+        val memories = File(archiveDir, BackupLayout.MEMORIES)
+        val rows = json.decodeFromString<List<MemoryBackup>>(memories.readText())
+        memories.writeText(
+            json.encodeToString(
+                rows.map { if (it.id == "m1") it.copy(personIds = it.personIds + "p-gone") else it },
+            ),
+        )
+        assertTrue("the tampered link must be in the archive", memories.readText().contains("p-gone"))
+
+        val restored = secondPhone.import(userId, treeUri) as BackupOutcome.Imported
+
+        assertEquals(2, restored.counts.memories)
+        // The two people who are in the archive are linked; the one who is not is
+        // dropped rather than invented.
+        assertEquals(setOf("p1", "p2"), second.memoryDao().peopleOf("m1").toSet())
+        assertNull("no person is invented for the missing id", second.personDao().getById("p-gone"))
     }
 
     private fun database(): MemoryMapDatabase =
@@ -233,9 +269,6 @@ class BackupTwoDeviceTest {
                 syncStatus = SyncStatus.SYNCED.name,
             ),
         )
-        first.memoryDao().replacePeople("m1", listOf("p1", "p2"))
-        first.memoryDao().replacePlaces("m1", listOf("pl1"))
-
         first.dailyEntryDao().upsert(
             DailyEntryEntity(
                 id = "e1",
@@ -250,9 +283,6 @@ class BackupTwoDeviceTest {
                 syncStatus = SyncStatus.SYNCED.name,
             ),
         )
-        first.dailyEntryDao().replacePeople("e1", listOf("p1"))
-        first.dailyEntryDao().replacePlaces("e1", listOf("pl1"))
-
         first.personDao().upsert(
             PersonEntity(
                 id = "p1",
@@ -285,6 +315,13 @@ class BackupTwoDeviceTest {
                 syncStatus = SyncStatus.SYNCED.name,
             ),
         )
+
+        // The links last: both sides of a join are foreign keys, and a link to a
+        // person who is not in the database yet is refused by SQLite.
+        first.memoryDao().replacePeople("m1", listOf("p1", "p2"))
+        first.memoryDao().replacePlaces("m1", listOf("pl1"))
+        first.dailyEntryDao().replacePeople("e1", listOf("p1"))
+        first.dailyEntryDao().replacePlaces("e1", listOf("pl1"))
 
         val photo = File(MediaStore.dir(context, MediaType.PHOTO), "m1_photo.jpg")
         photo.writeBytes(byteArrayOf(1, 2, 3, 4, 5, 6))

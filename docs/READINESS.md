@@ -150,10 +150,18 @@ memory restored on a new phone came back without the people who were in it and
 with no place link, and because a restored row is queued for upload, the next
 sync sent it with an empty link set - which clears the links the server still
 held. `person_ids` and `place_ids` are now written for memories and diary
-events and restored on import (never on a row the archive is older than).
+events and restored on import (never on a row the archive is older than). The
+same investigation found a second failure beside it: a link naming a record the
+archive does not carry - which happens whenever a person is deleted on the
+exporting phone between the people document and the memories document - is a
+foreign key violation, and it failed the whole import rather than that one link.
+Such a link is now dropped and the records are still restored.
 
-**Verified by.** Three tests, each of which fails if the behaviour comes back:
+**Verified by.** Four tests, each of which fails if the behaviour comes back:
 
+- `an archive whose link names a record it does not carry still imports` tampers
+  with a real archive through the format's own serialiser and asserts the records
+  arrive and the missing link is dropped rather than invented.
 - `BackupTwoDeviceTest` runs two real Room databases against one archive folder,
   the closest thing to two phones that can run here. It asserts the content,
   the links, the attachment's bytes in a file that exists, that everything
