@@ -58,7 +58,7 @@ class BackupRecordsTest {
     fun `a memory survives a round trip through the archive`() {
         val original = memory()
 
-        val restored = original.toBackup().toEntity()
+        val restored = original.toBackup().toEntity(original.userId)
 
         assertEquals(original.id, restored.id)
         assertEquals(original.userId, restored.userId)
@@ -76,14 +76,14 @@ class BackupRecordsTest {
 
     @Test
     fun `a restored record is pending so it is actually pushed`() {
-        val restored = memory().toBackup().toEntity()
+        val restored = memory().toBackup().toEntity(memory().userId)
 
         assertEquals(SyncStatus.PENDING_CREATE.name, restored.syncStatus)
     }
 
     @Test
     fun `a record replacing an existing row is pending as an update`() {
-        val restored = memory().toBackup().toEntity(SyncStatus.PENDING_UPDATE)
+        val restored = memory().toBackup().toEntity(memory().userId, SyncStatus.PENDING_UPDATE)
 
         assertEquals(SyncStatus.PENDING_UPDATE.name, restored.syncStatus)
     }
@@ -143,7 +143,7 @@ class BackupRecordsTest {
             syncStatus = "SYNCED",
         )
 
-        val restored = original.toBackup().toEntity()
+        val restored = original.toBackup().toEntity(original.userId)
 
         assertEquals(original.placeId, restored.placeId)
         assertEquals(original.emotion, restored.emotion)
@@ -176,8 +176,8 @@ class BackupRecordsTest {
             updatedAt = "2024-01-01T00:00:00",
         )
 
-        assertEquals(person, person.toBackup().toEntity())
-        assertEquals(place, place.toBackup().toEntity())
+        assertEquals(person, person.toBackup().toEntity(person.userId))
+        assertEquals(place, place.toBackup().toEntity(place.userId))
     }
 
     @Test

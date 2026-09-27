@@ -132,6 +132,16 @@ to 25), one group per
 
 ### Fixed
 
+- **A backup restored while signed in as a different account landed in the wrong
+  place.** Restoring copied the exporting account's id into every row, so the
+  import reported the right counts and the person saw nothing: the memories were
+  filed under an id the app never asks for, and each one was queued for upload
+  under an id the server's row-level security refuses - invisible locally and
+  unsyncable forever. Restored rows now belong to the account doing the import,
+  which is the account holding the archive now. The restore mappers take the
+  owner as a required argument so a future caller cannot forget it, and
+  `BackupTwoDeviceTest` covers the case directly.
+
 - Three ways the release workflow would have failed on its first execution,
   found by reading it against the workflow that does run. Its Android SDK step
   was written separately from the build workflow's: `yes | sdkmanager` under

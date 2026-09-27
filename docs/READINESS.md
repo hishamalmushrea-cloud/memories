@@ -209,11 +209,21 @@ Such a link is now dropped and the records are still restored.
   refused the row, so the retry sends the row and uploads nothing a second
   time. The bucket counts its calls now, which is what makes that checkable.
 
-**Known limitation.** The manifest has no account in it, so an archive written
-for one account and restored while signed in as another writes rows under the
-archive's account: invisible, never uploaded, and not deleted. Nothing is lost
-and nothing leaks, but the user is told nothing. Left as it is rather than
-silently re-owning somebody else's records; see the open issue list.
+**Found later and fixed.** The manifest has no account in it, and an earlier
+import copied the exporting account's id into every row it restored. An archive
+written for one account and restored while signed in as another therefore looked
+imported - the counts were right - while every row was filed under an id the app
+never asks for and queued for upload under an id the server refuses: invisible
+locally, unsyncable forever, and nothing said to the user. Restored rows now
+belong to the account doing the import, which is the account holding the archive
+now, and the restore mappers take that owner as a required argument so a caller
+cannot forget it. `BackupTwoDeviceTest` restores one account's archive into
+another and checks both that the rows are visible and that none carries the
+exporting id.
+
+The remaining question is whether the manifest should name the account it came
+from, so the restore can say "this archive belonged to another account" before
+writing anything. Today it does the useful thing silently instead.
 ## Stage 7 — release mechanics  (prepared, not executed)
 
 **Why.** `docs/RELEASE.md` describes the flow; nothing has executed it. A

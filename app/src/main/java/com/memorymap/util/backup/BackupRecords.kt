@@ -141,15 +141,26 @@ object BackupMappers {
     )
 
     /**
-     * Restored rows come back pending.
+     * A restored row, owned by the account doing the import.
      *
-     * Marking them `SYNCED` would claim an upload that never happened. A row the
-     * device already had a copy of comes back as an update; a row it had never
-     * seen comes back as a create.
+     * [ownerId] is required rather than taken from the archive, and that is the
+     * point: an archive written while signed in as one account can be imported
+     * while signed in as another, and a row carrying the exporting account's id
+     * would be invisible to the person who just restored it - and queued for
+     * upload under an id the server's row-level security rejects, leaving a
+     * record that can never sync and never be seen. The bytes are the user's own
+     * either way; who owns them is the account holding them now.
+     *
+     * Restored rows come back pending. Marking them `SYNCED` would claim an upload
+     * that never happened. A row the device already had a copy of comes back as an
+     * update; a row it had never seen comes back as a create.
      */
-    fun MemoryBackup.toEntity(syncStatus: SyncStatus = SyncStatus.PENDING_CREATE) = MemoryEntity(
+    fun MemoryBackup.toEntity(
+        ownerId: String,
+        syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    ) = MemoryEntity(
         id = id,
-        userId = userId,
+        userId = ownerId,
         title = title,
         text = text,
         latitude = latitude,
@@ -184,9 +195,13 @@ object BackupMappers {
         placeIds = placeIds,
     )
 
-    fun EntryBackup.toEntity(syncStatus: SyncStatus = SyncStatus.PENDING_CREATE) = DailyEntryEntity(
+    /** A restored diary row; see [MemoryBackup.toEntity] for why [ownerId] is required. */
+    fun EntryBackup.toEntity(
+        ownerId: String,
+        syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    ) = DailyEntryEntity(
         id = id,
-        userId = userId,
+        userId = ownerId,
         date = date,
         time = time,
         title = title,
@@ -208,9 +223,10 @@ object BackupMappers {
         createdAt = createdAt,
     )
 
-    fun PersonBackup.toEntity() = PersonEntity(
+    /** A restored person; see [MemoryBackup.toEntity] for why [ownerId] is required. */
+    fun PersonBackup.toEntity(ownerId: String) = PersonEntity(
         id = id,
-        userId = userId,
+        userId = ownerId,
         name = name,
         createdAt = createdAt,
         updatedAt = createdAt,
@@ -226,9 +242,10 @@ object BackupMappers {
         createdAt = createdAt,
     )
 
-    fun PlaceBackup.toEntity() = PlaceEntity(
+    /** A restored place; see [MemoryBackup.toEntity] for why [ownerId] is required. */
+    fun PlaceBackup.toEntity(ownerId: String) = PlaceEntity(
         id = id,
-        userId = userId,
+        userId = ownerId,
         name = name,
         latitude = latitude,
         longitude = longitude,

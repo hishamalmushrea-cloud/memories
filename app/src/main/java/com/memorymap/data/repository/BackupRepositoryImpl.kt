@@ -156,6 +156,12 @@ class BackupRepositoryImpl @Inject constructor(
         archive.readManifest(root)
     }
 
+    /**
+     * Restores an archive into the account asking for it.
+     *
+     * [userId] is who owns everything afterwards, even when the archive was
+     * written by a different account: see `MemoryBackup.toEntity`.
+     */
     override suspend fun import(userId: String, treeUri: String): BackupOutcome =
         withContext(Dispatchers.IO) {
             val root = archive.root(treeUri)
@@ -176,7 +182,7 @@ class BackupRepositoryImpl @Inject constructor(
             with(BackupMappers) {
                 archive.readPeople(root).forEach { row ->
                     if (personDao.getById(row.id) == null) {
-                        personDao.upsert(row.toEntity())
+                        personDao.upsert(row.toEntity(userId))
                         peopleRestored++
                     } else {
                         skipped++
@@ -184,7 +190,7 @@ class BackupRepositoryImpl @Inject constructor(
                 }
                 archive.readPlaces(root).forEach { row ->
                     if (placeDao.getById(row.id) == null) {
-                        placeDao.upsert(row.toEntity())
+                        placeDao.upsert(row.toEntity(userId))
                         placesRestored++
                     } else {
                         skipped++
@@ -198,13 +204,13 @@ class BackupRepositoryImpl @Inject constructor(
                     )
                     when (decision) {
                         BackupMerge.Decision.INSERT -> {
-                            memoryDao.upsert(row.toEntity())
+                            memoryDao.upsert(row.toEntity(userId))
                             restoreLinks(row.id, row.personIds, row.placeIds)
                             memoriesRestored++
                         }
 
                         BackupMerge.Decision.UPDATE -> {
-                            memoryDao.upsert(row.toEntity(SyncStatus.PENDING_UPDATE))
+                            memoryDao.upsert(row.toEntity(userId, SyncStatus.PENDING_UPDATE))
                             restoreLinks(row.id, row.personIds, row.placeIds)
                             memoriesRestored++
                         }
@@ -220,14 +226,14 @@ class BackupRepositoryImpl @Inject constructor(
                     )
                     when (decision) {
                         BackupMerge.Decision.INSERT -> {
-                            dailyEntryDao.upsert(entryFor(row, SyncStatus.PENDING_CREATE))
+                            dailyEntryDao.upsert(entryFor(row, userId, SyncStatus.PENDING_CREATE))
                             dailyEntryDao.replacePeople(row.id, peoplePresent(row.personIds))
                             dailyEntryDao.replacePlaces(row.id, placesPresent(row.placeIds))
                             entriesRestored++
                         }
 
                         BackupMerge.Decision.UPDATE -> {
-                            dailyEntryDao.upsert(entryFor(row, SyncStatus.PENDING_UPDATE))
+                            dailyEntryDao.upsert(entryFor(row, userId, SyncStatus.PENDING_UPDATE))
                             dailyEntryDao.replacePeople(row.id, peoplePresent(row.personIds))
                             dailyEntryDao.replacePlaces(row.id, placesPresent(row.placeIds))
                             entriesRestored++
@@ -288,8 +294,12 @@ class BackupRepositoryImpl @Inject constructor(
      * whose place is gone carries the id without the place. The event is kept and
      * the pointer dropped, because its text is what the user is restoring.
      */
-    private suspend fun entryFor(row: EntryBackup, status: SyncStatus): DailyEntryEntity {
-        val entity = with(BackupMappers) { row.toEntity(status) }
+    private suspend fun entryFor(
+        row: EntryBackup,
+        ownerId: String,
+        status: SyncStatus,
+    ): DailyEntryEntity {
+        val entity = with(BackupMappers) { row.toEntity(ownerId, status) }
         val placeId = entity.placeId
         return if (placeId != null && placeDao.getById(placeId) == null) {
             entity.copy(placeId = null)

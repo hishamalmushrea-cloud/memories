@@ -218,6 +218,45 @@ class BackupTwoDeviceTest {
         assertNull("no person is invented for the missing id", second.personDao().getById("p-gone"))
     }
 
+    /**
+     * The archive was written by one account and is being restored into another.
+     *
+     * Restoring used to copy the exporting account's id into every row. The
+     * result looked like a successful import - the counts were right - and left
+     * the person with nothing: every row was filed under an id the app never asks
+     * for, so the memories were invisible, and each one was queued for upload
+     * under an id the server refuses, so none of them could ever sync. The bytes
+     * belong to whoever is holding the archive now.
+     */
+    @Test
+    fun `an archive from another account is restored into this one`() = runTest {
+        val other = "user-2"
+        seedTheFirstPhone()
+        firstPhone.export(userId, treeUri)
+
+        val restored = secondPhone.import(other, treeUri) as BackupOutcome.Imported
+
+        assertEquals(2, restored.counts.memories)
+        assertEquals(1, restored.counts.dailyEntries)
+        assertEquals(1, restored.mediaRestored)
+
+        // Visible to the account that restored them...
+        assertEquals(
+            setOf("m1", "m2"),
+            second.memoryDao().allForUser(other).map { it.id }.toSet(),
+        )
+        assertEquals(
+            setOf("e1"),
+            second.dailyEntryDao().allForUser(other).map { it.id }.toSet(),
+        )
+        // ...and not also filed under the account that wrote them.
+        assertTrue(second.memoryDao().allForUser(userId).isEmpty())
+        assertEquals(other, second.memoryDao().getById("m1")!!.userId)
+        assertEquals(other, second.dailyEntryDao().getById("e1")!!.userId)
+        assertEquals(other, second.personDao().getById("p1")!!.userId)
+        assertEquals(other, second.placeDao().getById("pl1")!!.userId)
+    }
+
     private fun database(): MemoryMapDatabase =
         Room.inMemoryDatabaseBuilder(context, MemoryMapDatabase::class.java)
             .allowMainThreadQueries()
