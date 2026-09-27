@@ -93,6 +93,9 @@ jobs:
       - name: Check the workflows agree with each other
         run: python3 ci/check-workflows.py
 
+      - name: Check no failure after an action would go unsaid
+        run: python3 ci/check-silent-failures.py
+
       - name: Check the release notes can be built for this version
         run: python3 ci/check-release-notes.py
 

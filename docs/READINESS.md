@@ -332,6 +332,16 @@ say it the same way) and an `errorRes` on the state it belongs to:
 | Event editor | the same two through the message it already had |
 | People and places | a name that could not be added, a delete that failed |
 
+**The guard.** `ci/check-silent-failures.py` now runs on every push. It finds every
+`onFailure` that logs under `ui/`, looks at the function around it, and fails unless
+that function reports the failure somewhere - the message may be set after the block,
+which is what `importFromUri` does when the import comes back null. Nine paths are
+exempted, each with its reason written next to it (the reads and two playback calls a
+banner over a video would only make worse), and a stale exemption is itself a failure,
+so the list cannot quietly outlive its reason. Fault-injected five ways before being
+trusted: a missing exemption, a stale one, a function that stopped reporting, a
+function that clears its message and reports nothing, and a brand-new silent failure.
+
 **What is left, deliberately.** The reads and playback: a day, a period, a set of map
 markers or a life-statistics count that fails still only reaches the log, because what
 the person sees is an empty screen, which is true and not misleading. A seek or pause

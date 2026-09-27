@@ -164,6 +164,9 @@ to 25), one group per
 
 ### Fixed
 
+- A build check keeps it that way: `ci/check-silent-failures.py` fails the build when
+  a failure under `ui/` can only reach the log, with the nine deliberate exceptions
+  (the reads, and two playback calls) listed one by one beside their reason.
 - A failure after a deliberate action now says something, everywhere it can happen.
   The memory editor reports a person or a place that could not be added, an attachment
   that could not be imported or removed, an upload request that could not be recorded,
