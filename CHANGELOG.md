@@ -45,6 +45,16 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- Dependencies refreshed as far as the pinned toolchain allows, one group per
+  green run: Robolectric 4.17, Turbine 1.2.1, androidx.test core 1.7.0 and
+  ext:junit 1.3.0, espresso 3.7.0, coroutines 1.11.0, Room 2.8.5 and Hilt 2.58.
+  Everything else on the advisory list now needs `compileSdk 37` or AGP 9, and
+  both are pinned by the specification: androidx's 2026 releases refuse to compile
+  into an app built against 36, and the Ktor/Supabase pair drags in
+  `okhttp-android:5.5.0`, which demands the same. The runs that proved it are
+  quoted in docs/READINESS.md, and moving those pins is the one open question left
+  in that stage.
+
 - Every timestamp the app writes is now a moment (`2026-09-26T22:31:05.123Z`)
   rather than a clock reading (`2026-09-26T22:31:05.123`). A clock reading means
   the moment only in the zone it was written in, and the sync engine compares a

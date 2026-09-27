@@ -124,41 +124,49 @@ left as it is`, `what is written to the database is a moment, not a clock readin
 (reads the row back out of Room), and `a remote stamp keeps the instant the server
 sent`. Three existing assertions that encoded the old design were rewritten, each
 with the reason in the test.
-## Stage 5 — dependency refresh, one group at a time  (in progress, needs CI)
+## Stage 5 — dependency refresh, one group at a time  ✅ done, up to the wall
 
-**Why.** 37 advisories were pinned versions that have moved on. Upgrading them
-all at once and pushing once turns a green build into a question about which one
-broke it.
+**Why.** 37 advisories were pinned versions that had moved on. Upgrading them all
+at once and pushing once turns a green build into a question about which one broke
+it.
 
-**What the first group found.** The report could not be worked from at all: it
-printed one message per rule, and lint reports eight of the twenty-one
-`GradleDependency` advisories without any location, so deduplicating by place
-kept the first and dropped the rest. That is fixed - advisories are keyed on the
-place and the message together - and so is the diagnostic grep, which was keeping
-AGP's `4 issues were found when checking AAR metadata` header and dropping every
-line under it that named the library and the version it wanted.
+**What moved.** Three groups, each green before the next:
 
-With both fixed, the first group (core-ktx, appcompat, splashscreen, work,
-coroutines, robolectric, turbine, the AndroidX testing artifacts) failed, and the
-failure is the one this stage exists to find early: several of those libraries
-have been released against a newer platform and refuse to be compiled into an app
-whose `compileSdk` is lower than it. This project's `compileSdk` is pinned to 36
-by the specification, so those versions wait for a `compileSdk` decision rather
-than being forced in. The ten version lines are back where they were; the report
-and diagnostic fixes stay, because they are what made the cause visible in one
-run instead of four.
+| Group | From | To | Result |
+|---|---|---|---|
+| Test-only + coroutines | Robolectric 4.15, Turbine 1.2.0, androidx.test 1.5.0/1.2.1, espresso 3.6.1, coroutines 1.10.2 | 4.17, 1.2.1, 1.7.0/1.3.0, 3.7.0, 1.11.0 | green, 448 tests |
+| Room | 2.7.1 | 2.8.5 | green; the committed schema for version 4 is unchanged by the new generator |
+| Hilt | 2.56.2 | 2.58 | green, after two failed attempts (below) |
 
-**What remains.** The refresh resumes one library per run, starting with the ones
-that cannot raise the API requirement - coroutines, robolectric, turbine, the
-testing artifacts - then Room and Hilt together (Hilt's KSP binding follows the
-compiler), then Kotlin + KSP + Compose as one group, then AGP with the Gradle
-wrapper, which the lint report also asks for at 8.14.5. The Compose BOM's newest
-release is a year ahead of the pinned one and moves with Kotlin, not before it.
+**The wall, and how each part of it was proven.** Everything else on the list is
+blocked by one of two pins, and both are decisions this project made deliberately:
+`compileSdk = 36` and AGP 8.11.1 (the specification fixes the API levels; AGP 9 is
+not compatible with the pinned `compileSdk` either). The evidence is from the runs,
+not from reading release notes:
 
-**Blocked on.** The GitHub connection, which is what runs the only environment
-that can resolve a version and build it. Nothing in this stage can be verified
-locally: there is no JDK, no Gradle distribution and no reachable Maven
-repository in this workspace.
+- `androidx.core:core-ktx:1.19.1`, `appcompat:1.8.0`, `splashscreen:1.2.0`,
+  `work:2.12.0`: the first group's build failed in `checkDebugAarMetadata`.
+- Hilt 2.60.1 and 2.59.2: *"The Hilt Android Gradle plugin is only compatible
+  with Android Gradle plugin (AGP) version 9.0.0 or higher (found Android Gradle
+  Plugin version 8.11.1)"*. 2.58 works, which matches Dagger's own note that AGP 9
+  support was held back from it on purpose.
+- Ktor 3.6.0 with supabase-kt 3.8.0: *"Dependency
+  'com.squareup.okhttp3:okhttp-android:5.5.0' requires libraries and applications
+  that depend on it to compile against version 37 or later"*. Forcing a transitive
+  downgrade of OkHttp to get around it would be a runtime NoSuchMethodError that no
+  test here would see, so the group was reverted.
+
+So the remaining advisories are not work that was skipped: they are the newest
+releases, and the newest releases target a newer platform than this project's
+specification allows. Moving the pins - `compileSdk`/`targetSdk` to 37, AGP to 9,
+Gradle to 9.1+, Kotlin to 2.4 with the Compose BOM to match - would clear most of
+the list in one coordinated step, and it is a decision about the app rather than
+about a dependency: it is recorded here as the one open question in this stage.
+
+**What is not blocked.** `androidx.hilt` 1.2.0 is left where it is on purpose even
+though its advisory is not a platform issue: it carries Hilt at runtime, and a
+runtime newer than the compiler that generated the bindings is a mismatch with no
+benefit until Hilt itself can move.
 ## Stage 6 — the round trips a user actually does  ✅ done
 
 **Why.** The unit tests cover units. Nothing had proved that a backup written

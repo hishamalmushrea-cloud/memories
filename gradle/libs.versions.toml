@@ -31,8 +31,8 @@ hilt = "2.58"
 hiltNavigationCompose = "1.2.0"
 
 # --- Supabase (client-only keys, never service_role) ---
-supabaseBom = "3.8.0"
-ktor = "3.6.0"
+supabaseBom = "3.1.1"
+ktor = "3.1.1"
 
 # --- Media / images ---
 coil = "2.7.0"
