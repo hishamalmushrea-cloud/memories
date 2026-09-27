@@ -96,6 +96,9 @@ jobs:
       - name: Check no failure after an action would go unsaid
         run: python3 ci/check-silent-failures.py
 
+      - name: Check no class extends one that cannot be extended
+        run: python3 ci/check-final-extensions.py
+
       - name: Check the release notes can be built for this version
         run: python3 ci/check-release-notes.py
 
