@@ -16,4 +16,4 @@
 # upload key was reset there first. See docs/RELEASE.md.
 #
 # Format: upper-case hex, no colons. `keytool -list -v` prints it with colons; strip them.
-SHA256=CE3CCB9790CF0A7B52524222886AC6BEEB96A01EA4D22EA1073D1283687AD2E4
+SHA256=F76390B1DB7F05BA0E1CB8B8199412B0EF3B8603572CE8E17FD9D2BFD50DA77E
