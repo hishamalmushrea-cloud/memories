@@ -122,9 +122,13 @@ jobs:
         run: |
           set -uo pipefail
           python3 ci/check-release-signing.py
+          # Two of these six calls are *supposed* to exit non-zero, and a workflow `run:`
+          # step is executed as `bash -e`: a bare call would end the step at the first
+          # refusal, which is the answer it came for. `|| actual=$?` keeps the status and
+          # stays outside errexit's reach.
           expect() {
-            python3 ci/check-release-signing.py --ref "$1" --signing "$2" > /dev/null 2>&1
-            actual=$?
+            actual=0
+            python3 ci/check-release-signing.py --ref "$1" --signing "$2" > /dev/null 2>&1 || actual=$?
             if [ "$actual" != "$3" ]; then
               echo "::error::$1 with signing=$2 exited $actual, wanted $3"
               exit 1
