@@ -24,7 +24,7 @@ coroutines = "1.11.0"
 serializationJson = "1.8.1"
 
 # --- Persistence ---
-room = "2.7.1"
+room = "2.8.5"
 
 # --- Dependency injection ---
 hilt = "2.56.2"
