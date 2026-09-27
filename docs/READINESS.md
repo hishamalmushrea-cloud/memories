@@ -12,7 +12,7 @@ stage, and the last stage cannot be done from this repository alone.
 | | |
 |---|---|
 | Build | `assembleDebug`, `assembleRelease` and `bundleRelease` all pass in CI; debug APK ≈ 29.0 MB (sha256 `fdd5cc4a11731d03…` in the newest run), release APK ≈ 4.5 MB, AAB ≈ 9.9 MB |
-| Tests | 470 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, and again this round: the oversized-attachment refusal, the messages a failed delete and a failed attachment-removal produce, and the detail screen's own test class) |
+| Tests | 480 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, and again this round: the oversized-attachment refusal, the messages a failed delete and a failed attachment-removal produce, and the detail screen's own test class) |
 | Lint | 0 errors, 25 warnings, all of them version advice: 14 `GradleDependency`, 9 `NewerVersionAvailable`, 2 `AndroidGradlePluginVersion`. Stage 5 took this from 37; every remaining one waits on `compileSdk 37` or AGP 9 |
 | Guards | fourteen `check-*.py` files in `ci/` - thirteen that read the repository before Gradle, plus the artifact check that reads what was built - and `check-security.sh`, `verify-dependencies.sh` and `check-schema.py` against a live PostgreSQL |
 | Database | `supabase/schema.sql` applies twice and passes 24 checks on a real PostgreSQL (stage 1) |
@@ -66,7 +66,7 @@ backup extraction on Android 12 and later, where the platform reads
 | `AndroidGradlePluginVersion` | 2 | the wrapper and AGP are behind | moved to stage 5 with the rest of the version work, which took the total from 37 to 25 |
 
 **Verified by.** `lintDebug` warnings by rule in the run's report issue, and the
-unit tests still passing with nothing skipped (470 in the last full run).
+unit tests still passing with nothing skipped (480 in the last full run).
 
 **Deliberately not touched.** `Icons.Outlined.Article` in `QuickAddSheet.kt` is
 deprecated, and it is a *compiler* warning rather than a lint one. The obvious
