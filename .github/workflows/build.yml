@@ -99,6 +99,9 @@ jobs:
       - name: Check no class extends one that cannot be extended
         run: python3 ci/check-final-extensions.py
 
+      - name: Check the documents do not quote numbers the repository does not have
+        run: python3 ci/check-docs-numbers.py
+
       - name: Check the release notes can be built for this version
         run: python3 ci/check-release-notes.py
 

@@ -168,6 +168,10 @@ to 25), one group per
   versions each step needs, the run that would catch each kind of mistake, the order to
   take them in, and the fact that Google Play does not require it (API 36 has been the
   requirement for new apps and updates since 31 August 2026). Nothing in it is applied.
+- `ci/check-docs-numbers.py` keeps the documents honest about their own numbers: the
+  test count, test classes, string resources, plurals, source files and guard count are
+  read out of the repository and compared with what the documents claim, and a claim that
+  has been reworded away counts as a failure rather than a skip.
 - A second build check, `ci/check-final-extensions.py`, fails when a class extends one
   that is final in this repository - the mistake a test double cost a whole run for -
   and stays silent on the legal shapes that look similar.
