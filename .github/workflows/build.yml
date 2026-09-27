@@ -192,8 +192,13 @@ jobs:
                 echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
                 continue
               fi
-              if grep -qE "BUILD SUCCESSFUL" "$f"; then verdict="SUCCESS"
-              elif grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then verdict="FAILED"
+              # A failure is asked about first, and that order is the whole point:
+              # a `--continue` build prints BUILD SUCCESSFUL for the tasks that
+              # finished and BUILD FAILED for the build, so a log can hold both,
+              # and reading SUCCESS first turns a red run into a green report.
+              if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then
+                verdict="FAILED: $(grep -nE 'BUILD FAILED|FAILURE: Build failed' "$f" | head -1)"
+              elif grep -qE "BUILD SUCCESSFUL" "$f"; then verdict="SUCCESS"
               else verdict="UNKNOWN"; fi
               echo "- $(basename "$f"): $verdict"
             done
@@ -235,6 +240,18 @@ jobs:
               print("### Failing tests")
               print("\n\n".join(detail))
           PY
+
+            # The XML and the log are two witnesses of one fact. When they
+            # disagree, one of them is wrong and saying nothing about it is how a
+            # failing task came to be reported as 449 tests and no failures.
+            if [ -f /tmp/unit.log ] && grep -q "There were failing tests" /tmp/unit.log; then
+              if ! grep -rl "<failure\|<error" app/build/test-results 2>/dev/null | grep -q .; then
+                echo
+                echo "> **The test log and the test results disagree.** Gradle reported failing"
+                echo "> tests and no result file contains one. The XML files were written by"
+                echo "> the run that failed; treat the tests as failed until that is resolved."
+              fi
+            fi
 
             echo
             echo "### Lint"
@@ -349,6 +366,10 @@ jobs:
               # header, and without these patterns the report kept the header and
               # dropped every line that named the library.
               grep -E "^e: |error:|What went wrong|Execution failed|Caused by:|OutOfMemory|Metaspace|Killed|Daemon|Dependency '|compile against version|currently compiled against|is currently compiled" "$f" | head -n 80 || true
+              # Which test failed, by name, before its stack frames: the frames
+              # were all this report had, and a file and line number in a helper
+              # do not name the test that broke.
+              grep -nE "FAILED$|> .* FAILED|There were failing tests" "$f" | head -n 40 || true
             done
 
             echo
@@ -432,6 +453,13 @@ jobs:
           fi
           if ! find app/build/outputs/bundle/release -name "*.aab" 2>/dev/null | grep -q .; then
             echo "::error::no release bundle was produced"
+            exit 1
+          fi
+          # A failing test that left no XML behind still failed, and the log is
+          # where it says so. This is checked first because the XML check below
+          # cannot see a failure whose result file never reached the disk.
+          if [ -f /tmp/unit.log ] && grep -q "There were failing tests" /tmp/unit.log; then
+            echo "::error::the unit test log reports failing tests"
             exit 1
           fi
           if find app/build/test-results -name "*.xml" 2>/dev/null | grep -q .; then

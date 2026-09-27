@@ -145,6 +145,25 @@ to 25), one group per
 
 ### Fixed
 
+- **A red run that was reported green.** The stage line read `unit.log: SUCCESS`
+  for a log that ended in `BUILD FAILED`: a `--continue` Gradle build prints
+  `BUILD SUCCESSFUL` for the tasks that finished and `BUILD FAILED` for the build,
+  so both strings can sit in one log, and the verdict asked about success first.
+  A failure is asked about first now, with the line that says so printed next to it.
+- The build report and the gate now treat the unit test log as evidence in its own
+  right: the log said "There were failing tests" while every result file said zero
+  failures, and nothing in the report mentioned the disagreement. The report prints
+  it, names the failing test, and the gate fails the job on the log alone.
+- A failing unit test now prints its full stack trace. Gradle's short format had
+  printed only frames from Gradle's own classes, so a failure could be located and
+  not understood.
+- Every view model test puts the main dispatcher back before closing its database,
+  so work still in flight meets an open database instead of raising "attempt to
+  re-open an already-closed object" inside whatever test runs next. (One run of
+  `a5be207` failed this way while the other run of the same commit passed; the
+  change is the plausible cause removed, and `docs/READINESS.md` says plainly that
+  it is not proven.)
+
 - **A backup restored while signed in as a different account landed in the wrong
   place.** Restoring copied the exporting account's id into every row, so the
   import reported the right counts and the person saw nothing: the memories were

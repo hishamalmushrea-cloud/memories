@@ -130,6 +130,16 @@ android {
                 it.maxHeapSize = "1536m"
                 it.maxParallelForks = 1
                 it.forkEvery = 0
+                // Gradle prints one line per stack frame in its short format, and
+                // every frame it printed for a failing test belonged to Gradle's
+                // own machinery: the failure could be located and not understood.
+                // Job logs are not reachable from where this project is developed,
+                // so the full trace is the difference between a report that names
+                // the exception and one that names a file and a line number.
+                it.testLogging {
+                    exceptionFormat =
+                        org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                }
             }
         }
     }

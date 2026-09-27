@@ -319,7 +319,25 @@ read that nothing writes, and an action following a branch.
    can do - but a hosted project brings extensions, roles and policies the local
    server does not have. Needs a project and its keys; see the README section on
    verifying the schema.
-2. **Screenshots** for the store: needs a device.
+2. **One flaky test, seen once.** The run of `a5be207` on the push event failed at
+   `EntryEditorViewModelTest` while the `pull_request` run of the same commit passed:
+   same tree, same tests, two verdicts. What the log holds is
+   `java.lang.Throwable at TestMainDispatcher.kt:76` with
+   `Caused by: java.lang.Throwable at EntryEditorViewModelTest.kt:68`, and line 68 is
+   `Dispatchers.resetMain()` in `tearDown` - a failure delivered while the test's own
+   clean-up ran, in a test that had already finished. Two changes were made for it:
+   the test task now prints full stack traces (`testLogging.exceptionFormat = FULL`,
+   because Gradle's short format printed only frames belonging to Gradle itself), and
+   every view model test now puts the main dispatcher back *before* closing its
+   database, so late work meets an open database rather than raising "attempt to
+   re-open an already-closed object" inside whatever test is next. Whether that is
+   the whole cause is not proven - it needs the next occurrence, which will now name
+   the test and print the trace it did not print before. The reporting was also at
+   fault here: the stage line said `unit.log: SUCCESS` for a log that said
+   `BUILD FAILED`, because a `--continue` build prints both and success was asked
+   about first. That is fixed, and the report now also states it plainly when the
+   test log and the test results disagree.
+3. **Screenshots** for the store: needs a device.
 3. **The signing secrets** (`MEMORYMAP_KEYSTORE_*`, `MEMORYMAP_KEY_*`): without them
    the release build falls back to the debug key and says so.
 4. **The `compileSdk 37` / AGP 9 decision** (stage 5): the newest releases of most

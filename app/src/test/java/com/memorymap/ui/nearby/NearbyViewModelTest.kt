@@ -71,8 +71,14 @@ class NearbyViewModelTest {
 
     @After
     fun tearDown() {
-        db.close()
+        // The main dispatcher is put back before the database is closed, not after:
+        // a view model collects and loads for as long as it lives, a test never
+        // clears one, and anything the test scheduler delivers late then lands on a
+        // database that is still open instead of raising "attempt to re-open an
+        // already-closed object" in whichever test happens to be running when it
+        // arrives.
         Dispatchers.resetMain()
+        db.close()
     }
 
     @Test
