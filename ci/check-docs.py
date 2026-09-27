@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Fail the build when a document quotes a number that the repository no longer has.
+"""Fail the build when a document says something the repository no longer agrees with.
+
+Two families of claim are checked: numbers, and the paths a document points a reader at.
 
 Every document here makes numeric claims: how many tests there are, how many string
 resources, how many Kotlin files, how many guards run before Gradle. Each one was true
@@ -25,6 +27,14 @@ Two design decisions, both learned the hard way in this project:
 The measurements come from the same sources the other guards use, so this file cannot
 disagree with them: `check-strings.py` counts what is parsed out of the XML, and the test
 count is the number of `@Test` methods, which is what the CI report calls the test count.
+
+The second family is the paths: every `path/to/Something.kt` a document names has to
+resolve, because a document that sends a reader to a file that moved is wrong in the way
+that wastes the most time. A claim resolves when that exact path exists, or when a file
+of that name exists anywhere in the repository - the second is what lets a document say
+`AndroidManifest.xml` without spelling out its directory. Two names are exempt because
+they are the reader's own files rather than the repository's, and the exemptions are
+checked for staleness like everything else here.
 """
 import pathlib
 import re
@@ -106,9 +116,54 @@ def rules():
 
 WORDS = {"eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14}
 
+# A path claim: something inside backticks that ends in a file extension this repository
+# uses. Directories (`ui/theme/`) and globs are not path claims and are left alone.
+PATH_CLAIM = re.compile(
+    r"`([A-Za-z0-9_./-]+\.(?:kt|kts|py|sh|sql|xml|md|json|toml|yml|properties|png|txt))`"
+)
+EXTENSIONS = ("kt", "kts", "py", "sh", "sql", "xml", "md", "json", "toml", "yml",
+              "properties", "png", "txt")
+
+# Files a document names that are not supposed to be in the repository, with the reason.
+# `local.properties` is the developer's own and gitignored; `manifest.json` is written
+# into a backup archive the reader creates, so it exists on their disk and not here.
+NOT_IN_THE_REPOSITORY = {
+    "local.properties": "the developer's own file, gitignored on purpose",
+    "manifest.json": "written into a backup archive by the app, never committed",
+}
+
+# The documents that describe what the repository *is*, not what it has been. The
+# changelog is deliberately not here: it describes bugs, and a bug is often a name that
+# should never have existed - it records that an export once produced `manifest.json.json`
+# and that a backup contains `memories.json` and its siblings, and neither is a file this
+# guard could ever find. Checking history for present-day facts is the wrong question.
+DOCUMENTS = ("README.md", "docs/SPEC_COMPLIANCE.md", "docs/READINESS.md", "docs/RELEASE.md",
+             "docs/MANUAL_QA.md", "docs/SERVICE_LIMITS.md", "docs/PLATFORM_UPGRADE.md")
+
 
 def as_number(text: str) -> int:
     return WORDS.get(text, None) if not text.isdigit() else int(text)
+
+
+def path_claims():
+    """Every path-looking claim in the documents, as (document, name, line number)."""
+    for name in DOCUMENTS:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for match in PATH_CLAIM.finditer(line):
+                yield name, match.group(1), number
+
+
+def resolves(token: str) -> bool:
+    """Whether a document's path claim points at something that exists."""
+    if (ROOT / token).exists():
+        return True
+    # A document may name a file without its directory (`AndroidManifest.xml`), so the
+    # name alone counts - which means a moved file is still found, and a renamed one is
+    # not, which is the distinction that matters.
+    return any(True for _ in ROOT.rglob(pathlib.Path(token).name))
 
 
 def main() -> int:
@@ -151,13 +206,33 @@ def main() -> int:
                 )
         checked += 1
 
+    # ---------------------------------------------------------------- the paths
+    seen = set()
+    paths = 0
+    for name, token, line in path_claims():
+        seen.add(pathlib.Path(token).name)
+        if resolves(token):
+            paths += 1
+            continue
+        if pathlib.Path(token).name in NOT_IN_THE_REPOSITORY:
+            continue
+        problems.append(f"{name}:{line}: points at `{token}`, which is not in this repository")
+
+    for exempt, reason in NOT_IN_THE_REPOSITORY.items():
+        if exempt not in seen:
+            problems.append(
+                f"the exemption for `{exempt}` ({reason}) no longer matches a claim in any "
+                f"document"
+            )
+
     for problem in problems:
         print(problem)
     if problems:
         print(f"document check: FAIL ({len(problems)} claims that are not true)")
         return 1
 
-    print(f"document check: PASS ({checked} numeric claims agree with the repository)")
+    print(f"document check: PASS ({checked} numeric claims and {paths} paths agree with "
+          f"the repository)")
     return 0
 
 

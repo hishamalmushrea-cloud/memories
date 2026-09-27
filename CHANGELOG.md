@@ -168,7 +168,12 @@ to 25), one group per
   versions each step needs, the run that would catch each kind of mistake, the order to
   take them in, and the fact that Google Play does not require it (API 36 has been the
   requirement for new apps and updates since 31 August 2026). Nothing in it is applied.
-- `ci/check-docs-numbers.py` keeps the documents honest about their own numbers: the
+- `ci/check-artifacts.py` reads the built APK and Play bundle and fails if either carries
+  a `service_role` key, a PEM private key or a live secret key - the one class of mistake
+  a source scan cannot catch, because the key would be inside a resource, an asset or a
+  library string. It proves it can read the artifact before believing it, and it runs in
+  the release workflow as well as on every push.
+- `ci/check-docs.py` keeps the documents honest about their own numbers: the
   test count, test classes, string resources, plurals, source files and guard count are
   read out of the repository and compared with what the documents claim, and a claim that
   has been reworded away counts as a failure rather than a skip.

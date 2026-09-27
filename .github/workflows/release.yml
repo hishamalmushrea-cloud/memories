@@ -118,6 +118,14 @@ jobs:
           find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) \
             -printf "%p %s bytes\n"
 
+      # The build workflow checks this on every push. This is the run whose output
+      # actually reaches a person - and it is the only one built with a real signing
+      # key, so it is the only one where a key that must not ship could have been
+      # materialised. The step is here rather than before the build because both
+      # checks are about the artifact, not the source.
+      - name: Check the built artifacts carry nothing they must not
+        run: python3 ci/check-artifacts.py
+
       - name: Say what a real run would publish
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
