@@ -6,11 +6,13 @@ import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.repository.MediaRepositoryImpl
+import com.memorymap.R
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.Memory
+import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.testing.FakeAuthRepository
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -155,6 +157,38 @@ class MemoriesViewModelTest {
         assertEquals(1, db.mediaDao().tombstones().size)
     }
 
+    /**
+     * A delete that cannot happen has to say so.
+     *
+     * The failure this covers was invisible: the row stayed, nothing was said, and
+     * to the person who asked for the delete it looked like the app ignoring them -
+     * or worse, like the memory coming back by itself. The message is the point of
+     * the banner, so the test is about the message.
+     */
+    @Test
+    fun `a delete that fails says so instead of doing nothing`() = runTest {
+        val saved = memory("لن تُحذف")
+        memories.save(saved)
+
+        val viewModel = MemoriesViewModel(
+            memoryRepository = FailingDeleteMemoryRepository(memories),
+            mediaRepository = media,
+            authRepository = FakeAuthRepository(userId),
+        )
+
+        viewModel.state.test {
+            awaitWhere { !it.isLoading }
+            viewModel.delete(saved.id)
+
+            val failed = awaitWhere { it.errorRes != null }
+
+            assertEquals(R.string.memory_error_delete, failed.errorRes)
+            // The row is still there, which is exactly why the message matters.
+            assertEquals(saved.id, db.memoryDao().getById(saved.id)?.id)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun viewModel(auth: FakeAuthRepository) = MemoriesViewModel(
         memoryRepository = memories,
         mediaRepository = media,
@@ -179,4 +213,17 @@ class MemoriesViewModelTest {
         }
         return state
     }
+}
+
+/**
+ * Every call goes to [delegate] except the delete, which throws.
+ *
+ * Written as a decorator rather than a hand-written fake so it cannot drift from
+ * the interface: a method added to `MemoryRepository` arrives here automatically.
+ */
+private class FailingDeleteMemoryRepository(
+    private val delegate: MemoryRepository,
+) : MemoryRepository by delegate {
+    override suspend fun delete(id: String): Unit =
+        throw IllegalStateException("the database refused the delete")
 }

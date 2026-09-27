@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /** UI state of the memory detail screen. */
@@ -49,6 +50,9 @@ class MemoryDetailViewModel @Inject constructor(
 
     private val memoryId: String = savedStateHandle.get<String>("memoryId").orEmpty()
 
+    /** The last thing that went wrong; see `MemoriesViewModel` for why not in the state. */
+    private val message = MutableStateFlow<Int?>(null)
+
     val state: StateFlow<MemoryDetailUiState> = authRepository.currentUserId
         .flatMapLatest { userId ->
             if (userId == null) {
@@ -57,7 +61,8 @@ class MemoryDetailViewModel @Inject constructor(
                 combine(
                     memoryRepository.watchOne(memoryId),
                     mediaRepository.watchFor(MediaOwner.MEMORY, memoryId),
-                ) { memory, attachments ->
+                    message,
+                ) { memory, attachments, errorRes ->
                     // A tombstone is treated as gone: the detail screen must not
                     // keep showing a memory the user already deleted.
                     val live = memory?.takeIf { !it.isDeleted }
@@ -66,6 +71,7 @@ class MemoryDetailViewModel @Inject constructor(
                         attachments = attachments,
                         isLoading = false,
                         isDeleted = memory != null && live == null,
+                        errorRes = errorRes,
                     )
                 }
             }
@@ -80,7 +86,7 @@ class MemoryDetailViewModel @Inject constructor(
                 mediaRepository.removeAllFor(MediaOwner.MEMORY, memoryId)
             }.onFailure {
                 MmLog.e("Unable to delete the memory", it)
-                _state.update { it.copy(errorRes = R.string.memory_error_delete) }
+                message.value = R.string.memory_error_delete
             }
         }
     }
@@ -91,13 +97,15 @@ class MemoryDetailViewModel @Inject constructor(
             runCatching { mediaRepository.remove(item.id) }
                 .onFailure {
                     MmLog.e("Unable to remove the attachment", it)
-                    _state.update { it.copy(errorRes = R.string.memory_error_media) }
+                    message.value = R.string.memory_error_media
                 }
         }
     }
 
     /** Called once a message has been shown. */
-    fun clearError() = _state.update { it.copy(errorRes = null) }
+    fun clearError() {
+        message.value = null
+    }
 
     /** Exposes the id so the UI can open the editor for this memory. */
     val id: String get() = memoryId

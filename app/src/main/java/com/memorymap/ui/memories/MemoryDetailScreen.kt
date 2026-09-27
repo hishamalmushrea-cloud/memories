@@ -116,6 +116,20 @@ fun MemoryDetailScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // The failure message is the list's first row rather than a bar above
+            // it: this screen is one scrolling list, and a row keeps that shape
+            // instead of nesting a column to hold two things. It is only added when
+            // there is something to say, because a lazy list spaces every item it is
+            // given, an empty one included.
+            state.errorRes?.let { messageRes ->
+                item(key = "failure") {
+                    FailureBanner(
+                        messageRes = messageRes,
+                        onDismiss = viewModel::clearError,
+                    )
+                }
+            }
+
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { navController.popBackStack() }) {

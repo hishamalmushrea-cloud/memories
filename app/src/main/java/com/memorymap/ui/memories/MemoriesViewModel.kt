@@ -49,6 +49,16 @@ class MemoriesViewModel @Inject constructor(
 
     private val query = MutableStateFlow("")
 
+    /**
+     * The last thing that went wrong, if anything.
+     *
+     * A flow of its own rather than part of the derived state: the state is rebuilt
+     * whenever the account or the list changes, and a message that lived inside it
+     * would be wiped by the refresh a delete triggers - the person would see the
+     * failure for a moment and then not.
+     */
+    private val message = MutableStateFlow<Int?>(null)
+
     val state: StateFlow<MemoriesUiState> = authRepository.currentUserId
         .flatMapLatest { userId ->
             if (userId == null) {
@@ -58,12 +68,14 @@ class MemoriesViewModel @Inject constructor(
                     memoryRepository.watchAll(userId),
                     mediaRepository.watchSummary(MediaOwner.MEMORY),
                     query,
-                ) { memories, summary, term ->
+                    message,
+                ) { memories, summary, term, errorRes ->
                     MemoriesUiState(
                         memories = memories.filter { it.matches(term) },
                         summary = summary,
                         query = term,
                         isLoading = false,
+                        errorRes = errorRes,
                     )
                 }
             }
@@ -82,13 +94,15 @@ class MemoriesViewModel @Inject constructor(
                 mediaRepository.removeAllFor(MediaOwner.MEMORY, memoryId)
             }.onFailure {
                 MmLog.e("Unable to delete the memory", it)
-                _state.update { it.copy(errorRes = R.string.memory_error_delete) }
+                message.value = R.string.memory_error_delete
             }
         }
     }
 
     /** Called once a message has been shown. */
-    fun clearError() = _state.update { it.copy(errorRes = null) }
+    fun clearError() {
+        message.value = null
+    }
 
     /** Case-insensitive match over title, body and place, mirroring the DAO. */
     private fun Memory.matches(term: String): Boolean {
