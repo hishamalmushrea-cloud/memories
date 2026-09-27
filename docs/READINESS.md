@@ -12,7 +12,7 @@ stage, and the last stage cannot be done from this repository alone.
 | | |
 |---|---|
 | Build | `assembleDebug`, `assembleRelease` and `bundleRelease` all pass in CI; debug APK ≈ 29.0 MB (sha256 `e2d5623389b0cddf…` in the newest run), release APK ≈ 4.5 MB, AAB ≈ 9.9 MB |
-| Tests | 454 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, and again twice this round: the oversized-attachment refusal, and the message a failed delete produces) |
+| Tests | 461 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, and again twice this round: the oversized-attachment refusal, and the message a failed delete produces) |
 | Lint | 0 errors, 25 warnings, all of them version advice: 14 `GradleDependency`, 9 `NewerVersionAvailable`, 2 `AndroidGradlePluginVersion`. Stage 5 took this from 37; every remaining one waits on `compileSdk 37` or AGP 9 |
 | Guards | eleven `check-*.py` files in `ci/` run before Gradle, plus `check-security.sh` and `verify-dependencies.sh`, and `check-schema.py` against a live PostgreSQL |
 | Database | `supabase/schema.sql` applies twice and passes 24 checks on a real PostgreSQL (stage 1) |
@@ -66,7 +66,7 @@ backup extraction on Android 12 and later, where the platform reads
 | `AndroidGradlePluginVersion` | 2 | the wrapper and AGP are behind | moved to stage 5 with the rest of the version work, which took the total from 37 to 25 |
 
 **Verified by.** `lintDebug` warnings by rule in the run's report issue, and the
-unit tests still passing with nothing skipped (454 in the last full run).
+unit tests still passing with nothing skipped (461 in the last full run).
 
 **Deliberately not touched.** `Icons.Outlined.Article` in `QuickAddSheet.kt` is
 deprecated, and it is a *compiler* warning rather than a lint one. The obvious
@@ -138,7 +138,7 @@ the exact requirement are listed below, each from a run's own output).
 
 | Group | From | To | Result |
 |---|---|---|---|
-| Test-only + coroutines | Robolectric 4.15, Turbine 1.2.0, androidx.test 1.5.0/1.2.1, espresso 3.6.1, coroutines 1.10.2 | 4.17, 1.2.1, 1.7.0/1.3.0, 3.7.0, 1.11.0 | green, 454 tests |
+| Test-only + coroutines | Robolectric 4.15, Turbine 1.2.0, androidx.test 1.5.0/1.2.1, espresso 3.6.1, coroutines 1.10.2 | 4.17, 1.2.1, 1.7.0/1.3.0, 3.7.0, 1.11.0 | green, 461 tests |
 | Room | 2.7.1 | 2.8.5 | green; the committed schema for version 4 is unchanged by the new generator |
 | Hilt | 2.56.2 | 2.58 | green, after two failed attempts (below) |
 

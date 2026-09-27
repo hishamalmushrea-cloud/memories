@@ -318,6 +318,7 @@ python3 ci/check-schema.py
 | `AccountDeletionTest` | المحو المحلي: كل صف، وكل ملف، والعلامة المائية؛ وحذف نسخ السحابة، وأن خادمًا لا يُبلَغ يُبلَّغ عنه ولا يُرمى استثناءً |
 | `SupabaseAuthRepositoryTest` | حالة عدم وجود مشروع، وفشل الحذف يبقي الجلسة، ونجاحه ينهيها |
 | `ProfileViewModelTest` | ترتيب الحذف: ملفات المخزن ثم الخادم ثم الجهاز، وأن فشل الخادم لا يمحو شيئًا على الجهاز |
+| `OrganizationViewModelTest` | شاشة الأشخاص والأماكن: فشل الإضافة يقول ولا يُفرّغ الحقل، وفشل الحذف يبقي الصف |
 
 ## التحقق المستمر
 
@@ -325,11 +326,11 @@ python3 ci/check-schema.py
 
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
-استعلامات Room، ترتيب الاستيراد وتكراره، اتفاق ملفَّي الـworkflow، صلاحية بناء
-ملاحظات الإصدار، صمت الإخفاقات بعد فعل مقصود، توسيع صنف نهائي، قيود المتجر، نصوص الموارد، توازن
-الأقواس، إرجاع القيم) → فحص مخطط
-Supabase على PostgreSQL حقيقي → gradlew help → testDebugUnitTest → lintDebug →
-assembleDebug → assembleRelease + bundleRelease
+استعلامات Room، ترتيب الاستيراد وتكراره، اتفاق ملفَّي الـworkflow، صلاحية بناء ملاحظات
+الإصدار، صمت الإخفاقات بعد فعل مقصود، توسيع صنف نهائي، قيود المتجر، نصوص الموارد،
+توازن الأقواس، إرجاع القيم) → فحص مخطط Supabase على PostgreSQL حقيقي →
+gradlew help → testDebugUnitTest → lintDebug → assembleDebug → assembleRelease +
+bundleRelease
 ```
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
