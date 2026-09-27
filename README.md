@@ -367,8 +367,10 @@ testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRe
   لا يسمح به من فرع آخر. أما مسار الـAAB نفسه فيُبنى ويُتحقق منه في كل push.
 - **بيانات المتجر**: [`fastlane/metadata/android/`](fastlane/metadata/android)
   بالعربية (`ar`) والإنجليزية (`en-US`): الاسم، الوصف المختصر، الوصف الكامل،
-  وسجل تغييرات لكل `versionCode`. ويتحقق `ci/check-store-metadata.py` من حدود
-  المتجر قبل كل بناء، فلا يُرفع وصف مقطوع.
+  وسجل تغييرات لكل `versionCode`، وصورتان تُولَّدان بـ`tools/make_store_images.py`
+  من ألوان التطبيق نفسها (أيقونة 512×512 وخطاف 1024×500 بلا نص، لأن العربية تحتاج
+  محرّك تشكيل وخطًا). ويتحقق `ci/check-store-metadata.py` من حدود المتجر ومن مقاسات
+  الصورتين قبل كل بناء، فلا يُرفع وصف مقطوع ولا أيقونة بمقاس خاطئ.
 - **F-Droid**: يبني من المصدر، والوصف أعلاه هو ما يُقرأ هناك؛ ينقص قبل أول
   إصدار حقيقي: لقطات شاشة حقيقية من جهاز.
 - **Google Play**: يُبنى `AAB` بـ`bundleRelease` على كل push في CI (لا مرة واحدة

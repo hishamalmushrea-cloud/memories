@@ -42,13 +42,29 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # The same step as in build.yml, and deliberately identical to it: this
+      # workflow had its own version, written before anything had run it, and the
+      # differences were all ways for a release to fail on its first execution.
+      # `yes | sdkmanager` under `set -euo pipefail` fails on the SIGPIPE that `yes`
+      # takes when sdkmanager exits; a `build-tools` revision that does not exist is
+      # a hard failure here and a note in the build workflow, where it is treated as
+      # best effort because AGP fetches its own; and with neither ANDROID_HOME nor
+      # ANDROID_SDK_ROOT set, `${ANDROID_HOME:-$ANDROID_SDK_ROOT}` is an unbound
+      # variable under `set -u` rather than the runner's real SDK path.
       - name: Install the Android SDK packages the project needs
         run: |
-          set -euo pipefail
-          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
-          "$SDK/cmdline-tools/latest/bin/sdkmanager" \
-            "platform-tools" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          set -uo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          MANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          mkdir -p "$SDK/licenses"
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$SDK/licenses/android-sdk-license"
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$SDK/licenses/android-sdk-preview-license"
+
+          yes | "$MANAGER" --licenses > /dev/null || true
+          "$MANAGER" --install "platform-tools" "platforms;android-36"
+          "$MANAGER" --install "build-tools;36.0.0" || \
+            echo "::warning::build-tools;36.0.0 unavailable, AGP will fetch its own"
 
       - name: Check the security and privacy guarantees
         run: bash ci/check-security.sh
@@ -118,8 +134,24 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
-          NOTES_FILE=CHANGELOG.md
-          [ -f "$NOTES_FILE" ] || NOTES_FILE=/dev/null
+          # The section of the changelog for this version, not the whole file: the
+          # notes of a release are read by someone deciding whether to install it,
+          # and the first version's notes are not that. Falls back to the whole
+          # changelog if the tag has no matching section.
+          NOTES_FILE=/dev/null
+          if [ -f CHANGELOG.md ]; then
+            VERSION="${TAG#v}"
+            awk -v want="$VERSION" '
+              /^## / { printing = index($0, want) > 0 && index($0, "Unreleased") == 0 }
+              printing { print }
+            ' CHANGELOG.md > /tmp/notes-section.md
+            if [ -s /tmp/notes-section.md ]; then
+              NOTES_FILE=/tmp/notes-section.md
+            else
+              NOTES_FILE=CHANGELOG.md
+              echo "::warning::no changelog section for $VERSION; publishing the whole file"
+            fi
+          fi
 
           ASSETS=()
           while IFS= read -r f; do ASSETS+=("$f"); done < <(

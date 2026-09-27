@@ -17,6 +17,13 @@ The limits checked here:
 so a version bump without a changelog file is a failure rather than a release
 whose "what's new" is empty.
 
+`images/icon.png` and `images/featureGraphic.png` are checked for size as well as
+existence, and the PNG header is read directly rather than through an imaging
+library: the store rejects an icon that is not exactly 512x512 and a feature
+graphic that is not exactly 1024x500, and a guard that needs a library installed
+to notice is a guard that stops noticing. Screenshots are reported, not required:
+this project has none yet, and that is written down rather than enforced.
+
 The Arabic listing is not a translation of the English one and is not checked
 against it: the two are written for their own readers.
 """
@@ -35,6 +42,12 @@ LIMITS = {
 }
 CHANGELOG_LIMIT = 500
 
+# The exact sizes the listings require. Play rejects anything else.
+REQUIRED_IMAGES = {
+    "icon.png": (512, 512),
+    "featureGraphic.png": (1024, 500),
+}
+
 # The two listings this project writes. A third locale is welcome, but it has to
 # be added here deliberately rather than appearing by accident.
 LOCALES = ("ar", "en-US")
@@ -47,6 +60,16 @@ def version_code() -> int:
     if match is None:
         raise SystemExit("could not read versionCode from app/build.gradle.kts")
     return int(match.group(1))
+
+
+def png_size(path: pathlib.Path):
+    """Width and height from a PNG's own header, or None if it is not a PNG."""
+    header = path.read_bytes()[:24]
+    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+        return None
+    width = int.from_bytes(header[16:20], "big")
+    height = int.from_bytes(header[20:24], "big")
+    return width, height
 
 
 def main() -> int:
@@ -79,6 +102,22 @@ def main() -> int:
             elif length > limit:
                 problems.append(f"{locale}/{name} is {length} characters, limit {limit}")
 
+        for name, (width, height) in REQUIRED_IMAGES.items():
+            path = directory / "images" / name
+            if not path.is_file():
+                problems.append(
+                    f"{locale}/images/{name} is missing; run tools/make_store_images.py"
+                )
+                continue
+            size = png_size(path)
+            if size is None:
+                problems.append(f"{locale}/images/{name} is not a PNG")
+            elif size != (width, height):
+                problems.append(
+                    f"{locale}/images/{name} is {size[0]}x{size[1]}, "
+                    f"the store requires {width}x{height}"
+                )
+
         changelog = directory / "changelogs" / f"{code}.txt"
         if not changelog.is_file():
             problems.append(
@@ -101,9 +140,17 @@ def main() -> int:
             print(f"  - {problem}")
         return 1
 
+    screenshots = sorted(
+        path.name
+        for locale in LOCALES
+        for path in (METADATA / locale / "images").glob("*.png")
+        if path.name not in REQUIRED_IMAGES
+    )
     print(
         "store metadata check: PASS "
-        f"({len(found_locales)} locales, versionCode {code}, limits respected)"
+        f"({len(found_locales)} locales, versionCode {code}, limits respected, "
+        f"icon 512x512 and feature graphic 1024x500 present, "
+        f"screenshots: {len(screenshots)} - at least two still have to be taken)"
     )
     return 0
 

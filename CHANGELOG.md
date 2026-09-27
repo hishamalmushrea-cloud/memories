@@ -8,6 +8,17 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- The two images a Play listing needs are generated from the app's own palette
+  by `tools/make_store_images.py`: the 512×512 icon (the launcher design
+  rasterised) and the 1024×500 feature graphic, written into both locales'
+  `images/` folders. Screenshots are still missing: there is no device to take
+  them on.
+- `ci/check-store-metadata.py` now verifies the two store images as well as
+  the text, reading the PNG header itself rather than through an imaging library.
+- `docs/MANUAL_QA.md` - the checklist for everything a runner cannot check,
+  from the first run with nothing configured to a release build on the phone,
+  each line with the observation that means it works.
+
 - The Supabase schema is now executed instead of only read. `ci/check-schema.py`
   starts a throwaway PostgreSQL - the system one when it exists, otherwise the
   server the `pgserver` wheel bundles - creates the shapes the migration assumes
@@ -88,6 +99,16 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   its own cannot say which six strings a rule wants turned into plurals.
 
 ### Fixed
+
+- Three ways the release workflow would have failed on its first execution,
+  found by reading it against the workflow that does run. Its Android SDK step
+  was written separately from the build workflow's: `yes | sdkmanager` under
+  `set -euo pipefail` fails on the SIGPIPE that `yes` takes when sdkmanager
+  exits, a `build-tools` revision that does not exist is a hard failure there
+  and a note here, and an SDK path with neither environment variable set was an
+  unbound variable rather than the runner's real path. The step is now the same
+  one. Release notes also come from the tag's own section of this file instead
+  of the whole history, with a visible warning when a tag has no section.
 
 - The CI report no longer lets a cancelled run look like a failing one. A push
   cancels the run of the commit before it, and the report that run had already
