@@ -45,7 +45,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Dependencies refreshed as far as the pinned toolchain allows, one group per
+- Dependencies refreshed as far as the pinned toolchain allows (lint advisories 37
+to 25), one group per
   green run: Robolectric 4.17, Turbine 1.2.1, androidx.test core 1.7.0 and
   ext:junit 1.3.0, espresso 3.7.0, coroutines 1.11.0, Room 2.8.5 and Hilt 2.58.
   Everything else on the advisory list now needs `compileSdk 37` or AGP 9, and
