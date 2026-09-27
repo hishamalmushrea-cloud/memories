@@ -324,6 +324,22 @@ jobs:
                 echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
                 continue
               fi
+              # The signing log is not a Gradle log, and reading it the way a Gradle log
+              # is read was wrong in both directions. It has no "BUILD SUCCESSFUL" of its
+              # own when the step stops before Gradle - a keystore that will not open does
+              # that - so the report said "UNKNOWN" about a step that had failed, and said
+              # it in the place a reader looks first. Its verdict is what the step exists
+              # to produce: one verified artifact per artifact built.
+              if [ "$f" = "/tmp/signing.log" ]; then
+                verified="$(grep -c "signature check: PASS" "$f" 2>/dev/null || true)"
+                if [ "$verified" = "2" ]; then
+                  verdict="SUCCESS (both artifacts carry the key they should)"
+                else
+                  verdict="FAILED: $verified of 2 artifacts verified"
+                fi
+                echo "- $(basename "$f"): $verdict"
+                continue
+              fi
               # A failure is asked about first, and that order is the whole point:
               # a `--continue` build prints BUILD SUCCESSFUL for the tasks that
               # finished and BUILD FAILED for the build, so a log can hold both,
@@ -501,6 +517,17 @@ jobs:
             echo "### Signing"
             if [ -f /tmp/signing.log ]; then
               grep -E "^(signing:|signature check:|  [0-9A-F]{16,})" /tmp/signing.log | head -n 8 || true
+              # The step can end before Gradle starts - a keystore that will not open,
+              # a base64 value that is not base64, a password with a stray newline - and
+              # then none of the lines above exist and this section printed nothing at
+              # all. That is the one moment the reader needs it most, and it is a repeat
+              # of the mistake the security log made: a failure that reaches only the job
+              # log is a failure nobody here can act on. The raw tail is printed instead.
+              if ! grep -q "signature check: PASS" /tmp/signing.log; then
+                echo
+                echo "the signing step verified no artifact; its own output follows"
+                tail -n 40 /tmp/signing.log
+              fi
             else
               echo "(the signing proof did not run)"
             fi
