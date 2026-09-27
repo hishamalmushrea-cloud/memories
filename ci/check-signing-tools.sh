@@ -104,9 +104,12 @@ if ! keytool -genkeypair \
     exit 1
 fi
 
+# `|| true` because `head` closing the pipe can leave `grep` with SIGPIPE, and under
+# `set -o pipefail` that is a non-zero pipeline - which `-e` turns into the end of the
+# script, at the line that was going to explain that no fingerprint was found.
 expected="$(keytool -list -v -keystore "$KEYSTORE" -storepass "$PASSWORD" -alias "$ALIAS" 2>/dev/null \
-    | grep -oE "([0-9a-fA-F]{2}:){31}[0-9a-fA-F]{2}" | head -1 | tr -d ':' | tr '[:upper:]' '[:lower:]' \
-    | tr '[:lower:]' '[:upper:]')"
+    | grep -oE "([0-9a-fA-F]{2}:){31}[0-9a-fA-F]{2}" | head -1 | tr -d ':' \
+    | tr '[:lower:]' '[:upper:]' || true)"
 if [ -z "$expected" ]; then
     echo "FAIL: keytool generated a keystore whose fingerprint it cannot print"
     exit 1
@@ -114,6 +117,12 @@ fi
 echo "   the throwaway certificate: $expected"
 
 # ------------------------------------------------------------------ a signed JAR archive
+# Every path below is absolute, and that is not a style choice: the first version of this
+# step ran `jar` inside `(cd "$WORK" && ...)` and then handed the *relative* name to
+# `jarsigner`, which therefore looked for it in the repository root, failed, fell through
+# to the fallback - and the fallback needs a Python module the runner does not have. The
+# check failed in CI twice with no message that named any of that. Nothing here depends on
+# the working directory.
 printf 'nothing to see\n' > "$WORK/payload.txt"
 JAR="$WORK/signed.jar"
 
@@ -126,18 +135,32 @@ if command -v jar > /dev/null 2>&1 && command -v jarsigner > /dev/null 2>&1; the
     # path this workspace cannot take (its JDK image has no jarsigner), so a failure here
     # has to explain itself in the log of the only run that can hit it. A silent fallback
     # would replace a diagnosis with a second failure.
-    if (cd "$WORK" && jar cf signed.jar payload.txt) 2> "$WORK/jar-error"; then
+    if jar cf "$JAR" -C "$WORK" payload.txt 2> "$WORK/jar-error"; then
         if jarsigner -keystore "$KEYSTORE" -storepass "$PASSWORD" \
             -sigalg SHA256withRSA -digestalg SHA-256 \
-            signed.jar "$ALIAS" > /dev/null 2> "$WORK/jarsigner-error"; then
-            signed_by="jarsigner"
+            "$JAR" "$ALIAS" > /dev/null 2> "$WORK/jarsigner-error"; then
+            # Signed is not the same as signed *correctly*: `jarsigner` exiting zero says
+            # it wrote something, not that it wrote a signature this JDK can read back.
+            # The first check below reads it, but a JAR that is not a signed JAR at all
+            # would be reported as "the reader returned nothing", which describes the
+            # reader rather than the signing step that failed.
+            if python3 -c "
+import sys, zipfile
+names = zipfile.ZipFile(sys.argv[1]).namelist()
+# jarsigner names the block after the alias; the alias may be lower case in the file
+sys.exit(0 if any(n.startswith('META-INF/') and n.upper().endswith(('.RSA', '.DSA', '.EC')) for n in names) else 1)
+" "$JAR"; then
+                signed_by="jarsigner"
+            else
+                echo "   jarsigner reported success but $JAR carries no signature block"
+            fi
         else
             echo "   jarsigner failed, and its own message follows:"
-            sed 's/^/   | /' "$WORK/jarsigner-error" | head -5
+            sed 's/^/   | /' "$WORK/jarsigner-error" | head -5 || true
         fi
     else
         echo "   jar failed, and its own message follows:"
-        sed 's/^/   | /' "$WORK/jar-error" | head -5
+        sed 's/^/   | /' "$WORK/jar-error" | head -5 || true
     fi
 fi
 
