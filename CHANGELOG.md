@@ -164,13 +164,15 @@ to 25), one group per
 
 ### Fixed
 
-- In the memory editor, five failures that were only written to the log now also
-  say something on screen: a person or a place that could not be added, an
-  attachment that could not be imported or removed, an upload request that could
-  not be recorded, and a delete that did not happen. The rest of the audit - 26
-  log-only failure paths under `ui/`, of which about eight follow a deliberate
-  action - is recorded in `docs/READINESS.md` with what each one needs; the list
-  and detail screens have no error channel yet.
+- A failure after a deliberate action now says something, everywhere it can happen.
+  The memory editor reports a person or a place that could not be added, an attachment
+  that could not be imported or removed, an upload request that could not be recorded,
+  and a delete that did not happen; the memories list, the memory detail, the day
+  screen, the event editor, and the people and places screens report their own. All of
+  it through one dismissible line (`ui/common/FailureBanner.kt`), so it is said the same
+  way in each place and in both languages. What stays log-only is the reads - an empty
+  screen is true and not misleading - and the playback calls; `docs/READINESS.md`
+  lists them.
 
 - **A red run that was reported green.** The stage line read `unit.log: SUCCESS`
   for a log that ended in `BUILD FAILED`: a `--continue` Gradle build prints

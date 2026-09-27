@@ -33,6 +33,7 @@ import androidx.navigation.NavHostController
 import com.memorymap.R
 import com.memorymap.domain.model.GeoPoint
 import com.memorymap.navigation.Routes
+import com.memorymap.ui.common.FailureBanner
 
 /**
  * The people in the archive.
@@ -54,6 +55,11 @@ fun PeopleScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        FailureBanner(
+            messageRes = state.errorRes,
+            onDismiss = viewModel::clearError,
+        )
+
         Text(stringResource(R.string.people_title), style = MaterialTheme.typography.headlineSmall)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -129,6 +135,11 @@ fun PlacesScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        FailureBanner(
+            messageRes = state.errorRes,
+            onDismiss = viewModel::clearError,
+        )
+
         Text(stringResource(R.string.places_title), style = MaterialTheme.typography.headlineSmall)
 
         OutlinedTextField(

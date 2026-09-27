@@ -160,7 +160,10 @@ class EntryEditorViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { referenceRepository.findOrCreatePerson(userId, name) }
                 .onSuccess { person -> _state.update { it.copy(personIds = it.personIds + person.id) } }
-                .onFailure { MmLog.e("Could not add the person", it) }
+                .onFailure {
+                    MmLog.e("Could not add the person", it)
+                    _state.update { it.copy(errorRes = R.string.memory_error_reference) }
+                }
         }
     }
 
@@ -207,7 +210,10 @@ class EntryEditorViewModel @Inject constructor(
     fun delete() {
         viewModelScope.launch {
             runCatching { diaryRepository.deleteEntry(entryId) }
-                .onFailure { MmLog.e("Unable to delete the event", it) }
+                .onFailure {
+                    MmLog.e("Unable to delete the event", it)
+                    _state.update { it.copy(errorRes = R.string.diary_error_delete_entry) }
+                }
                 .onSuccess { _state.update { it.copy(isSaved = true) } }
         }
     }

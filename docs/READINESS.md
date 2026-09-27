@@ -12,7 +12,7 @@ stage, and the last stage cannot be done from this repository alone.
 | | |
 |---|---|
 | Build | `assembleDebug`, `assembleRelease` and `bundleRelease` all pass in CI; debug APK ≈ 29.0 MB (sha256 `e2d5623389b0cddf…` in the newest run), release APK ≈ 4.5 MB, AAB ≈ 9.9 MB |
-| Tests | 453 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, and again when the refusal of an oversized attachment was added) |
+| Tests | 454 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, and again twice this round: the oversized-attachment refusal, and the message a failed delete produces) |
 | Lint | 0 errors, 25 warnings, all of them version advice: 14 `GradleDependency`, 9 `NewerVersionAvailable`, 2 `AndroidGradlePluginVersion`. Stage 5 took this from 37; every remaining one waits on `compileSdk 37` or AGP 9 |
 | Guards | eight checks in `ci/` run before Gradle, plus `check-security.sh` and `verify-dependencies.sh`, and `check-schema.py` against a live PostgreSQL |
 | Database | `supabase/schema.sql` applies twice and passes 24 checks on a real PostgreSQL (stage 1) |
@@ -66,7 +66,7 @@ backup extraction on Android 12 and later, where the platform reads
 | `AndroidGradlePluginVersion` | 2 | the wrapper and AGP are behind | moved to stage 5 with the rest of the version work, which took the total from 37 to 25 |
 
 **Verified by.** `lintDebug` warnings by rule in the run's report issue, and the
-unit tests still passing with nothing skipped (453 in the last full run).
+unit tests still passing with nothing skipped (454 in the last full run).
 
 **Deliberately not touched.** `Icons.Outlined.Article` in `QuickAddSheet.kt` is
 deprecated, and it is a *compiler* warning rather than a lint one. The obvious
@@ -138,7 +138,7 @@ the exact requirement are listed below, each from a run's own output).
 
 | Group | From | To | Result |
 |---|---|---|---|
-| Test-only + coroutines | Robolectric 4.15, Turbine 1.2.0, androidx.test 1.5.0/1.2.1, espresso 3.6.1, coroutines 1.10.2 | 4.17, 1.2.1, 1.7.0/1.3.0, 3.7.0, 1.11.0 | green, 453 tests |
+| Test-only + coroutines | Robolectric 4.15, Turbine 1.2.0, androidx.test 1.5.0/1.2.1, espresso 3.6.1, coroutines 1.10.2 | 4.17, 1.2.1, 1.7.0/1.3.0, 3.7.0, 1.11.0 | green, 454 tests |
 | Room | 2.7.1 | 2.8.5 | green; the committed schema for version 4 is unchanged by the new generator |
 | Hilt | 2.56.2 | 2.58 | green, after two failed attempts (below) |
 
@@ -312,25 +312,45 @@ when the files are as they are: a differing action version, an edited SDK step, 
 ungated publish step, a lost log capture, a stage that stops writing its log, a log
 read that nothing writes, and an action following a branch.
 
-## Stage 10 — failures that were only written down  (partly done)
+## Stage 10 — failures that were only written down  (done)
 
 **Why.** The oversized attachment was one instance of a family: an action the person
-took, a failure, and nothing said. `grep` found 26 places under `ui/` where a failure
-goes to the log and nowhere else. Most are reads — a day that will not load shows an
-empty day, which is at least visibly empty — but eight are actions someone took
-deliberately, and those fail silently: to them the app simply did nothing.
+took, a failure, and nothing said. `grep` found 26 failure paths under `ui/` that went
+to the log and nowhere else. Most are reads — a day that will not load shows an empty
+day, which is at least visibly empty — but the ones after a deliberate action are
+different: to the person, the app simply did nothing.
 
-**What was done.** In the memory editor, which already has somewhere to say it, five of
-them now also set a message: a person or a place that could not be added, an attachment
-that could not be imported or removed, the upload request that could not be recorded,
-and a delete that did not happen ("the memory could not be deleted; nothing was
-removed"). Two sentences were added in both languages. That is the editor's share.
+**What was done.** Every one of those now says something, through
+`ui/common/FailureBanner.kt` (one dismissible line, one implementation, so five screens
+say it the same way) and an `errorRes` on the state it belongs to:
 
-**Still open.** The list and detail screens have no error channel at all, so a failed
-delete there still only writes to the log, as does a failed diary-entry save or delete
-in the day view. Each needs the same treatment the editor already had: a field in the
-state and one line in the screen. `docs/MANUAL_QA.md` is where the behaviour of each
-one is checked by hand.
+| Screen | What it now reports |
+|---|---|
+| Memory editor | a person or place that could not be added, an attachment that could not be imported or removed, an upload request that could not be recorded, a delete that did not happen |
+| Memories list, memory detail | a delete that failed, and an attachment that could not be removed |
+| Day screen | a note that could not be saved, an event that could not be deleted |
+| Event editor | the same two through the message it already had |
+| People and places | a name that could not be added, a delete that failed |
+
+**What is left, deliberately.** The reads and playback: a day, a period, a set of map
+markers or a life-statistics count that fails still only reaches the log, because what
+the person sees is an empty screen, which is true and not misleading. A seek or pause
+that fails mid-playback is also log-only. If any of those turn out to confuse somebody
+in `docs/MANUAL_QA.md`, the fix is the same banner.
+
+**How it is known to work.** The message is state, so it is tested where the state is:
+`MemoriesViewModelTest.a delete that fails says so instead of doing nothing` uses a
+repository that is real in every way except its delete - written as a decorator over
+the interface, so it cannot drift from it - and asserts both the message and that the
+row is still there.
+
+**One mistake worth recording.** The first attempt at the three screens failed to
+compile: the detail screen was restructured to wrap the list in a column, the function
+stopped closing where it should, and the three private composables below it became local
+functions. The fix was reverted from `HEAD`, which was the commit that had broken it,
+and failed again - the restore should have named the last commit that compiled. The
+screen is now that commit's file plus one list item. The general lesson: a revert is a
+commit hash, never a relative name, when the mistake is the commit you are standing on.
 
 ## Stage 11 — the release notes path  (done)
 

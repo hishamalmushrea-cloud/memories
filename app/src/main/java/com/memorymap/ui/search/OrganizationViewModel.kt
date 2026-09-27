@@ -10,6 +10,7 @@ import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.navigation.Routes
 import com.memorymap.util.MmLog
+import com.memorymap.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,8 @@ data class OrganizationUiState(
     val isLoading: Boolean = true,
     /** The name typed into the "add" field, kept here so it survives a rotation. */
     val draftName: String = "",
+    /** A message for an add or delete that failed; null when the last one worked. */
+    val errorRes: Int? = null,
     /** Coordinates chosen for the place being added, before it is saved. */
     val draftLocation: GeoPoint? = null,
 )
@@ -97,8 +100,13 @@ class OrganizationViewModel @Inject constructor(
         viewModelScope.launch {
             // Finding rather than creating keeps one person per name, so the
             // counts below mean something.
+            drafts.value = drafts.value.copy(errorRes = null)
             runCatching { referenceRepository.findOrCreatePerson(userId, name) }
-                .onFailure { MmLog.e("Could not add the person", it) }
+                .onFailure {
+                    MmLog.e("Could not add the person", it)
+                    // A name typed and not added looks like the app ignoring it.
+                    drafts.value = drafts.value.copy(errorRes = R.string.organization_error_add)
+                }
             drafts.value = drafts.value.copy(draftName = "")
         }
     }
@@ -111,25 +119,42 @@ class OrganizationViewModel @Inject constructor(
         // offered as a place at all.
         if (name.isEmpty() || location == null || userId == null) return
         viewModelScope.launch {
+            drafts.value = drafts.value.copy(errorRes = null)
             runCatching {
                 referenceRepository.savePlace(Place(userId = userId, name = name, location = location))
-            }.onFailure { MmLog.e("Could not add the place", it) }
+            }.onFailure {
+                MmLog.e("Could not add the place", it)
+                drafts.value = drafts.value.copy(errorRes = R.string.organization_error_add)
+            }
             drafts.value = drafts.value.copy(draftName = "", draftLocation = null)
         }
     }
 
     fun deletePerson(id: String) {
         viewModelScope.launch {
+            drafts.value = drafts.value.copy(errorRes = null)
             runCatching { referenceRepository.deletePerson(id) }
-                .onFailure { MmLog.e("Could not delete the person", it) }
+                .onFailure {
+                    MmLog.e("Could not delete the person", it)
+                    drafts.value = drafts.value.copy(errorRes = R.string.organization_error_delete)
+                }
         }
     }
 
     fun deletePlace(id: String) {
         viewModelScope.launch {
+            drafts.value = drafts.value.copy(errorRes = null)
             runCatching { referenceRepository.deletePlace(id) }
-                .onFailure { MmLog.e("Could not delete the place", it) }
+                .onFailure {
+                    MmLog.e("Could not delete the place", it)
+                    drafts.value = drafts.value.copy(errorRes = R.string.organization_error_delete)
+                }
         }
+    }
+
+    /** Called once a message has been shown. */
+    fun clearError() {
+        drafts.value = drafts.value.copy(errorRes = null)
     }
 
     private data class Lists(
