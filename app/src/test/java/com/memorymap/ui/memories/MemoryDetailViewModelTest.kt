@@ -238,6 +238,16 @@ class MemoryDetailViewModelTest {
         }
     }
 
+    /**
+     * With no account there is nothing to show, and - the part that matters - nothing
+     * from anybody else is shown either.
+     *
+     * The wait is on the first state rather than on `!isLoading`: the signed-out branch
+     * deliberately keeps `isLoading`, because `MemoryMapRoot` shows the auth screen when
+     * there is no account and this state is only ever the moment between a sign-out and
+     * that navigation. Asserting that the spinner ends would be asserting a claim about
+     * a screen nobody sees.
+     */
     @Test
     fun `a signed-out screen shows nothing and reports nothing`() = runTest {
         val saved = memory("لمن لا حساب")
@@ -251,7 +261,7 @@ class MemoryDetailViewModelTest {
         )
 
         viewModel.state.test {
-            val state = awaitWhere { !it.isLoading }
+            val state = awaitItem()
             assertNull(state.memory)
             assertTrue(state.attachments.isEmpty())
             assertNull(state.errorRes)

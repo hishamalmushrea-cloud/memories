@@ -134,10 +134,23 @@ class MapViewModelTest {
             awaitItem()
 
             viewModel.onZoomChange(99.0)
-            assertEquals(provider.maxZoom.toDouble(), awaitWhere { it.zoom > 90.0 }.zoom, 0.001)
+            assertEquals(
+                provider.maxZoom.toDouble(),
+                awaitWhere { it.zoom == provider.maxZoom.toDouble() }.zoom,
+                0.001,
+            )
 
             viewModel.onZoomChange(-4.0)
-            assertEquals(provider.minZoom.toDouble(), awaitWhere { it.zoom < 1.0 }.zoom, 0.001)
+            assertEquals(
+                provider.minZoom.toDouble(),
+                awaitWhere { it.zoom == provider.minZoom.toDouble() }.zoom,
+                0.001,
+            )
+
+            // Both of those pass through the clamp on the way to a value the fake
+            // provider allows: 12 at the top, 3 at the bottom. Asserting the awaited
+            // state is the clamp's own output is what makes the test about the clamp
+            // rather than about arithmetic that happens to work out.
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -196,13 +209,15 @@ class MapViewModelTest {
             assertEquals(here, arrived.center)
             assertEquals(MapViewModel.CONTENT_ZOOM, arrived.zoom, 0.001)
 
-            // Closer in than the content zoom: asking again must not pull back out.
-            viewModel.onZoomChange(17.0)
-            awaitWhere { it.zoom == 17.0 }
+            // Closer in than the content zoom, and inside what this provider draws:
+            // asking again must not pull the map back out.
+            val closer = provider.maxZoom.toDouble()
+            viewModel.onZoomChange(closer)
+            awaitWhere { it.zoom == closer }
             viewModel.onUserLocation(GeoPoint(15.40, 44.25))
 
             val again = awaitWhere { it.userLocation == GeoPoint(15.40, 44.25) }
-            assertEquals(17.0, again.zoom, 0.001)
+            assertEquals(closer, again.zoom, 0.001)
             cancelAndIgnoreRemainingEvents()
         }
     }
