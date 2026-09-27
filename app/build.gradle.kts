@@ -61,6 +61,11 @@ android {
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("SUPABASE_ANON_KEY")}\"")
         buildConfigField("String", "MAP_TILE_SERVER", "\"https://tile.openstreetmap.org/{z}/{x}/{y}.png\"")
         buildConfigField("String", "MAP_ATTRIBUTION", "\"© OpenStreetMap contributors\"")
+        // The largest single object this project accepts in cloud storage, which
+        // is a plan setting on the Supabase side: 50 MB on the free plan, larger
+        // once paid. Like the tile server, it is a deployment fact, so it is a
+        // build setting rather than a constant compiled into the logic.
+        buildConfigField("long", "MAX_UPLOAD_BYTES", "50L * 1024 * 1024")
     }
 
     signingConfigs {

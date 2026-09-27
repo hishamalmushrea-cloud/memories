@@ -31,6 +31,7 @@ import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.SyncStatus
 import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.SyncTime
+import com.memorymap.util.UploadLimit
 import java.time.LocalDateTime
 
 /**
@@ -603,6 +604,8 @@ class MediaSyncTable(
     private val storage: MediaStorage,
     private val files: MediaFileStore,
     private val images: ImageOptimizer,
+    /** What this project accepts in one object; see `UploadLimit`. */
+    private val uploadLimit: UploadLimit = UploadLimit.FREE_PLAN,
     private val clock: () -> String = { SyncTime.nowText() },
 ) : SyncTable<MediaRecord> {
 
@@ -714,6 +717,17 @@ class MediaSyncTable(
             bytes = bytes,
             fallbackExtension = MediaObjectKey.extensionOf(row.uri),
         )
+        // The size that matters is the size that travels. Saying so here is what
+        // turns "sync failed" into something the person can act on: the file is
+        // named by its size and by the limit it is over.
+        if (uploadLimit.exceeds(prepared.bytes.size.toLong())) {
+            throw IllegalStateException(
+                "An attachment of ${uploadLimit.megabytesOf(prepared.bytes.size.toLong())} MB " +
+                    "is over this project's ${uploadLimit.megabytes}-MB limit for one file, " +
+                    "so it was not sent. Raise the project's file size limit, or keep the " +
+                    "attachment on this device.",
+            )
+        }
         val key = MediaObjectKey.of(userId, row.id, prepared.extension)
         if (!storage.upload(key, prepared.bytes)) {
             throw IllegalStateException("An attachment could not be uploaded")

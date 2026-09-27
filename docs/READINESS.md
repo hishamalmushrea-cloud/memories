@@ -343,10 +343,14 @@ read that nothing writes, and an action following a branch.
 4. **The `compileSdk 37` / AGP 9 decision** (stage 5): the newest releases of most
    dependencies are unreachable from `compileSdk 36`, and the API levels are the
    specification's choice. The evidence is in stage 5 above.
-5. **A file over the service's size cap** (50 MB on the free plan) is refused by the
-   server and reaches the user as a failed sync with no reason to act on. Documented
-   in `docs/SERVICE_LIMITS.md`; the fix is a pre-flight check with a message, and it
-   needs UI work rather than a one-line guard.
+5. ~~**A file over the service's size cap**~~ — done. Video and sound over the cap are
+   refused at the button, with a message naming the limit; a photo is checked after it
+   is prepared, because that is the size that travels; and the prepared bytes are
+   checked before the bucket is asked to take them, so the failure names the file
+   rather than arriving as "sync failed" on every retry. The limit is one build
+   setting (`MAX_UPLOAD_BYTES`). The remaining gap is the reverse case: the app cannot
+   tell the user *when a paid plan has raised the project's limit*, so a build pointed
+   at such a project still refuses at 50 MB until the setting is changed.
 6. **A pre-upgrade watermark** written before stamps carried an offset stays naive
    for exactly one sync; every row after that is an instant, and both shapes read.
 7. **The map tile host must be chosen before publishing.** The public OSM tile

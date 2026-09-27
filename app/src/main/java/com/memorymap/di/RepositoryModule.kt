@@ -33,6 +33,7 @@ import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.domain.repository.SearchRepository
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
+import com.memorymap.util.UploadLimit
 import com.memorymap.util.AndroidImageOptimizer
 import com.memorymap.util.ImageOptimizer
 import dagger.Binds
@@ -164,5 +165,17 @@ abstract class RepositoryModule {
             encodeDefaults = true
             prettyPrint = true
         }
+
+        /**
+         * The largest object this project accepts, from the build setting.
+         *
+         * Read once, here, so the repositories and the sync tables take a value
+         * rather than reaching for `BuildConfig` - and so a test can hand them a
+         * small limit and reach the refusal without writing a 50 MB file.
+         */
+        @Provides
+        @Singleton
+        fun provideUploadLimit(): UploadLimit = UploadLimit(BuildConfig.MAX_UPLOAD_BYTES)
     }
+
 }

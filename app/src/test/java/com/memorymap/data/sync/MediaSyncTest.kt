@@ -13,6 +13,7 @@ import com.memorymap.testing.RecordingImageOptimizer
 import com.memorymap.testing.RecordingMediaStorage
 import com.memorymap.testing.RecordingSyncApi
 import com.memorymap.testing.TemporaryMediaFileStore
+import com.memorymap.util.UploadLimit
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -71,6 +72,10 @@ class MediaSyncTest {
             storage = storage,
             files = files,
             images = images,
+            // One megabyte rather than the project's fifty, because the message
+            // names whole megabytes and a kilobyte limit would read "0 MB". Two
+            // megabytes of test data is a cheap way to keep the sentence honest.
+            uploadLimit = UploadLimit(UploadLimit.BYTES_PER_MEGABYTE),
             clock = { "2024-06-01T10:00:00" },
         )
         db.memoryDao().upsert(
@@ -125,6 +130,40 @@ class MediaSyncTest {
         // The row names its account, because the server column is a foreign key
         // to the profile and an empty value would be refused.
         assertEquals(userId, sent.userId)
+    }
+
+    /**
+     * What travels is what is checked, and the failure says which file it was.
+     *
+     * The server's own refusal is a bare "the request failed" that names neither
+     * the file nor the limit, arrives on every retry, and leaves the person with a
+     * video on the phone, the cloud button on, and nothing to act on. This check
+     * happens before the bytes leave, so the bucket is never asked to take
+     * something it will refuse, and the reason travels in the report.
+     */
+    @Test
+    fun `an attachment over the limit is not uploaded and says why`() = runTest {
+        attach(optIn = true)
+        images.replacement = ByteArray(2 * UploadLimit.BYTES_PER_MEGABYTE.toInt())
+
+        val thrown = runCatching { table.pushUpserts(table.pending(userId)) }.exceptionOrNull()
+
+        assertTrue("expected a refusal, got $thrown", thrown is IllegalStateException)
+        val message = thrown?.message.orEmpty()
+        assertTrue("the reason must name the size: $message", message.contains("2 MB"))
+        assertTrue("the reason must name the limit: $message", message.contains("1-MB"))
+        assertEquals("the bucket must not be asked", emptyList<String>(), storage.uploadCalls)
+        assertEquals("no row may be sent for bytes that never went", emptyList<MediaRecord>(), api.mediaSent)
+    }
+
+    @Test
+    fun `an attachment the limit allows still goes up`() = runTest {
+        attach(optIn = true)
+        images.replacement = ByteArray(UploadLimit.BYTES_PER_MEGABYTE.toInt())
+
+        table.pushUpserts(table.pending(userId))
+
+        assertEquals(listOf("$userId/media-1.jpg"), storage.uploadCalls)
     }
 
     @Test

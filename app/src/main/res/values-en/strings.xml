@@ -142,6 +142,7 @@
     <string name="memory_action_discard">Discard</string>
     <string name="memory_error_title">Give the memory a title</string>
     <string name="memory_error_media">That file could not be added</string>
+    <string name="memory_error_attachment_too_large">This file is over what your project accepts: %1$d MB for one file. It stays on this device.</string>
     <string name="memory_error_no_account">No active account</string>
     <string name="memory_error_save">The memory could not be saved</string>
 

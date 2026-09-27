@@ -69,6 +69,14 @@ cp local.properties.example local.properties
 > أي مزامنة على شبكة. ما هو مُتحقَّق منه أن النصفين — كود العميل و SQL — متوافقان،
 > عبر `SupabaseContractTest` الذي يقرأ الملفين معًا.
 
+### إعدادات النشر (في `app/build.gradle.kts`)
+
+| الإعداد | الافتراضي | ما يتغيّر به |
+|---|---|---|
+| `MAP_TILE_SERVER` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | مزوّد الشرائح. سياسة OSM تمنع توزيع تطبيق يطلب من خادمها العام بلا إذن، ولذلك يجب اختيار مزوّد قبل النشر |
+| `MAP_ATTRIBUTION` | `© OpenStreetMap contributors` | الإسناد المطلوب مع أي مزوّد يعرض بيانات OSM |
+| `MAX_UPLOAD_BYTES` | `50 MB` | أكبر ملف واحد يقبله مشروعك في المخزن. الرقم صفة خطة لا صفة كود: ارفعه عندما ترفع خطة Supabase، وإلا رُفض ما يمكن رفعه |
+
 ---
 
 ## البنية

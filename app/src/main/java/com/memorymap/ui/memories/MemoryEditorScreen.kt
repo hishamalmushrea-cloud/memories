@@ -160,7 +160,9 @@ fun MemoryEditorScreen(
 
         state.errorRes?.let { errorRes ->
             Text(
-                text = stringResource(errorRes),
+                text = state.errorArg
+                    ?.let { argument -> stringResource(errorRes, argument) }
+                    ?: stringResource(errorRes),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )

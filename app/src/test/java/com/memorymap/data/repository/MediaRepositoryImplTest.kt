@@ -7,6 +7,8 @@ import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.SyncStatus
+import com.memorymap.domain.repository.UploadRequest
+import com.memorymap.util.UploadLimit
 import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -47,7 +49,12 @@ class MediaRepositoryImplTest {
             ApplicationProvider.getApplicationContext(),
             MemoryMapDatabase::class.java,
         ).allowMainThreadQueries().build()
-        repository = MediaRepositoryImpl(db.mediaDao())
+        // A one-megabyte limit rather than the project's fifty: the message names
+        // whole megabytes, and a kilobyte limit would make every size read "0 MB".
+        repository = MediaRepositoryImpl(
+            db.mediaDao(),
+            UploadLimit(UploadLimit.BYTES_PER_MEGABYTE),
+        )
     }
 
     @After
@@ -205,8 +212,42 @@ class MediaRepositoryImplTest {
      * earliest photo because real names embed a timestamp after a constant
      * owner prefix. A random prefix here would break that ordering.
      */
-    private fun file(name: String): File =
-        temporaryFolder.newFile(name).apply { writeText("x") }
+    /**
+     * A file the project cannot accept is refused at the moment of the request.
+     *
+     * The alternative, and what used to happen, was a request that queued, failed
+     * on every sync against a limit the app never checked, and reported a failure
+     * with no reason in it: the person had turned the cloud button on, and nothing
+     * ever arrived.
+     */
+    @Test
+    fun `a file over the project limit is refused and not queued`() = runTest {
+        val video = item(MediaType.VIDEO, file("long.mp4", megabytes = 2))
+        repository.attach(video)
+
+        val answer = repository.requestUpload(video.id)
+
+        assertEquals(UploadRequest.TooLarge(1), answer)
+        val stored = repository.getFor(MediaOwner.MEMORY, memoryId).single()
+        assertFalse("nothing may be queued for a sync that cannot succeed", stored.uploadRequested)
+    }
+
+    @Test
+    fun `a large photo is still queued, because it travels prepared`() = runTest {
+        // Two megabytes over a one-megabyte limit, and still accepted: a photo is
+        // shrunk and stripped on the way out, so its size here is not the size that
+        // travels. Refusing it at the button would refuse a file that would fit.
+        val photo = item(MediaType.PHOTO, file("big.jpg", megabytes = 2))
+        repository.attach(photo)
+
+        assertEquals(UploadRequest.Queued, repository.requestUpload(photo.id))
+        assertTrue(repository.getFor(MediaOwner.MEMORY, memoryId).single().uploadRequested)
+    }
+
+    private fun file(name: String, megabytes: Int = 1): File =
+        temporaryFolder.newFile(name).apply {
+            writeBytes(ByteArray(megabytes * UploadLimit.BYTES_PER_MEGABYTE.toInt()))
+        }
 
     private fun item(type: MediaType, file: File) = MediaItem(
         ownerId = memoryId,

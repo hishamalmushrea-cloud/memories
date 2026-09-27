@@ -15,6 +15,28 @@ import kotlinx.coroutines.flow.Flow
  * Files live in app-private storage, so the archive survives a cache clear and
  * needs no storage permission. Cloud upload stays optional and explicit.
  */
+/**
+ * What a request to upload an attachment came to.
+ *
+ * Two answers rather than a boolean, because the person is told which one it was:
+ * "this file is too big for this project" is a sentence they can act on, and
+ * "nothing happened" is not. Photos are prepared before they travel, so a refusal
+ * here is about files that are sent as they are - video and sound.
+ */
+sealed interface UploadRequest {
+    /** Recorded, and the next sync will carry it out. */
+    data object Queued : UploadRequest
+
+    /**
+     * Over the project's per-file limit; nothing was queued.
+     *
+     * [limitMb] travels with the answer so the message can name the number. The
+     * limit is a build setting, so a sentence that hard-coded "50" would be wrong
+     * in a build pointed at a project with a different one.
+     */
+    data class TooLarge(val limitMb: Long) : UploadRequest
+}
+
 interface MediaRepository {
 
     /** Live attachments of one owner, oldest first. */
@@ -55,8 +77,12 @@ interface MediaRepository {
      * uploads anything by itself: the request is recorded and the sync worker
      * carries it out, so the answer survives a restart and the attachment can
      * show that it is waiting.
+     *
+     * Returns what became of the request. A file the project is too small to
+     * accept is refused here, while the person is looking at the button, rather
+     * than queued for a sync that can only ever fail: see [UploadRequest].
      */
-    suspend fun requestUpload(id: String)
+    suspend fun requestUpload(id: String): UploadRequest
 
     /**
      * Withdraws that request.

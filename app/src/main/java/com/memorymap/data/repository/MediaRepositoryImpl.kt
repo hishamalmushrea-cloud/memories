@@ -8,9 +8,11 @@ import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaSummary
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.repository.MediaRepository
+import com.memorymap.domain.repository.UploadRequest
 import com.memorymap.util.MediaStore
 import com.memorymap.util.MmLog
 import com.memorymap.util.SyncTime
+import com.memorymap.util.UploadLimit
 import java.io.File
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -27,6 +29,8 @@ import kotlinx.coroutines.flow.map
 @Singleton
 class MediaRepositoryImpl @Inject constructor(
     private val mediaDao: MediaDao,
+    /** What this project will accept in one file; see `UploadLimit`. */
+    private val uploadLimit: UploadLimit = UploadLimit.FREE_PLAN,
 ) : MediaRepository {
 
     override fun watchFor(owner: MediaOwner, ownerId: String): Flow<List<MediaItem>> =
@@ -73,12 +77,25 @@ class MediaRepositoryImpl @Inject constructor(
         deleteFile(item.uri)
     }
 
-    override suspend fun requestUpload(id: String) {
+    override suspend fun requestUpload(id: String): UploadRequest {
+        val row = mediaDao.getById(id) ?: return UploadRequest.Queued
+        // A photo is shrunk and stripped on the way out, so its size on this
+        // device says nothing about the size that travels. Video and sound are
+        // sent as they are, and a file the project will refuse is refused here.
+        val type = MediaType.fromName(row.mediaType)
+        if (type != MediaType.PHOTO && uploadLimit.exceeds(fileSize(row.uri))) {
+            return UploadRequest.TooLarge(uploadLimit.megabytes)
+        }
         // The stamp moves with the request so the queue sees it: rows are read
         // oldest-first by `updated_at`, and a request that did not move it would
         // sort as something that had already been dealt with.
         mediaDao.requestUpload(id, SyncTime.nowText())
+        return UploadRequest.Queued
     }
+
+    /** The size of the file on this device, or zero when it is not there. */
+    private fun fileSize(uri: String): Long =
+        runCatching { File(uri).length() }.getOrDefault(0L)
 
     override suspend fun cancelUpload(id: String) {
         mediaDao.cancelUpload(id)

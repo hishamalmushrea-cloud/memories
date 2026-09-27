@@ -20,6 +20,7 @@ import com.memorymap.navigation.Routes
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.domain.repository.MemoryRepository
+import com.memorymap.domain.repository.UploadRequest
 import com.memorymap.util.MediaImporter
 import com.memorymap.util.MmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -66,6 +67,8 @@ data class MemoryEditorUiState(
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val errorRes: Int? = null,
+    /** The number [errorRes]'s message needs, when it has a placeholder. */
+    val errorArg: Int? = null,
 ) {
     val attachments: List<MediaItem> get() = savedAttachments + pendingAttachments
 }
@@ -153,7 +156,9 @@ class MemoryEditorViewModel @Inject constructor(
         }
     }
 
-    fun onTitleChange(value: String) = _state.update { it.copy(title = value, errorRes = null) }
+    fun onTitleChange(value: String) = _state.update {
+        it.copy(title = value, errorRes = null, errorArg = null)
+    }
 
     fun onTextChange(value: String) = _state.update { it.copy(text = value) }
 
@@ -212,7 +217,7 @@ class MemoryEditorViewModel @Inject constructor(
     /** Drops the pin; the memory then simply has no location. */
     fun clearLocation() = _state.update { it.copy(location = null) }
 
-    fun clearError() = _state.update { it.copy(errorRes = null) }
+    fun clearError() = _state.update { it.copy(errorRes = null, errorArg = null) }
 
     /** Copies a picked photo, audio or video into the archive. */
     fun importFromUri(uri: Uri) {
@@ -275,7 +280,18 @@ class MemoryEditorViewModel @Inject constructor(
                 if (item.uploadRequested) {
                     mediaRepository.cancelUpload(item.id)
                 } else {
-                    mediaRepository.requestUpload(item.id)
+                    // A file this project cannot take is refused while the person
+                    // is looking at the button. The alternative was a request that
+                    // queued, failed on every sync, and never said why.
+                    when (val request = mediaRepository.requestUpload(item.id)) {
+                        is UploadRequest.Queued -> Unit
+                        is UploadRequest.TooLarge -> _state.update {
+                            it.copy(
+                                errorRes = R.string.memory_error_attachment_too_large,
+                                errorArg = request.limitMb.toInt(),
+                            )
+                        }
+                    }
                 }
             }.onFailure { MmLog.e("Unable to change an attachment's upload state", it) }
         }

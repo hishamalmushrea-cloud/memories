@@ -8,6 +8,17 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- An attachment the cloud project cannot accept is refused **before** it is sent,
+  with a reason. A video or a recording over the project's per-file limit is
+  refused at the upload button with a message naming the limit in megabytes, a
+  photo is checked after it is prepared (shrinking is what makes a large original
+  fit), and the prepared bytes are checked again before the bucket is asked to take
+  them. Before this, such a file queued, was refused by the server, retried on every
+  sync, and reported a failure with nothing to act on: the person had switched the
+  cloud button on, and nothing ever arrived. The limit is one build setting
+  (`MAX_UPLOAD_BYTES`, README's deployment table), read once in the DI module and
+  passed in, like the tile server.
+
 - `ci/check-workflows.py`, which compares the two workflows with each other:
   every action pinned to a version (never a branch that moves), the same version
   of an action in both files, the Android SDK step character-for-character

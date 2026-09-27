@@ -27,6 +27,7 @@ import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.MmLog
 import com.memorymap.util.SyncTime
+import com.memorymap.util.UploadLimit
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -58,6 +59,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val files: MediaFileStore,
     private val images: ImageOptimizer,
     private val supabase: SupabaseClientProvider,
+    /** What this project accepts in one object; see `UploadLimit`. */
+    private val uploadLimit: UploadLimit = UploadLimit.FREE_PLAN,
 ) : SyncRepository {
 
     private val engine = SyncEngine()
@@ -134,7 +137,7 @@ class SyncRepositoryImpl @Inject constructor(
         DiaryNoteSyncTable(noteDao, api),
         // Last, and after the records it points at: an attachment names the
         // memory or event that owns it, so those rows have to exist first.
-        MediaSyncTable(mediaDao, api, storage, files, images),
+        MediaSyncTable(mediaDao, api, storage, files, images, uploadLimit),
     )
 
     private suspend fun writeMeta(userId: String, watermark: String?, outcome: String) {
