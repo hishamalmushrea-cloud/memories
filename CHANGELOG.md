@@ -61,9 +61,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   an unsigned archive failing instead of reporting an empty value, and the APK
   path parsed from apksigner's output. Until it existed, the verification that
   decides whether a release is correctly signed first ran on the run that
-  publishes. Two of its own defects were found by writing it: an APK at minSdk 26
-  is unreadable by `keytool`, and setting an environment variable for a single
-  command made the check pass while the tool under test never ran.
+  publishes. Four of its own defects were found by writing it, each of a kind that
+  a check without a rehearsal never has to survive: an APK at minSdk 26 is
+  unreadable by `keytool`; setting an environment variable for a single command
+  made the check pass while the tool under test never ran; a `cd` in a subshell
+  left `jarsigner` looking for its input in the repository root; and a `.jar` fell
+  through to `apksigner`, which exists on a CI runner, refuses a JAR, and turned a
+  signed archive into "not signed" - on the runner only, which is why the guard now
+  reports its output into the build summary instead of the job log alone.
 
 - `ci/release-fingerprint.txt`: the public SHA-256 of the release certificate, so
   a built artifact can be checked against the key it claims to be signed with.

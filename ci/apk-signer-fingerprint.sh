@@ -9,9 +9,9 @@
 #
 # Two readers, because the two artifact types are signed differently:
 #
-#   * A **bundle** is a JAR. Gradle signs it with the JAR signature scheme (v1), so the
-#     certificate is in `META-INF/*.RSA` and `keytool -printcert -jarfile` reads it with
-#     no password, no SDK and no extra tool.
+#   * A **bundle** (and any JAR) is signed with the JAR signature scheme (v1), so the
+#     certificate is in `META-INF/*.RSA` and `keytool -printcert -jarfile` reads it with no
+#     password, no SDK and no extra tool.
 #
 #   * An **APK** built with `minSdk >= 24` is *not* JAR-signed. AGP states this as a rule
 #     ("V1 signature is useless if minSdk is 24+") and drops v1 even when the signing
@@ -114,8 +114,18 @@ via_apksigner() {
 }
 
 # ------------------------------------------------------------------------- the choice
+#
+# By extension, because that is what the caller knows. A bundle and a plain JAR are
+# JAR-signed, so keytool reads them; anything else is treated as an APK, where the
+# certificate is in the APK Signing Block that apksigner reads.
+#
+# `.jar` used to fall through to apksigner, which is right for an APK and wrong for a
+# JAR: on a CI runner apksigner exists, refuses a JAR ("ERROR: Missing
+# AndroidManifest.xml"), and the script stopped there with an empty fingerprint - a
+# failure that said "not signed" about an archive that was signed, and that could not be
+# reproduced here, where no SDK is installed and apksigner is never found.
 case "${artifact##*.}" in
-    aab|AAB) first=keytool; second=apksigner ;;
+    aab|AAB|jar|JAR) first=keytool; second=apksigner ;;
     *) first=apksigner; second=keytool ;;
 esac
 

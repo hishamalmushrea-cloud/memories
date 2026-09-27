@@ -233,6 +233,10 @@ if [ -f "$JAR" ]; then
         # signature is not one this JDK will read. A CI failure with no way to tell those
         # apart is what this block exists to prevent, and the first version of this check
         # produced exactly that.
+        # The reader's own output first, stderr included: it names the tool that answered
+        # or the tool that refused, which keytool's transcript alone does not.
+        echo "   the reader says:"
+        bash "$ROOT/ci/apk-signer-fingerprint.sh" "$JAR" 2>&1 | head -6 | sed 's/^/   | /' || true
         echo "   keytool says:"
         keytool -printcert -jarfile "$JAR" 2>&1 | head -6 | sed 's/^/   | /' || true
         echo "   the archive contains:"
