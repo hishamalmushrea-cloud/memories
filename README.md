@@ -379,6 +379,12 @@ testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRe
   (الأجوبة مكتوبة في [`docs/RELEASE.md`](docs/RELEASE.md)).
 - **التوقيع والخطوات التفصيلية**: [`docs/RELEASE.md`](docs/RELEASE.md).
 
+## مطابقة المواصفة
+
+[docs/SPEC_COMPLIANCE.md](docs/SPEC_COMPLIANCE.md) جدول واحد لكل قسم من أقسام
+`MemoryMap_Full_Prompt.md`: أين نُفّذ، وبماذا أُثبت (اختبار باسمه أو فحص في CI أو ملف
+يمكن فتحه)، وما لم يُثبت بعد مكتوب صراحةً في نهايته.
+
 ## حدود الخدمات الخارجية
 
 الاستخدام المجاني ليس بلا حدود: [docs/SERVICE_LIMITS.md](docs/SERVICE_LIMITS.md)

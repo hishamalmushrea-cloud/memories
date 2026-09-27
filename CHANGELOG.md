@@ -8,6 +8,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- `docs/SPEC_COMPLIANCE.md` maps each section of the specification to where it is
+  implemented and what proves it - a named test, a CI check, or a file that can be
+  opened - and ends with what is *not* proven: the schema has never run on a
+  hosted project, the app has never run on a device, and nothing has been
+  published.
+
 - `docs/SERVICE_LIMITS.md` documents the limits of the two external services
   this app depends on, which the specification asks for by name: the Supabase
   free plan (500 MB database that goes read-only when exceeded, 1 GB file
