@@ -32,9 +32,11 @@ import org.junit.Test
  * under test, written as a delegation over the interface so it cannot drift.
  *
  * The state is a `stateIn` of a combine, so it only runs while somebody is
- * collecting: each test opens a Turbine block to hold that subscription, drives
- * the view model through it, and then reads `state.value`, which is the latest
- * value the collector has seen.
+ * collecting: each test opens a Turbine block to hold that subscription, drives the
+ * view model through it, and then takes the latest value with
+ * `expectMostRecentItem()`. Reading `state.value` instead would leave the emissions
+ * between here and there unconsumed, and Turbine fails a block that ends with events
+ * it was never shown - which is exactly how the first version of this file failed.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OrganizationViewModelTest {
@@ -66,7 +68,7 @@ class OrganizationViewModelTest {
             viewModel.addPerson()
             scheduler.advanceUntilIdle()
 
-            val state = viewModel.state.value
+            val state = expectMostRecentItem()
             assertEquals(R.string.error_name_not_added, state.errorRes)
             // The text is still there, so the tap can simply be repeated.
             assertEquals("أحمد", state.draftName)
@@ -87,7 +89,7 @@ class OrganizationViewModelTest {
                 viewModel.addPlace()
                 scheduler.advanceUntilIdle()
 
-                val state = viewModel.state.value
+                val state = expectMostRecentItem()
                 assertEquals(R.string.error_name_not_added, state.errorRes)
                 assertEquals("بيت الجدة", state.draftName)
                 assertEquals(GeoPoint(15.3547, 44.2066), state.draftLocation)
@@ -103,12 +105,12 @@ class OrganizationViewModelTest {
             viewModel.onDraftNameChanged("أحمد")
             viewModel.addPerson()
             scheduler.advanceUntilIdle()
-            assertEquals(R.string.error_name_not_added, viewModel.state.value.errorRes)
+            assertEquals(R.string.error_name_not_added, expectMostRecentItem().errorRes)
 
             viewModel.clearError()
             scheduler.advanceUntilIdle()
 
-            val state = viewModel.state.value
+            val state = expectMostRecentItem()
             assertNull(state.errorRes)
             assertEquals("أحمد", state.draftName)
         }
@@ -131,7 +133,7 @@ class OrganizationViewModelTest {
             viewModel.deletePerson(kept.id)
             scheduler.advanceUntilIdle()
 
-            val state = viewModel.state.value
+            val state = expectMostRecentItem()
             assertEquals(R.string.organization_error_delete, state.errorRes)
             assertEquals(listOf("أحمد"), state.people.map { it.name })
         }
@@ -148,7 +150,7 @@ class OrganizationViewModelTest {
             viewModel.addPerson()
             scheduler.advanceUntilIdle()
 
-            val state = viewModel.state.value
+            val state = expectMostRecentItem()
             assertNull(state.errorRes)
             // The field empties only once the name is stored. The list itself is
             // not asserted here: the double snapshots the rows when the screen
@@ -169,7 +171,7 @@ class OrganizationViewModelTest {
             viewModel.addPerson()
             scheduler.advanceUntilIdle()
 
-            assertNull(viewModel.state.value.errorRes)
+            assertNull(expectMostRecentItem().errorRes)
             // Nothing was attempted, so nothing can have failed: this is a
             // signed-out screen, not a broken one.
             assertEquals(0, repository.addAttempts)
