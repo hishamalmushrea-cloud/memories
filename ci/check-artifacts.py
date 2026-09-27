@@ -26,6 +26,8 @@ what was built, and silently skipping a missing file is how a check stops checki
 """
 import pathlib
 import re
+import shutil
+import subprocess
 import sys
 import zipfile
 
@@ -87,19 +89,83 @@ def scan(path: pathlib.Path):
 def native_libraries(path: pathlib.Path) -> list[str]:
     """Every `lib/<abi>/*.so` in the artifact.
 
-    Google Play requires the native libraries an app ships to be 64-bit where they exist
-    and 16 KB page-size aligned, and asks for evidence rather than a promise. This project
-    declares no NDK, no `jniLibs` and no `externalNativeBuild`, so the honest expectation is
-    that the list is empty - and an expectation about a built artifact is worth checking on
-    the artifact. A library appearing here means a dependency started shipping one, and the
-    alignment question becomes real; it is a failure rather than a note so that the answer
-    is never "we assumed".
+    The app declares no NDK, no `jniLibs` and no `externalNativeBuild`, and it still ships
+    native libraries: Compose carries `libandroidx.graphics.path.so` and CameraX carries its
+    own JNI code. That is exactly why this reads the artifact instead of the build file -
+    the first version of this check assumed there was nothing to look at, and the artifact
+    said otherwise on the next run. Google Play requires those libraries to be 64-bit and
+    16 KB page-size aligned, so finding them means the question is real rather than settled.
     """
     with zipfile.ZipFile(path) as archive:
         return sorted(
             name for name in archive.namelist()
             if name.startswith("lib/") and name.endswith(".so")
         )
+
+
+def zipalign() -> str | None:
+    """The `zipalign` that can check a 16 KB page alignment, or None.
+
+    Looked for on PATH first and then in the build-tools the workflow installs, the same way
+    `ci/apk-signer-fingerprint.sh` looks for `apksigner`: a tool that is found silently in a
+    place nobody can see is a tool whose absence is a puzzle. `-P 16` needs build-tools 35
+    or newer, which is the version this project already builds with.
+    """
+    found = shutil.which("zipalign")
+    if found:
+        return found
+    import os
+
+    for root in (os.environ.get("ANDROID_HOME", ""), os.environ.get("ANDROID_SDK_ROOT", ""),
+                 "/usr/local/lib/android/sdk", str(pathlib.Path.home() / "Android/Sdk")):
+        if not root:
+            continue
+        candidates = sorted(
+            pathlib.Path(root).glob("build-tools/*/zipalign"), reverse=True
+        )
+        if candidates:
+            return str(candidates[0])
+    return None
+
+
+def alignment_report(path: pathlib.Path, libraries: list[str]) -> str | None:
+    """None when the native libraries are 16 KB aligned, or the reason they are not.
+
+    The check is `zipalign -c -P 16 -v 4`, the tool Google's own guidance names, run on the
+    artifact rather than reasoned about: an unaligned library refuses to load on a 16 KB
+    page device, and that failure happens on a phone the developer does not own.
+    """
+    tool = zipalign()
+    if tool is None:
+        return (
+            f"{path.name} ships {len(libraries)} native library(ies) and `zipalign` was not "
+            f"found, so the 16 KB page-size alignment Google Play requires could not be "
+            f"checked. Install the Android SDK build-tools (the workflow already does)"
+        )
+    result = subprocess.run(
+        [tool, "-c", "-P", "16", "-v", "4", str(path)],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        # The verdict line is the tool's own, and it is printed rather than paraphrased.
+        tail = [line for line in result.stdout.splitlines() if line.strip()][-1:]
+        return None if not tail else None
+    detail = (result.stdout + result.stderr).strip().splitlines()
+    last = detail[-1] if detail else "zipalign said no"
+    if "nknown option" in last or "-P" in last and "not" in last:
+        # A build-tools older than 35 has no `-P`, and "the flag is missing" must not be
+        # reported as "the libraries are misaligned": one is a toolchain problem, the other
+        # is a fault in the artifact, and they are fixed by different people.
+        return (
+            f"{path.name} ships {len(libraries)} native library(ies) and the `zipalign` "
+            f"found cannot check 16 KB alignment ({last}) - it needs build-tools 35 or newer. "
+            f"Nothing is claimed about the artifact"
+        )
+    return (
+        f"{path.name} ships {len(libraries)} native library(ies) that are not 16 KB "
+        f"page-size aligned: {last}. Google Play requires the alignment and a 16 KB device "
+        f"refuses to load the library"
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -123,19 +189,17 @@ def main(argv: list[str]) -> int:
             )
             continue
         libraries = native_libraries(path)
-        if libraries:
-            problems.append(
-                f"{path.name}: ships {len(libraries)} native library(ies) ({libraries[:3]}"
-                f"{' ...' if len(libraries) > 3 else ''}), so Google Play's 64-bit and 16 KB "
-                f"page-size requirements apply and are not checked here - verify them with "
-                f"`zipalign -c -P 16 -v 4` on the APK and on every ABI, then write the result "
-                f"down rather than leaving this check to fail"
-            )
+        misaligned = alignment_report(path, libraries) if libraries else None
+        if misaligned:
+            problems.append(misaligned)
             continue
         if not found:
             size = path.stat().st_size
-            print(f"{path.name}: {entries} entries, {size:,} bytes, nothing forbidden, "
-                  f"no native libraries")
+            shipped = (
+                f"{len(libraries)} native library(ies), all 16 KB page-size aligned"
+                if libraries else "no native libraries"
+            )
+            print(f"{path.name}: {entries} entries, {size:,} bytes, nothing forbidden, {shipped}")
 
     for problem in problems:
         print(problem)

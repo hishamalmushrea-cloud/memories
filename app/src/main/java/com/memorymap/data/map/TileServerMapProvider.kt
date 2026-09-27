@@ -31,15 +31,22 @@ class TileServerMapProvider(
         // asking for real tiles; clamp rows because there is nothing past a pole.
         val wrappedX = ((x % count) + count) % count
         val clampedY = y.coerceIn(0, count - 1)
-        return tileTemplate
+        val address = tileTemplate
             .replace("{z}", z.toString())
             .replace("{x}", wrappedX.toString())
             .replace("{y}", clampedY.toString())
-            // A provider that wants a key carries it in the template as `{key}`, so the
-            // build setting stays a plain URL template and the key remains a separate
-            // value that never has to be edited into a string by hand. A template with no
-            // `{key}` ignores the key entirely.
-            .replace("{key}", apiKey)
+        // A provider that wants a key carries it in the template as `{key}`, so the build
+        // setting stays a plain URL template and the key remains a separate value that
+        // never has to be edited into a string by hand. A template with no `{key}` ignores
+        // the key entirely.
+        //
+        // With no key configured the placeholder is left standing rather than replaced by
+        // nothing: `?key={key}` in a URL says out loud that this build has no key, while
+        // `?key=` reads like the provider refused a request that looked complete. The
+        // release path refuses this case before it builds (ci/check-tile-provider.py), so
+        // what the placeholder costs is a diagnosis, not a release.
+        if (apiKey.isBlank()) return address
+        return address.replace("{key}", apiKey)
     }
 
     /** True when this template cannot serve a tile without a key. */

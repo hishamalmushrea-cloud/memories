@@ -42,12 +42,27 @@ class LocationPickerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Opened on a place, the map starts where the street is visible; opened with no
+     * place, it starts wide enough to find one.
+     *
+     * Held as a value rather than recomputed inside the flow, because it is also the
+     * zoom of the state the screen shows **before** anything is collected: an initial
+     * state carrying the data class's default would draw one frame at the wrong
+     * distance and then jump.
+     */
+    private val startZoom = if (initial == MapViewModel.DEFAULT_CENTER) START_WIDE else START_CLOSE
+
     private val center = MutableStateFlow(initial)
-    private val zoom = MutableStateFlow(if (initial == MapViewModel.DEFAULT_CENTER) 3.0 else 15.0)
+    private val zoom = MutableStateFlow(startZoom)
 
     val state: StateFlow<LocationPickerUiState> = combine(center, zoom) { c, z ->
         LocationPickerUiState(center = c, zoom = z)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocationPickerUiState(initial))
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        LocationPickerUiState(center = initial, zoom = startZoom),
+    )
 
     /** The chosen point: wherever the map is centred right now. */
     val picked: GeoPoint get() = center.value
@@ -58,5 +73,13 @@ class LocationPickerViewModel @Inject constructor(
 
     fun onZoomChange(value: Double) {
         zoom.value = value.coerceIn(provider.minZoom.toDouble(), provider.maxZoom.toDouble())
+    }
+
+    private companion object {
+        /** Zoom for a picker that was given no place: the whole country, roughly. */
+        const val START_WIDE = 3.0
+
+        /** Zoom for a picker opened on a place: a street. */
+        const val START_CLOSE = 15.0
     }
 }

@@ -60,7 +60,7 @@ use the app.
 
 ## 5) When you connect a Supabase account (optional)
 
-- Only the **client-side anon key** is used. The `service_role` key is not present
+- Only the **client-side anon key** is used. The service role key is not present
   in the app and must never be, because everything inside an APK is public.
 - All traffic uses HTTPS.
 - The session is stored using a modern secure storage mechanism (Android Keystore).

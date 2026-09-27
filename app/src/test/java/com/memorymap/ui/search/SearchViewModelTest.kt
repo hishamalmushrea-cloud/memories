@@ -41,6 +41,15 @@ class SearchViewModelTest {
     /** Long enough to cover the debounce in the view model, with room to spare. */
     private val pastDebounce = 300L
 
+    /**
+     * Shorter than the debounce, so the pending run is still waiting when the next
+     * keystroke arrives. The first version of the cancellation test used the long value
+     * and passed its name while proving the opposite: advancing past the debounce ran the
+     * first search, so the repository saw both words and the assertion was about the
+     * wrong thing.
+     */
+    private val beforeDebounce = 100L
+
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
 
@@ -131,7 +140,7 @@ class SearchViewModelTest {
         val model = viewModel(repository)
 
         model.onTextChanged("قه")
-        advanceTimeBy(pastDebounce)
+        advanceTimeBy(beforeDebounce)
         model.onTextChanged("قهوة")
         advanceUntilIdle()
 
