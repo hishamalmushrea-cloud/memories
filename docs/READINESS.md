@@ -364,9 +364,10 @@ the run whose output actually reaches a person.
 **The third guard: the documents' own numbers.** Two claims had gone stale without
 anyone noticing - `SPEC_COMPLIANCE.md` said 534 string resources and 178 source files
 while the repository had 548 and 128, and this summary said eleven guards while there
-were twelve. `ci/check-docs.py` now reads the six numeric claims that are
-computable from the repository (test methods, test classes, strings, plurals, source
-files, guards) and fails when one disagrees. A claim that has been reworded out of
+were twelve. `ci/check-docs.py` now reads the seven numeric claims that
+are computable from the repository (test methods, test classes, strings, plurals, source
+files, guards, and the database check's own guarantee count) and the 144 paths these
+documents point a reader at, and fails when one disagrees. A claim that has been reworded out of
 existence is also a failure, because a rule that matches nothing is a rule that checks
 nothing - and the guard polices that trap in itself: its own fourth fault-injection case
 found a rule whose pattern captured no numbers, which would have compared nothing while

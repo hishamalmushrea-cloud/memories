@@ -80,6 +80,20 @@ def source_files():
     return len(list(SOURCES.rglob("*.kt")))
 
 
+def guarantees():
+    """The guarantees the database check makes: the SQL's own, plus the checker's two.
+
+    The SQL prints one `ok:` line per guarantee it confirms, and `check-schema.py` prints
+    two of its own (that every table the client names exists, and every function it calls).
+    Both are counted here so the summary's claim is derived rather than remembered.
+    """
+    sql = (ROOT / "supabase/verify/10_checks.sql").read_text(encoding="utf-8")
+    printed = len(re.findall(r"\\echo 'ok: ", sql))
+    checker = (ROOT / "ci/check-schema.py").read_text(encoding="utf-8")
+    extra = len(re.findall(r'print\(f"ok: ', checker))
+    return printed + extra
+
+
 def guard_files():
     """The `check-*.py` guards, without `check-schema.py`.
 
@@ -96,6 +110,7 @@ def rules():
     strings, plurals = string_counts()
     files = source_files()
     guards = guard_files()
+    checks = guarantees()
     compliance = DOCS / "SPEC_COMPLIANCE.md"
     readiness = DOCS / "READINESS.md"
     return [
@@ -111,6 +126,8 @@ def rules():
          [tests], "the tests row of the readiness summary"),
         (readiness, r"\| Guards \| (eleven|twelve|thirteen|fourteen|\d+) `check-\*\.py` files",
          [guards], "the guards row of the readiness summary"),
+        (readiness, r"passes (\d+) checks on a real PostgreSQL",
+         [checks], "the database row of the readiness summary"),
     ]
 
 
