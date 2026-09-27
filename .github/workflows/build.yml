@@ -277,8 +277,13 @@ jobs:
                           entry = by_rule.setdefault(issue.get("id"), [0, [], []])
                           entry[0] += 1
                           if version_rule:
-                              if where not in [place for place, _ in entry[1]]:
-                                  entry[1].append((where, issue.get("message", "")))
+                              # Keyed on the pair, not on the place: lint reports
+                              # some version advisories with no location at all,
+                              # and deduplicating those by place kept only the
+                              # first one - hiding eight of the twenty-one.
+                              key = (where, issue.get("message", ""))
+                              if key not in entry[1]:
+                                  entry[1].append(key)
                           elif len(entry[1]) < 6 and where not in entry[1]:
                               entry[1].append((where, ""))
               print("errors=%d warnings=%d" % (errors, warnings))
@@ -288,9 +293,10 @@ jobs:
                   for rule, (count, places, messages) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
                       print("- %s x%d" % (rule, count))
                       for place, message in places:
-                          print("    %s" % place)
+                          if place not in ("?", "?:?"):
+                              print("    %s" % place)
                           if message:
-                              print("      %s" % message[:160])
+                              print("      %s" % message[:220])
                       if count > len(places):
                           print("    ... and %d more" % (count - len(places)))
               if shown:
