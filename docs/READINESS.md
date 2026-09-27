@@ -135,6 +135,9 @@ run before the next group. Anything that needs a coordinated bump (Kotlin + KSP 
 Compose compiler) moves together.
 
 **Verified by.** A green CI run per group, with the lint count in the same report.
+The report prints the message of every version advisory it sees, one line per
+library, because those lines are the working list of this stage and a runner is
+the only thing here that can resolve a version.
 
 ## Stage 6 — the round trips a user actually does
 

@@ -221,6 +221,13 @@ jobs:
           if not paths:
               print("(no lint report found)")
           else:
+              # The rules whose message is advice about a version, and therefore
+              # wants to be read once per library rather than once per rule.
+              VERSION_RULES = {
+                  "GradleDependency",
+                  "NewerVersionAvailable",
+                  "AndroidGradlePluginVersion",
+              }
               errors = 0
               warnings = 0
               shown = []
@@ -246,23 +253,31 @@ jobs:
                               where = loc.get("file", "?").split("/memories/")[-1] + ":" + loc.get("line", "?")
                           # Up to six places per rule, so a rule with a count
                           # higher than one says which lines the rest are on
-                          # instead of only where the first one is.
-                          entry = by_rule.setdefault(issue.get("id"), [0, [], issue.get("message", "")])
+                          # instead of only where the first one is. A version
+                          # advisory is the one rule whose message differs per
+                          # place - it names the library and the version to move
+                          # to - and those are the working list of a dependency
+                          # refresh, so every one of them is printed in full.
+                          version_rule = issue.get("id") in VERSION_RULES
+                          entry = by_rule.setdefault(issue.get("id"), [0, [], []])
                           entry[0] += 1
-                          if len(entry[1]) < 6 and where not in entry[1]:
-                              entry[1].append(where)
+                          if version_rule:
+                              if where not in [place for place, _ in entry[1]]:
+                                  entry[1].append((where, issue.get("message", "")))
+                          elif len(entry[1]) < 6 and where not in entry[1]:
+                              entry[1].append((where, ""))
               print("errors=%d warnings=%d" % (errors, warnings))
               if by_rule:
                   print()
                   print("Warnings by rule:")
-                  for rule, (count, places, message) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
+                  for rule, (count, places, messages) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
                       print("- %s x%d" % (rule, count))
-                      for place in places:
+                      for place, message in places:
                           print("    %s" % place)
+                          if message:
+                              print("      %s" % message[:160])
                       if count > len(places):
                           print("    ... and %d more" % (count - len(places)))
-                      if message:
-                          print("    %s" % message[:150])
               if shown:
                   print()
                   print("\n".join(shown[:40]))
