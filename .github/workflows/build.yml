@@ -335,7 +335,12 @@ jobs:
             echo "### Diagnostics from the Gradle output"
             for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
               [ -f "$f" ] || continue
-              grep -E "^e: |error:|What went wrong|Execution failed|Caused by:|OutOfMemory|Metaspace|Killed|Daemon" "$f" | head -n 80 || true
+              # `Dependency 'x' requires ... compile against version N` is AGP
+              # refusing a library because the app compiles against an older API
+              # level. It arrives as four lines around a "4 issues were found"
+              # header, and without these patterns the report kept the header and
+              # dropped every line that named the library.
+              grep -E "^e: |error:|What went wrong|Execution failed|Caused by:|OutOfMemory|Metaspace|Killed|Daemon|Dependency '|compile against version|currently compiled against|is currently compiled" "$f" | head -n 80 || true
             done
 
             echo
