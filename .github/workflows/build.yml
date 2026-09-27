@@ -69,8 +69,14 @@ jobs:
       # release that is wrong, and until this step existed it first ran on the run that
       # publishes - the one run that cannot be taken back. This exercises both readers
       # with a throwaway key, in a second, before Gradle starts.
+      #
+      # Its output is logged and gated like every other stage: when it failed here and
+      # passed in the workspace, the job log was the only place that said why, and the
+      # job log is not reachable from everywhere. The report carries it now.
       - name: Check the tools that decide whether a build is signed
-        run: bash ci/check-signing-tools.sh
+        run: |
+          set -o pipefail
+          bash ci/check-signing-tools.sh 2>&1 | tee /tmp/signing-tools.log
 
       # Runs before Gradle on purpose: it is pure Python and answers in under a
       # second, so a mistake that would otherwise die in the compiler and waste
@@ -300,6 +306,15 @@ jobs:
                 echo "- security.log: FAILED"
               fi
             fi
+            if [ -f /tmp/signing-tools.log ]; then
+              if grep -q "signing tools check: PASS" /tmp/signing-tools.log; then
+                echo "- signing-tools.log: SUCCESS"
+              else
+                echo "- signing-tools.log: FAILED"
+              fi
+            else
+              echo "- signing-tools.log: NOT RUN (the job stopped before this step)"
+            fi
             for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log /tmp/signing.log; do
               if [ ! -f "$f" ]; then
                 echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
@@ -468,6 +483,16 @@ jobs:
             # The certificate, not the verdict: a reader can compare this with the
             # fingerprint in ci/release-fingerprint.txt, and the run above says which
             # of the two it was proving.
+            echo
+            echo "### Signing tools"
+            if [ -f /tmp/signing-tools.log ]; then
+              # The guard's own words: which reader answered, which certificate it read,
+              # and the first line of anything that failed.
+              grep -E "^   (ok|the)|^FAIL|check:" /tmp/signing-tools.log | head -20 || true
+            else
+              echo "(the signing tools check did not run)"
+            fi
+
             echo
             echo "### Signing"
             if [ -f /tmp/signing.log ]; then
