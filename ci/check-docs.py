@@ -30,7 +30,15 @@ count is the number of `@Test` methods, which is what the CI report calls the te
 
 The second family is the paths: every `path/to/Something.kt` a document names has to
 resolve, because a document that sends a reader to a file that moved is wrong in the way
-that wastes the most time. A claim resolves when that exact path exists, or when a file
+that wastes the most time.
+
+The third family is the names a person has to create by hand: the repository secrets.
+`docs/RELEASE.md` tells a maintainer which four secrets to add before a release will be
+signed with their own key. If the document and the workflow disagree, nothing fails - the
+release builds, signs with the debug key and publishes a bundle Play will refuse, and the
+person reading the instructions has done nothing wrong. Both directions are checked: a
+secret a workflow reads must be documented, and a name the document tells you to create
+must be read by something (a workflow secret, or a Gradle property the build reads). A claim resolves when that exact path exists, or when a file
 of that name exists anywhere in the repository - the second is what lets a document say
 `AndroidManifest.xml` without spelling out its directory. Two names are exempt because
 they are the reader's own files rather than the repository's, and the exemptions are
@@ -183,6 +191,29 @@ def resolves(token: str) -> bool:
     return any(True for _ in ROOT.rglob(pathlib.Path(token).name))
 
 
+def workflow_secrets():
+    """Every repository secret the workflows read, minus the one GitHub provides."""
+    names = set()
+    for path in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        for match in re.finditer(r"secrets\.([A-Z][A-Z0-9_]*)",
+                                path.read_text(encoding="utf-8")):
+            if match.group(1) != "GITHUB_TOKEN":
+                names.add(match.group(1))
+    return names
+
+
+def build_properties():
+    """Every `-PMEMORYMAP_...` property the build itself reads."""
+    text = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
+    return set(re.findall(r'findProperty\("(MEMORYMAP_[A-Z0-9_]+)"\)', text))
+
+
+def documented_names():
+    """Every `MEMORYMAP_...` name the release document tells a person to create."""
+    text = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
+    return set(re.findall(r"MEMORYMAP_[A-Z0-9_]+", text))
+
+
 def main() -> int:
     problems = []
     checked = 0
@@ -242,14 +273,34 @@ def main() -> int:
                 f"document"
             )
 
+    # ------------------------------------------------------------- the secret names
+    secrets = workflow_secrets()
+    properties = build_properties()
+    documented = documented_names()
+
+    for name in sorted(secrets - documented):
+        problems.append(
+            f"a workflow reads the secret {name}, which docs/RELEASE.md never mentions - a "
+            f"release would fall back to debug signing and say nothing"
+        )
+    for name in sorted(documented - secrets - properties):
+        problems.append(
+            f"docs/RELEASE.md tells a maintainer to create {name}, and nothing reads it"
+        )
+    if not secrets:
+        problems.append(
+            "no workflow reads any secret, which cannot be right for a project that "
+            "publishes signed builds - this check is looking in the wrong place"
+        )
+
     for problem in problems:
         print(problem)
     if problems:
         print(f"document check: FAIL ({len(problems)} claims that are not true)")
         return 1
 
-    print(f"document check: PASS ({checked} numeric claims and {paths} paths agree with "
-          f"the repository)")
+    print(f"document check: PASS ({checked} numeric claims, {paths} paths and "
+          f"{len(secrets)} secret names agree with the repository)")
     return 0
 
 

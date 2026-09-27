@@ -168,6 +168,10 @@ to 25), one group per
   versions each step needs, the run that would catch each kind of mistake, the order to
   take them in, and the fact that Google Play does not require it (API 36 has been the
   requirement for new apps and updates since 31 August 2026). Nothing in it is applied.
+- `ci/check-docs.py` also checks the repository secrets: every secret a workflow reads
+  has to be named in `docs/RELEASE.md`, and every name the document tells a maintainer to
+  create has to be read by something. A mismatch there fails nothing by itself - the
+  release would simply sign with the debug key and publish a bundle Play refuses.
 - `ci/check-artifacts.py` reads the built APK and Play bundle and fails if either carries
   a `service_role` key, a PEM private key or a live secret key - the one class of mistake
   a source scan cannot catch, because the key would be inside a resource, an asset or a

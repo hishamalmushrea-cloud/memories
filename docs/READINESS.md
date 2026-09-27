@@ -346,6 +346,17 @@ so the list cannot quietly outlive its reason. Fault-injected five ways before b
 trusted: a missing exemption, a stale one, a function that stopped reporting, a
 function that clears its message and reports nothing, and a brand-new silent failure.
 
+**The document guard grew a third family: the names a person must create by hand.**
+`docs/RELEASE.md` tells a maintainer which four repository secrets to add before a
+release is signed with their own key. If the document and the workflow disagree, nothing
+fails: the release builds, signs with the debug key, publishes a bundle Play refuses, and
+the person following the instructions has done nothing wrong. Both directions are now
+checked - a secret a workflow reads must be documented, and a name the document tells you
+to create must be read by something, whether that is a workflow secret or a Gradle
+property the build itself reads. Four cases injected: the document renaming a secret, the
+document inventing one, the workflow renaming one, and the legal case of the Gradle
+property `MEMORYMAP_KEYSTORE`, which is not a secret and must not be demanded as one.
+
 **The fourth guard: what the built artifact contains.** Every other check in `ci/`
 reads the source. `ci/check-artifacts.py` reads the APK and the Play bundle - the thing a
 person would install, after R8 has done whatever it is going to do - and fails if a
