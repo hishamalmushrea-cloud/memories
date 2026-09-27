@@ -102,12 +102,16 @@ class OrganizationViewModel @Inject constructor(
             // counts below mean something.
             drafts.value = drafts.value.copy(errorRes = null)
             runCatching { referenceRepository.findOrCreatePerson(userId, name) }
+                .onSuccess {
+                    // The field empties only once the name is stored; keeping it
+                    // on a failure is what lets the tap be tried again.
+                    drafts.value = drafts.value.copy(draftName = "")
+                }
                 .onFailure {
                     MmLog.e("Could not add the person", it)
                     // A name typed and not added looks like the app ignoring it.
-                    drafts.value = drafts.value.copy(errorRes = R.string.organization_error_add)
+                    drafts.value = drafts.value.copy(errorRes = R.string.error_name_not_added)
                 }
-            drafts.value = drafts.value.copy(draftName = "")
         }
     }
 
@@ -122,11 +126,12 @@ class OrganizationViewModel @Inject constructor(
             drafts.value = drafts.value.copy(errorRes = null)
             runCatching {
                 referenceRepository.savePlace(Place(userId = userId, name = name, location = location))
+            }.onSuccess {
+                drafts.value = drafts.value.copy(draftName = "", draftLocation = null)
             }.onFailure {
                 MmLog.e("Could not add the place", it)
-                drafts.value = drafts.value.copy(errorRes = R.string.organization_error_add)
+                drafts.value = drafts.value.copy(errorRes = R.string.error_name_not_added)
             }
-            drafts.value = drafts.value.copy(draftName = "", draftLocation = null)
         }
     }
 

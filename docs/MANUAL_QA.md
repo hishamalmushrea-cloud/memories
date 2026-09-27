@@ -32,6 +32,15 @@ be quoted: until the boxes are ticked, the answer to "how do you know it works?"
       these are listed so the *wording* is checked when it does happen.)
 - [ ] Delete a memory from the editor and from the list: on success the row goes, and on
       failure something must be said rather than nothing happening.
+- [ ] Type a name into the add field on **الأشخاص** and **الأماكن**: on success the field
+      empties and the row appears; if it fails the field must keep what was typed, and the
+      line above must say the name could not be added. An emptied field would read as
+      success.
+- [ ] Delete a person and a place that a record still links to, if the storage can be made
+      to refuse it: the row must stay and the failure must be said.
+- [ ] Add an event, then delete it, and save a day note while storage is full: the day
+      screen and the event editor must each say what did not happen instead of returning
+      silently. Both messages are dismissible where they appear as a line (`إغلاق`).
 
 ## Before you start
 

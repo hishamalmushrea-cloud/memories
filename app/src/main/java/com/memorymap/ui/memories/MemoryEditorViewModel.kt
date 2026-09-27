@@ -193,7 +193,7 @@ class MemoryEditorViewModel @Inject constructor(
                     MmLog.e("Could not add the person", it)
                     // A name typed and not added looks like the app ignoring it,
                     // so the failure is said out loud rather than only written down.
-                    _state.update { state -> state.copy(errorRes = R.string.memory_error_reference) }
+                    _state.update { state -> state.copy(errorRes = R.string.error_name_not_added) }
                 }
         }
     }
@@ -217,7 +217,7 @@ class MemoryEditorViewModel @Inject constructor(
                 .onSuccess { _state.update { it.copy(placeIds = it.placeIds + place.id) } }
                 .onFailure {
                     MmLog.e("Could not add the place", it)
-                    _state.update { state -> state.copy(errorRes = R.string.memory_error_reference) }
+                    _state.update { state -> state.copy(errorRes = R.string.error_name_not_added) }
                 }
         }
     }

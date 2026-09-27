@@ -222,6 +222,63 @@ class FakeReferenceRepository(
 }
 
 /**
+ * A reference repository that is real except for the calls a test asks to fail.
+ *
+ * It is written as a delegation over the interface rather than as its own
+ * implementation, so a method added to the interface cannot quietly go missing
+ * here, and what a failing storage call looks like from a view model's side is
+ * decided in one place.
+ */
+class FailableReferenceRepository(
+    private val delegate: ReferenceRepository = FakeReferenceRepository(),
+    private val failAdds: Boolean = true,
+    private val failDeletes: Boolean = false,
+) : ReferenceRepository {
+
+    /** How many times an add was attempted, however it ended. */
+    var addAttempts: Int = 0
+        private set
+
+    override fun watchPeople(userId: String): Flow<List<Person>> = delegate.watchPeople(userId)
+
+    override fun watchPlaces(userId: String): Flow<List<Place>> = delegate.watchPlaces(userId)
+
+    override suspend fun findOrCreatePerson(userId: String, name: String): Person {
+        addAttempts++
+        if (failAdds) throw IllegalStateException("the disk is full")
+        return delegate.findOrCreatePerson(userId, name)
+    }
+
+    override suspend fun savePlace(place: Place) {
+        addAttempts++
+        if (failAdds) throw IllegalStateException("the disk is full")
+        delegate.savePlace(place)
+    }
+
+    override suspend fun deletePerson(id: String) {
+        if (failDeletes) throw IllegalStateException("the row is referenced")
+        delegate.deletePerson(id)
+    }
+
+    override suspend fun deletePlace(id: String) {
+        if (failDeletes) throw IllegalStateException("the row is referenced")
+        delegate.deletePlace(id)
+    }
+
+    override suspend fun entriesWithPerson(personId: String): List<DailyEntry> =
+        delegate.entriesWithPerson(personId)
+
+    override suspend fun memoriesWithPerson(personId: String): List<Memory> =
+        delegate.memoriesWithPerson(personId)
+
+    override suspend fun entriesAtPlace(placeId: String): List<DailyEntry> =
+        delegate.entriesAtPlace(placeId)
+
+    override suspend fun memoriesAtPlace(placeId: String): List<Memory> =
+        delegate.memoriesAtPlace(placeId)
+}
+
+/**
  * A sync double that records what it was asked to send and serves back whatever
  * a test queued for it.
  *

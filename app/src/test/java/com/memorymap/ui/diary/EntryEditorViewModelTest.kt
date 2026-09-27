@@ -9,6 +9,8 @@ import com.memorymap.data.local.MemoryMapDatabase
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.model.Emotion
+import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.testing.FailableReferenceRepository
 import com.memorymap.testing.FakeAuthRepository
 import com.memorymap.testing.FakeReferenceRepository
 import java.time.LocalDate
@@ -196,14 +198,31 @@ class EntryEditorViewModelTest {
         assertEquals(LocalTime.of(23, 0), viewModel.state.value.time)
     }
 
-    private fun editor(entryId: String?, date: LocalDate = day) = EntryEditorViewModel(
+    private fun editor(
+        entryId: String?,
+        date: LocalDate = day,
+        reference: ReferenceRepository = FakeReferenceRepository(),
+    ) = EntryEditorViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf("entryId" to entryId.orEmpty(), "date" to date.toString()),
         ),
         diaryRepository = diary,
         authRepository = FakeAuthRepository(userId),
-        referenceRepository = FakeReferenceRepository(),
+        referenceRepository = reference,
     )
+
+    @Test
+    fun `a person that cannot be added says so and does not join the event`() = runTest {
+        // The editor is where a name is typed to link somebody to the event, so
+        // a silent failure here would look like the tap never happened.
+        val viewModel = editor(entryId = "new-3", reference = FailableReferenceRepository())
+
+        viewModel.createPerson("أحمد")
+
+        val state = awaitState(viewModel) { it.errorRes != null }
+        assertEquals(R.string.error_name_not_added, state.errorRes)
+        assertTrue(state.personIds.isEmpty())
+    }
 
     /** Waits on the real state stream until [predicate] holds, then returns it. */
     private suspend fun awaitState(

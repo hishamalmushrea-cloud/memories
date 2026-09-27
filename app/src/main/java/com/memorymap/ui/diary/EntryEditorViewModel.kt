@@ -158,11 +158,13 @@ class EntryEditorViewModel @Inject constructor(
     fun createPerson(name: String) {
         val userId = authRepository.currentUserId.value ?: return
         viewModelScope.launch {
+            // A message from the last attempt is not about this one.
+            _state.update { it.copy(errorRes = null) }
             runCatching { referenceRepository.findOrCreatePerson(userId, name) }
                 .onSuccess { person -> _state.update { it.copy(personIds = it.personIds + person.id) } }
                 .onFailure {
                     MmLog.e("Could not add the person", it)
-                    _state.update { it.copy(errorRes = R.string.memory_error_reference) }
+                    _state.update { it.copy(errorRes = R.string.error_name_not_added) }
                 }
         }
     }
@@ -209,6 +211,7 @@ class EntryEditorViewModel @Inject constructor(
     /** Soft-deletes the event; the tombstone is what the next sync replays. */
     fun delete() {
         viewModelScope.launch {
+            _state.update { it.copy(errorRes = null) }
             runCatching { diaryRepository.deleteEntry(entryId) }
                 .onFailure {
                     MmLog.e("Unable to delete the event", it)

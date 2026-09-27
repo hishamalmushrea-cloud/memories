@@ -161,10 +161,9 @@
     <string name="memory_error_media">تعذّرت إضافة هذا الملف</string>
     <string name="diary_error_save_note">تعذّر حفظ ملاحظة اليوم.</string>
     <string name="diary_error_delete_entry">تعذّر حذف الحدث. لم يُحذف شيء.</string>
-    <string name="organization_error_add">تعذّر إضافة الاسم. حاول مرة أخرى.</string>
     <string name="organization_error_delete">تعذّر الحذف. لم يُحذف شيء.</string>
     <string name="action_dismiss">إخفاء الرسالة</string>
-    <string name="memory_error_reference">تعذّر إضافة الاسم. حاول مرة أخرى.</string>
+    <string name="error_name_not_added">تعذّر إضافة الاسم. حاول مرة أخرى.</string>
     <string name="memory_error_delete">تعذّر حذف الذكرى. لم يُحذف شيء.</string>
     <string name="memory_error_attachment_too_large">هذا الملف أكبر من الحد الذي يقبله مشروعك: %1$d ميغابايت للملف الواحد. يبقى محفوظًا على هذا الجهاز.</string>
     <string name="memory_error_no_account">لا يوجد حساب نشط</string>
