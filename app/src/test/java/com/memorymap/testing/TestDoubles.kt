@@ -603,9 +603,9 @@ class RecordingAuthRepository(
  * double lets a test choose the answer per call and check what the screen did with it.
  */
 class RecordingBackupRepository(
-    var exportOutcome: BackupOutcome = BackupOutcome.Exported(manifest(), mediaCopied = 0, mediaMissing = 0),
-    var importOutcome: BackupOutcome = BackupOutcome.Imported(BackupCounts(), mediaRestored = 0, skipped = 0),
-    var manifestToInspect: BackupManifest? = manifest(),
+    var exportOutcome: BackupOutcome = BackupOutcome.Exported(backupManifest(), 0, 0),
+    var importOutcome: BackupOutcome = BackupOutcome.Imported(BackupCounts(), 0, 0),
+    var manifestToInspect: BackupManifest? = backupManifest(),
 ) : BackupRepository {
 
     val calls = mutableListOf<String>()
@@ -628,20 +628,24 @@ class RecordingBackupRepository(
         calls += "import($userId,$treeUri)"
         return importOutcome
     }
-
-    companion object {
-        /** A manifest that [BackupPlanner.validate] accepts. */
-        fun manifest(
-            formatVersion: Int = 1,
-            createdAtEpochMs: Long = 1_700_000_000_000L,
-        ) = BackupManifest(
-            formatVersion = formatVersion,
-            appVersion = "0.1.0",
-            createdAtEpochMs = createdAtEpochMs,
-            counts = BackupCounts(memories = 3, dailyEntries = 2, people = 1, places = 1),
-        )
-    }
 }
+
+/**
+ * A manifest that `BackupPlanner.validate` accepts.
+ *
+ * Top-level rather than a companion member, because a companion member cannot be used in
+ * the default value of the constructor it belongs to without adding a receiver the value
+ * does not need.
+ */
+fun backupManifest(
+    formatVersion: Int = 1,
+    createdAtEpochMs: Long = 1_700_000_000_000L,
+): BackupManifest = BackupManifest(
+    formatVersion = formatVersion,
+    appVersion = "0.1.0",
+    createdAtEpochMs = createdAtEpochMs,
+    counts = BackupCounts(memories = 3, dailyEntries = 2, people = 1, places = 1),
+)
 
 /**
  * A diary repository whose period flow the test drives.

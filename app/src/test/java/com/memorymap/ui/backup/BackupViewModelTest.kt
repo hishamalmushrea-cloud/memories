@@ -3,6 +3,7 @@ package com.memorymap.ui.backup
 import com.memorymap.domain.repository.BackupOutcome
 import com.memorymap.testing.FakeAuthRepository
 import com.memorymap.testing.RecordingBackupRepository
+import com.memorymap.testing.backupManifest
 import com.memorymap.util.backup.BackupCounts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +61,7 @@ class BackupViewModelTest {
     fun `a finished export reports what it wrote`() = runTest {
         val repository = RecordingBackupRepository(
             exportOutcome = BackupOutcome.Exported(
-                manifest = RecordingBackupRepository.manifest(),
+                manifest = backupManifest(),
                 mediaCopied = 4,
                 mediaMissing = 1,
             ),
@@ -114,7 +115,7 @@ class BackupViewModelTest {
         val repository = RecordingBackupRepository(
             // The format version is what a future build would raise; merging half of an
             // archive whose shape is unknown is worse than refusing it.
-            manifestToInspect = RecordingBackupRepository.manifest(formatVersion = 99),
+            manifestToInspect = backupManifest(formatVersion = 99),
         )
         val model = viewModel(repository)
 
