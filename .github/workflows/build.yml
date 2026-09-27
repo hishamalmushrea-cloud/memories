@@ -180,12 +180,27 @@ jobs:
               fi
             fi
             for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
-              [ -f "$f" ] || continue
+              if [ ! -f "$f" ]; then
+                echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
+                continue
+              fi
               if grep -qE "BUILD SUCCESSFUL" "$f"; then verdict="SUCCESS"
               elif grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then verdict="FAILED"
               else verdict="UNKNOWN"; fi
               echo "- $(basename "$f"): $verdict"
             done
+
+            # A cancelled run leaves a log with no verdict in it and no test XML,
+            # and the report it writes then reads exactly like a broken build with
+            # zero tests. It is neither: it is a run that a newer push stopped, so
+            # say that here rather than leaving it to be read as a result.
+            if [ ! -f /tmp/unit.log ] || ! grep -qE "BUILD SUCCESSFUL|BUILD FAILED|FAILURE: Build failed" /tmp/unit.log; then
+              echo
+              echo "> **This run reached no verdict.** A newer push cancels the run of an older"
+              echo "> commit, and what follows is whatever it had finished writing by then -"
+              echo "> zero tests and no lint report mean the build never got there, not that it"
+              echo "> failed. Read the report of the newest run instead."
+            fi
 
             echo
             echo "### Unit test results"

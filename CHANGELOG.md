@@ -89,6 +89,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- The CI report no longer lets a cancelled run look like a failing one. A push
+  cancels the run of the commit before it, and the report that run had already
+  started writing showed `tests=0`, `(no lint report found)` and no explaination -
+  which reads like a build that broke rather than a build that never finished. A
+  step that did not run now says so, and a report with no verdict in it says that
+  in as many words and points at the newest run.
 - A backup now carries the links between records, not only the records.
   `person_ids` and `place_ids` are written for every memory and every diary
   event. Restoring an archive used to bring back a memory without the people
