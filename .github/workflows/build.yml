@@ -114,8 +114,13 @@ jobs:
             python3 ci/check-schema.py
           } 2>&1 | tee /tmp/schema.log || true
 
+      # Captured, and not allowed to stop the run: a configuration failure used to
+      # fail the job here and leave the report saying only "the job stopped before
+      # this step" for everything after it, with no line saying what Gradle
+      # objected to. Resolution is exactly where a new plugin or a new library
+      # fails first, so its output is the most useful thing the report can carry.
       - name: Check the Gradle configuration
-        run: ./gradlew help --no-daemon --stacktrace
+        run: ./gradlew help --no-daemon --stacktrace 2>&1 | tee /tmp/help.log || true
 
       # `|| true` plus a final gate: every stage runs even if an earlier one
       # fails, so one push reports compile, test, lint and packaging problems
@@ -179,7 +184,7 @@ jobs:
                 echo "- security.log: FAILED"
               fi
             fi
-            for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
+            for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
               if [ ! -f "$f" ]; then
                 echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
                 continue
@@ -333,7 +338,7 @@ jobs:
 
             echo
             echo "### Diagnostics from the Gradle output"
-            for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
+            for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
               [ -f "$f" ] || continue
               # `Dependency 'x' requires ... compile against version N` is AGP
               # refusing a library because the app compiles against an older API
@@ -400,7 +405,7 @@ jobs:
             echo "::error::the Supabase schema check failed"
             exit 1
           fi
-          for f in /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
+          for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
             [ -f "$f" ] || continue
             if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then
               echo "::error::$f reported a failed build"
