@@ -4,14 +4,14 @@
 لكل قسم في البرومبت: أين نُفّذ في الكود، وبأي شيء أُثبت. وعمود «الأثبات» يعني: اختبار
 باسمه، أو فحص في CI، أو ملف يمكن فتحه الآن. وما لم يُثبت مكتوب صراحةً كذلك.
 
-المرجع الزمني: آخر تشغيل أخضر على الفرع — **448 اختبارًا، 0 فشل، 0 خطأ، 0 متجاوز؛
-lint ‏0 أخطاء و25 تنبيهًا كلها إعلانات نسخ أحدث**.
+المرجع الزمني: آخر تشغيل أخضر على الفرع — **453 اختبارًا في 49 صنفًا، 0 فشل، 0 خطأ،
+0 متجاوز؛ lint ‏0 أخطاء و25 تنبيهًا كلها إعلانات نسخ أحدث**.
 
 | # | البند في البرومبت | أين نُفّذ | الأثبات |
 |---|---|---|---|
 | 1 | تطبيق Android حقيقي لخريطة الذكريات واليوميات والخط الزمني | `app/src/main/java/com/memorymap/` (178 ملف Kotlin)، `README.md` | بناء debug و release و AAB في CI، وشهادة `sha256` للأقراص في تقرير كل تشغيل |
 | 2 | Android + Kotlin + Compose + Material 3، بلا Flutter ولا NDK ولا ذكاء اصطناعي ولا إعلانات | `gradle/libs.versions.toml` (لا مكتبة تحليل أو إعلان)، `app/build.gradle.kts` | `ci/check-security.sh` + `ClientSecurityTest` (7) — يفشل عند ظهور أي منها |
-| 3 | Offline-first: كل شيء يعمل بلا شبكة | Room مصدر الحقيقة، طابور المزامنة، `SERVICE_LIMITS.md` §3 | `MemoryRepositoryImplTest`, `DeletedMemorySyncTest`, `MediaSyncTest` (19) |
+| 3 | Offline-first: كل شيء يعمل بلا شبكة | Room مصدر الحقيقة، طابور المزامنة، `SERVICE_LIMITS.md` §3 | `MemoryRepositoryImplTest`, `DeletedMemorySyncTest`, `MediaSyncTest` (21) |
 | 4 | `minSdk 26` / `compileSdk 36` / `targetSdk 36` من كتالوج مركزي | `app/build.gradle.kts` + `Sdk` في الكتالوج | وصفة APK في CI تُبنى بهذه القيم؛ وقرار الخروج عنها غير موجود |
 | 5 | المعمارية `UI / Domain / Data / Local / Remote / Sync`، والواجهة لا تلمس Room | الحزم تحت `com.memorymap`، والحقن في `RepositoryModule` (15 `@Binds` + 4 `@Provides`) | `grep` على `ui/` لا يجد أي `dao` أو `MemoryMapDatabase` |
 | 6 | خريطة مفتوحة خلف `MapProvider`، تجميع، اختيار يدوي، إسناد، تخزين مؤقت | `ui/map/` (`SlippyMap`, `MapScreen`, `LocationPickerScreen`), `data/map/TileServerMapProvider.kt` | `TileServerMapProviderTest` (9) و`MapClusteringTest` (11) و`WebMercatorTest` (13) |
@@ -34,7 +34,7 @@ lint ‏0 أخطاء و25 تنبيهًا كلها إعلانات نسخ أحدث
 | 40–41 | التصميم (Material 3، لون أساسي) وتجربة الاستخدام | `ui/theme/`, 5 تبويبات، `QuickAddSheet` | `values/strings.xml` و`values-en` (534 نصًا و20 جمعًا) يفحصها `check-strings.py` |
 | 42–46 | شاشة اليوم، اليوميات القديمة، التقويم، إحصاءات الحياة، خصوصية كل سجل | `ui/diary/`، `LifecycleRepositories.LifeStatsCalculator`، `Visibility` لكل سجل | `DateConstraintTest` (8), `SearchQueryParserTest`, وRLS للخصوصية على الخادم |
 | 47 | الأداء | `PerformanceTest` (5) وقياس التجميع على مقياس حقيقي | حدود زمنية في الاختبارات، وتقرير CI يذكرها عند الفشل |
-| 48 | الاختبارات | `app/src/test/java/com/memorymap/` — 49 صنفًا | **448 اختبارًا، 0 فشل** في آخر تشغيل |
+| 48 | الاختبارات | `app/src/test/java/com/memorymap/` — 49 صنفًا | **453 اختبارًا، 0 فشل** في آخر تشغيل |
 | 49–50 | هيكل المشروع والمراحل العشر | `README.md` (الخارطة)، `docs/READINESS.md` | كل مرحلة أُثبتت بتشغيل CI قبل التالية |
 | 51–53 | قاعدة «مرحلة واحدة، ثم بناء واختبار»، وألا يُقال «تمّ» بلا اختبار، والتقرير بالعربية | سجل الإيداعات وتقارير المراحل | كل مرحلة لها تشغيل أخضر باسمه؛ والأخطاء موثّقة لا مخفية |
 | 54 | تجهيز النشر: README, LICENSE, CHANGELOG, سياسة خصوصية, تعليمات إصدار وتوقيع, أيقونة تكيّفية | `README.md`, `LICENSE`, `CHANGELOG.md`, `docs/legal/PRIVACY_{AR,EN}.md`, `docs/RELEASE.md`, `mipmap-anydpi/ic_launcher.xml` | `check-store-metadata.py` + وجود الملفات؛ **والتطبيق غير منشور، وهذا مذكور في كل مستند** |
