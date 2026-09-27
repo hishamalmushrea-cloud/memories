@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A map pin holding a small clock: a memory pinned to a place and a time. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.55"
+        android:scaleY="0.55"
+        android:translateX="24.3"
+        android:translateY="24.3">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,10C35.8,10 21,24.8 21,43c0,23.5 33,55 33,55s33,-31.5 33,-55C87,24.8 72.2,10 54,10zM54,55.5c-6.9,0 -12.5,-5.6 -12.5,-12.5S47.1,30.5 54,30.5S66.5,36.1 66.5,43S60.9,55.5 54,55.5z" />
+        <path
+            android:fillColor="#1A237E"
+            android:pathData="M54,34.5c-4.7,0 -8.5,3.8 -8.5,8.5s3.8,8.5 8.5,8.5s8.5,-3.8 8.5,-8.5S58.7,34.5 54,34.5zM57.8,47.4l-4.6,-2.8V38h2.4v5.4l3.5,2.1L57.8,47.4z" />
+    </group>
+</vector>

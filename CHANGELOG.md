@@ -1,0 +1,1063 @@
+# Changelog
+
+All notable changes to this project are documented here.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- **The privacy policy is readable inside the app.** Google Play requires the policy to be
+  reachable from the app itself as well as from the store listing, and this project had it
+  only as documents in `docs/legal/`. The account screen now opens it in either language:
+  the same text, shipped as an asset, shown with its Markdown markers removed and nothing
+  else changed, because a policy the renderer rewrites is a policy the reader cannot trust.
+  `ci/check-docs.py` compares the shipped copy with the document byte for byte, so the two
+  cannot drift - the failure mode of having one text in two places.
+
+- `ci/check-tile-provider.py`: the tile host as a release decision rather than a paragraph.
+  The map's default is the public OpenStreetMap server, which the foundation's policy allows
+  a development build to use and requires prior permission for once an app is distributed.
+  The host, the credit, the key and the deepest zoom are build settings now, and `release.yml`
+  asks this policy **before** it builds: a `v*` tag is refused when the template cannot be
+  filled in, when it asks for a key and none is configured, or when it is still the public
+  OSM host and no permission has been recorded. The options and their limits are in
+  `docs/SERVICE_LIMITS.md` section 2.2.
+
+- `ci/verify-live-supabase.py` and `docs/SUPABASE_SETUP.md`: the other half of the schema
+  check. `ci/check-schema.py` proves the SQL applies to a real PostgreSQL and says plainly
+  that GoTrue, PostgREST and storage are not part of it; this talks to a project you created
+  and reports what it found. It is read-only - the sign-in it attempts uses credentials that
+  cannot exist, so nothing is created - and it refuses a `service_role` key before making a
+  single request, then asks all twelve tables whether the anon key can read a row.
+
+- `ci/check-artifacts.py` now checks the native libraries a build ships, because the app
+  ships twelve of them (Compose and CameraX) while the build file says "no NDK": every
+  artifact is run through `zipalign -c -P 16 -v 4`, which is the alignment Google Play
+  requires and a 16 KB page device enforces by refusing to load the library. A missing or
+  too-old `zipalign` is reported as a toolchain problem, never as a misaligned artifact.
+  The first version looked for the libraries at the archive root, so it read the two APKs
+  and reported the bundle as having none - a false "none", in a bundle that keeps them under
+  `base/lib/`. It matches anywhere in the archive now, and the two paths (APK, bundle) are
+  both exercised against fixtures.
+
+- Tests for the five screens that had none - sign-in, backup, the week/month/year
+  aggregation, the manual location picker and search - 51 tests covering decisions rather
+  than lines: a sign-in with no email is refused before anything leaves the device, a second
+  tap while a request is in flight sends nothing, an archive written by a newer app is
+  refused before it is merged, the month page asks for its own first and last day including
+  29 February, the picker's pin is the centre of the map and its zoom is clamped to what the
+  tile provider serves, and typing in the search box runs the parsed query once for the
+  finished word rather than once per keystroke.
+
+### Changed
+
+- **The zoom a picker opens at is part of its first state.** The initial value handed to
+  `stateIn` carried the data class's default, so the map drew one frame at the wrong
+  distance and then jumped to the zoom the flow produced. Two tests read that first value
+  and caught it.
+
+- **A tile template that needs a key keeps its placeholder when no key is configured.**
+  `?key={key}` says out loud that this build has no key; `?key=` reads like a provider
+  refusing a request that looked complete. The release path refuses the case either way.
+
+- **The shipped privacy policy no longer contains the role's literal token.** The artifact
+  scan refuses that string in anything that ships, and it is right to: it cannot tell a
+  mention of the role from a copy of its key, and the shipped copies cannot be exempted
+  because they go to every phone. The policy says the same thing with the words separated.
+
+- **A release can no longer be signed with the debug key.** `release.yml` used to
+  read four signing secrets, build anyway when they were absent, and put a bold
+  "this artifact is debug-signed" paragraph in the release notes. That produced a
+  distributable-looking release that Play refuses, distinguished from a real one
+  only by a paragraph. Now a `v*` tag with fewer than all four secrets fails
+  *before* Gradle starts and names the missing secret; a manual run without them
+  builds a rehearsal with a generated throwaway key whose certificate must be
+  *different* from the release certificate; and the certificate inside the built
+  APK and AAB is read with `keytool` and compared with
+  `ci/release-fingerprint.txt`. Four separate mistakes all build successfully and
+  produce the wrong artifact - a property that never reached Gradle, a keystore
+  that failed to load, a signing config that fell back, a wrong alias - which is
+  why the check reads the artifact instead of trusting the configuration.
+
+### Added
+
+- `ci/check-release-signing.py`: the signing policy as a decision rather than as
+  prose, so the workflow and the tests ask the same function "may this ref build
+  with this configuration?". Six situations are exercised on every push: a tag
+  with all four secrets builds, a tag with some or none fails, and a manual run
+  builds only with a complete configuration or none at all. The static half also
+  fails when `release.yml` stops consulting the policy, stops verifying the
+  certificate, stops passing one of the four properties, or when
+  `app/build.gradle.kts` stops reading one of them - the four ways this wiring
+  could rot silently.
+
+- `ci/check-keystore-leaks.py`, run by `check-security.sh` on every push: a
+  signing key must never reach the repository, and a `.gitignore` entry cannot
+  promise that. A file added before the rule, or added with `git add -f`, is
+  tracked forever and invisible to `.gitignore`, so this reads the Git index
+  instead - for key-shaped names, for private-key text, for a raw DER store with
+  an innocent name, and for the base64 form in a file nobody would look at. The
+  reason it is worth a guard of its own: a leaked key is the one mistake here that
+  no later commit can undo. Android only installs an update signed by the
+  certificate the installed copy already trusts, so the cost is the app's identity
+  rather than one release. Found by its own test: the first version failed on
+  itself, because the file named the PEM markers it searches for.
+
+- `ci/apk-signer-fingerprint.sh` and `ci/verify-apk-signature.sh`: read the signer
+  certificate out of a finished APK or AAB and compare it with the expected
+  fingerprint - `--release` for "must be this one", `--rehearsal` for "must not
+  be". Two readers, because the two artifacts are signed differently: an AAB is a
+  JAR and `keytool` reads its certificate, while an APK built at `minSdk` 26 has no
+  JAR signature at all - AGP drops v1 above 23 ("V1 signature is useless if minSdk
+  is 24+") - so `apksigner` reads the APK Signing Block. The script says which
+  reader answered, because a fallback nobody can see is a fallback that hides a
+  mistake.
+
+- `ci/check-signing-tools.sh`, run on every push with a throwaway key: the
+  certificate read back from a signed archive, both modes refusing what they must,
+  an unsigned archive failing instead of reporting an empty value, and the APK
+  path parsed from apksigner's output. Until it existed, the verification that
+  decides whether a release is correctly signed first ran on the run that
+  publishes. Four of its own defects were found by writing it, each of a kind that
+  a check without a rehearsal never has to survive: an APK at minSdk 26 is
+  unreadable by `keytool`; setting an environment variable for a single command
+  made the check pass while the tool under test never ran; a `cd` in a subshell
+  left `jarsigner` looking for its input in the repository root; and a `.jar` fell
+  through to `apksigner`, which exists on a CI runner, refuses a JAR, and turned a
+  signed archive into "not signed" - on the runner only, which is why the guard now
+  reports its output into the build summary instead of the job log alone.
+
+- `ci/release-fingerprint.txt`: the public SHA-256 of the release certificate, so
+  a built artifact can be checked against the key it claims to be signed with.
+  Public by construction; the key itself is never in the repository.
+
+- `build.yml` proves the signing path on every push, not only at release time:
+  it prepares a keystore (the real one when the secrets exist, a generated
+  throwaway otherwise), runs `assembleRelease` with the four properties, and
+  verifies the certificate in the result. The rehearsal is the part that matters
+  - without it the properties reach Gradle for the first time on release day.
+
+- `ci/release-notes.sh` and `ci/check-release-notes.py`: the notes of a GitHub
+  release are cut from `CHANGELOG.md` by a script that is now run on every push,
+  so that the tag push is not the first time it executes. It found a real defect:
+  the original extraction matched a version anywhere in a heading, so tagging
+  `v0.1.0` against a changelog containing `## [10.1.0]` would have published that
+  section under the wrong tag. Versions are matched as whole headings now, and the
+  guard builds that case from the current version instead of waiting for it.
+
+- An attachment the cloud project cannot accept is refused **before** it is sent,
+  with a reason. A video or a recording over the project's per-file limit is
+  refused at the upload button with a message naming the limit in megabytes, a
+  photo is checked after it is prepared (shrinking is what makes a large original
+  fit), and the prepared bytes are checked again before the bucket is asked to take
+  them. Before this, such a file queued, was refused by the server, retried on every
+  sync, and reported a failure with nothing to act on: the person had switched the
+  cloud button on, and nothing ever arrived. The limit is one build setting
+  (`MAX_UPLOAD_BYTES`, README's deployment table), read once in the DI module and
+  passed in, like the tile server.
+
+- `ci/check-workflows.py`, which compares the two workflows with each other:
+  every action pinned to a version (never a branch that moves), the same version
+  of an action in both files, the Android SDK step character-for-character
+  identical in both, every `/tmp/*.log` the report reads written by some step,
+  every Gradle stage in the build workflow reporting through the gate at the end
+  instead of dying at the step, and only a version tag publishing a release. It
+  is written without a YAML library, so CI cannot fail for a reason that has
+  nothing to do with the project.
+- The check found two real differences on its first run: `release.yml` used
+  `actions/setup-java@v4` where the build used `@v5`, and its copy of the Android
+  SDK step had drifted again in small ways. Both are now the same step in both
+  files, with the drift impossible to reintroduce silently.
+
+- `docs/SPEC_COMPLIANCE.md` maps each section of the specification to where it is
+  implemented and what proves it - a named test, a CI check, or a file that can be
+  opened - and ends with what is *not* proven: the schema has never run on a
+  hosted project, the app has never run on a device, and nothing has been
+  published.
+
+- `docs/SERVICE_LIMITS.md` documents the limits of the two external services
+  this app depends on, which the specification asks for by name: the Supabase
+  free plan (500 MB database that goes read-only when exceeded, 1 GB file
+  storage, 50 MB per file, 5 + 5 GB of traffic, project paused after a week of
+  inactivity, no backups on the free plan) and OpenStreetMap's tile usage
+  policy, including the rule that distributing an app which fetches from
+  `tile.openstreetmap.org` is heavy use and needs permission or a different
+  host. It also writes down what keeps working when either is unavailable, and
+  the one limit this app does not yet handle: a file over the service's size
+  cap is refused by the server and surfaces as a failed sync with no reason
+  the user can act on.
+- The tile HTTP `User-Agent` now names the app, its version and the repository,
+  which is what the tile policy requires (a library default is blocked, and a
+  contact is asked for).
+
+- The two images a Play listing needs are generated from the app's own palette
+  by `tools/make_store_images.py`: the 512×512 icon (the launcher design
+  rasterised) and the 1024×500 feature graphic, written into both locales'
+  `images/` folders. Screenshots are still missing: there is no device to take
+  them on.
+- `ci/check-store-metadata.py` now verifies the two store images as well as
+  the text, reading the PNG header itself rather than through an imaging library.
+- `docs/MANUAL_QA.md` - the checklist for everything a runner cannot check,
+  from the first run with nothing configured to a release build on the phone,
+  each line with the observation that means it works.
+
+- The Supabase schema is now executed instead of only read. `ci/check-schema.py`
+  starts a throwaway PostgreSQL - the system one when it exists, otherwise the
+  server the `pgserver` wheel bundles - creates the shapes the migration assumes
+  (`supabase/verify/00_supabase_stubs.sql`: `auth.users`, `auth.uid()`,
+  `auth.role()`, `storage.buckets`, `storage.objects`, `storage.foldername()`, the
+  three roles and Supabase's own default privileges), applies `supabase/schema.sql`
+  **twice** from its real path with `ON_ERROR_STOP`, and runs
+  `supabase/verify/10_checks.sql`: twenty-two behavioural checks performed as
+  `authenticated` and as `anon` rather than as the owner of the tables, so nothing
+  bypasses Row Level Security. It then reads the table and RPC names out of the
+  client's own code and fails if the server does not have them. The whole thing
+  takes about a second, and it is wired into `build.yml` as a hard gate.
+
+- Deleting the account from the app itself, which until now was something only
+  the Supabase dashboard could do. The profile screen has two separate actions by
+  design: the local wipe (which now also offers to delete the records from the
+  server, and deletes the uploaded files when it does, because their keys live on
+  the rows that are about to go) and a confirmed account deletion that calls
+  `delete_my_account()`, removing the records, the profile row and the auth user
+  so the email address can be used again. The order is the guarantee: the device
+  is wiped only after the server confirms, and a failed request leaves both
+  halves untouched and says so in as many words. Both functions are
+  `security definer`, act on `auth.uid()` only and are revoked from `public`.
+
+### Changed
+
+- Dependencies refreshed as far as the pinned toolchain allows (lint advisories 37
+to 25), one group per
+  green run: Robolectric 4.17, Turbine 1.2.1, androidx.test core 1.7.0 and
+  ext:junit 1.3.0, espresso 3.7.0, coroutines 1.11.0, Room 2.8.5 and Hilt 2.58.
+  Everything else on the advisory list now needs `compileSdk 37` or AGP 9, and
+  both are pinned by the specification: androidx's 2026 releases refuse to compile
+  into an app built against 36, and the Ktor/Supabase pair drags in
+  `okhttp-android:5.5.0`, which demands the same. The runs that proved it are
+  quoted in docs/READINESS.md, and moving those pins is the one open question left
+  in that stage.
+
+- Every timestamp the app writes is now a moment (`2026-09-26T22:31:05.123Z`)
+  rather than a clock reading (`2026-09-26T22:31:05.123`). A clock reading means
+  the moment only in the zone it was written in, and the sync engine compares a
+  local stamp with the server's to decide which edit wins: a memory edited at
+  10:00 in Sanaa and edited again at 09:00 in London after a flight had its newer
+  edit read as the older one, because both readings were interpreted in whichever
+  zone the phone was in at the moment of comparison. The newer edit lost, once,
+  with nothing shown to the user.
+
+  `util/SyncTime.kt` is the one place that says what a stamp is: `nowText()`
+  writes one, `asInstantText()` reads either shape and answers in the moment
+  shape (plain text without an offset is read in the device's zone, which is the
+  only honest reading of a row written before this change), `instant()` compares,
+  and `local()` gives the local time for the screen. Stored stamps keep the
+  server's own text, so nothing is converted on the way in or out, the conflict
+  resolver reads stamps through `SyncTime` instead of forming its own second
+  opinion about what they mean, and `LocalDateTime.iso()` is gone from the mappers
+  so there is no longer a way to write a clock reading into the database. The
+  column types did not change, so there is no migration: rows written earlier
+  still read back as the moment they were.
+
+- `ci/check-import-order.py` also fails on the same import twice. `TestDoubles.kt`
+  imported `com.memorymap.domain.model.User` at line 9 and again at line 27, and
+  nothing said so - the compiler accepts it, the tests pass, and lint does not
+  look at it; it was found by reading the file. The guard now reads 2798 imports
+  across 176 files and reports a repeated one with both line numbers, and it fails
+  if it ever sees fewer than 2500 of them, because a checker that examines nothing
+  passes.
+
+- Seven strings that carry a count became `<plurals>`, because the number and the
+  noun have to agree and Arabic does not have one form for that: "حدث واحد",
+  "حدثان", "٥ أحداث" and "١٥ حدثًا" are four different sentences. The week, month,
+  year, timeline, people and places screens called `stringResource` with a number
+  and always got the same wording, so one event read "1 حدث" and three read
+  "3 حدث". They now call `pluralStringResource`, and the Arabic file supplies all
+  six quantities for each. A sentence with two independent counts in it
+  (`wipe_done_body`, the month totals) is keyed on the first count: Android
+  plurals can only inflect one.
+
+- The launcher icons moved from `mipmap-anydpi-v26` to `mipmap-anydpi`. At
+  `minSdk = 26` every device that can install the app is past the version
+  qualifier, so it was a directory name that meant nothing.
+
+- `Uri.parse` and two `Uri.fromFile` calls in the backup writer became the
+  `androidx.core.net` extensions (`toUri`), and the two writers in
+  `SecureSessionStore` use the `androidx.core.content.edit` extension, so a
+  `SharedPreferences` edit cannot be left without its `apply` at the end of a
+  chain.
+
+- The lint part of the CI report now lists up to six locations per rule and the
+  message of its first occurrence, instead of a count and one location. A count on
+  its own cannot say which six strings a rule wants turned into plurals.
+
+### Fixed
+
+- `docs/PLATFORM_UPGRADE.md`: the compileSdk 36 → 37 decision written out — the exact
+  versions each step needs, the run that would catch each kind of mistake, the order to
+  take them in, and the fact that Google Play does not require it (API 36 has been the
+  requirement for new apps and updates since 31 August 2026). Nothing in it is applied.
+- `ci/check-duplicate-declarations.py` fails when two files declare the same top-level
+  type or property in one package and source set - the mistake that cost a run, where a
+  test double was written a second time and no test could run at all.
+- `ci/check-docs.py` also checks the repository secrets: every secret a workflow reads
+  has to be named in `docs/RELEASE.md`, and every name the document tells a maintainer to
+  create has to be read by something. A mismatch there fails nothing by itself - the
+  release would simply sign with the debug key and publish a bundle Play refuses.
+- `ci/check-artifacts.py` reads the built APK and Play bundle and fails if either carries
+  a `service_role` key, a PEM private key or a live secret key - the one class of mistake
+  a source scan cannot catch, because the key would be inside a resource, an asset or a
+  library string. It proves it can read the artifact before believing it, and it runs in
+  the release workflow as well as on every push.
+- `ci/check-docs.py` keeps the documents honest about their own numbers: the
+  test count, test classes, string resources, plurals, source files and guard count are
+  read out of the repository and compared with what the documents claim, and a claim that
+  has been reworded away counts as a failure rather than a skip.
+- A second build check, `ci/check-final-extensions.py`, fails when a class extends one
+  that is final in this repository - the mistake a test double cost a whole run for -
+  and stays silent on the legal shapes that look similar.
+- A build check keeps it that way: `ci/check-silent-failures.py` fails the build when
+  a failure under `ui/` can only reach the log, with the nine deliberate exceptions
+  (the reads, and two playback calls) listed one by one beside their reason.
+- A failure after a deliberate action now says something, everywhere it can happen.
+  The memory editor reports a person or a place that could not be added, an attachment
+  that could not be imported or removed, an upload request that could not be recorded,
+  and a delete that did not happen; the memories list, the memory detail, the day
+  screen, the event editor, and the people and places screens report their own. All of
+  it through one dismissible line (`ui/common/FailureBanner.kt`), so it is said the same
+  way in each place and in both languages. What stays log-only is the reads - an empty
+  screen is true and not misleading - and the playback calls; `docs/READINESS.md`
+  lists them.
+
+- **A red run that was reported green.** The stage line read `unit.log: SUCCESS`
+  for a log that ended in `BUILD FAILED`: a `--continue` Gradle build prints
+  `BUILD SUCCESSFUL` for the tasks that finished and `BUILD FAILED` for the build,
+  so both strings can sit in one log, and the verdict asked about success first.
+  A failure is asked about first now, with the line that says so printed next to it.
+- The build report and the gate now treat the unit test log as evidence in its own
+  right: the log said "There were failing tests" while every result file said zero
+  failures, and nothing in the report mentioned the disagreement. The report prints
+  it, names the failing test, and the gate fails the job on the log alone.
+- A failing unit test now prints its full stack trace. Gradle's short format had
+  printed only frames from Gradle's own classes, so a failure could be located and
+  not understood.
+- Every view model test puts the main dispatcher back before closing its database,
+  so work still in flight meets an open database instead of raising "attempt to
+  re-open an already-closed object" inside whatever test runs next. (One run of
+  `a5be207` failed this way while the other run of the same commit passed; the
+  change is the plausible cause removed, and `docs/READINESS.md` says plainly that
+  it is not proven.)
+
+- **A backup restored while signed in as a different account landed in the wrong
+  place.** Restoring copied the exporting account's id into every row, so the
+  import reported the right counts and the person saw nothing: the memories were
+  filed under an id the app never asks for, and each one was queued for upload
+  under an id the server's row-level security refuses - invisible locally and
+  unsyncable forever. Restored rows now belong to the account doing the import,
+  which is the account holding the archive now. The restore mappers take the
+  owner as a required argument so a future caller cannot forget it, and
+  `BackupTwoDeviceTest` covers the case directly.
+
+- Three ways the release workflow would have failed on its first execution,
+  found by reading it against the workflow that does run. Its Android SDK step
+  was written separately from the build workflow's: `yes | sdkmanager` under
+  `set -euo pipefail` fails on the SIGPIPE that `yes` takes when sdkmanager
+  exits, a `build-tools` revision that does not exist is a hard failure there
+  and a note here, and an SDK path with neither environment variable set was an
+  unbound variable rather than the runner's real path. The step is now the same
+  one. Release notes also come from the tag's own section of this file instead
+  of the whole history, with a visible warning when a tag has no section.
+
+- The CI report no longer lets a cancelled run look like a failing one. A push
+  cancels the run of the commit before it, and the report that run had already
+  started writing showed `tests=0`, `(no lint report found)` and no explaination -
+  which reads like a build that broke rather than a build that never finished. A
+  step that did not run now says so, and a report with no verdict in it says that
+  in as many words and points at the newest run.
+- A backup now carries the links between records, not only the records.
+  `person_ids` and `place_ids` are written for every memory and every diary
+  event. Restoring an archive used to bring back a memory without the people
+  who were in it and with no place link at all, and the damage did not stop
+  at the phone: the restored record is queued for upload, and the next sync
+  pushes a memory together with its link set - which was empty - so the
+  server's links for that memory were cleared. An archive written before this
+  change still reads: the fields are optional and simply hold no links.
+- An import no longer fails when the archive names a record it does not carry.
+  Linking a memory to a person, or an event to a place, is a foreign key, and the
+  documents inside an archive are written one after another - a person deleted on
+  the exporting phone in between leaves a link with nothing behind it. SQLite
+  refused the whole import, and the user saw an operation that did nothing. A link
+  with no record behind it is now dropped and the import carries on: the records
+  are what is being restored.
+
+- On Android 12 and later nothing was declared about backup extraction, which is
+  what the `DataExtractionRules` lint check points at: the platform reads
+  `android:dataExtractionRules` from API 31 up, and `android:allowBackup="false"`
+  is no longer the whole statement. There is now a rules file that excludes every
+  domain by name, in both the cloud-backup and the device-transfer halves, so the
+  app's private storage - the memories, the diary, the media - is not part of a
+  platform backup or a phone-to-phone transfer. The same is set for API 26 to 30
+  through `android:fullBackupContent`, because that is the file those releases
+  read and declaring only the newer one would leave them backing up everything.
+  The app's own export folder in Settings remains the one copy the user chooses
+  to make.
+
+- Two colours nothing referenced (`memorymap_primary`, `memorymap_on_primary`)
+  were left over from a theme that is now built in Kotlin, and both were reported
+  as unused resources.
+
+- The migration could not be applied twice. `create type`, `create table`,
+  `create index`, `create policy` and the six `updated_at` triggers all failed on
+  a second run, which is what a half-finished paste into the SQL Editor followed by
+  a second paste looks like: an error in the middle of a migration that is half
+  applied. Types are now guarded with `duplicate_object`, tables and indexes are
+  `if not exists`, every policy is dropped before it is created, and every trigger
+  is dropped before it is created.
+
+- `places.sync_status` and `people.sync_status` were `text` while the same column on
+  the other four synchronised tables was the `sync_state` enum, so two of the six
+  would have accepted a status the client could not parse back. All six are the
+  enum now, and a check in `supabase/verify/10_checks.sql` reads the applied
+  schema's column types rather than the file's text to say so.
+
+- `anon` could execute `delete_my_data()` and `delete_my_account()`. The schema
+  revoked them from `public` and granted them to `authenticated`, which is not
+  enough on a real project: Supabase sets `alter default privileges in schema
+  public grant all on functions to postgres, anon, authenticated, service_role`,
+  so every new function is executable by the role whose key ships inside every
+  APK. The revoke now names `public, anon` for both deletion functions and for the
+  two trigger functions, and the check that found this now fails the build if an
+  anonymous caller can execute either one.
+
+- `SupabaseAuthRepository.deleteAccount` declared `AuthRepository.Deletion` and
+  ended with a `runCatching { ... }.fold(...)` chain, which reads as a return and
+  is not one: in a block body Kotlin throws the value of the last statement away.
+  The compiler said one line - `Missing return statement` - after a push, and
+  `ci/check-returns.py` now finds that shape before Gradle runs, by walking the
+  last statement of every function that declares a non-`Unit` value back to its
+  own beginning. It is deliberately quiet about anything it cannot prove: a
+  `throw` anywhere in the body, a `Nothing` return type, or a body ending in a
+  control-flow construct all pass, because a guard that fires on valid code costs
+  more than the mistake it prevents. It counts what it examined and fails if that
+  number is implausibly small - its first version matched nothing at all, and
+  passed.
+
+- Two English strings contained an unescaped apostrophe (`device's`), which aapt2
+  refuses with "Invalid unicode escape sequence in string" - naming neither the
+  character nor the reason, and failing the resource merge, and with it the unit
+  tests, the lint run and every APK. `ci/check-strings.py` now reads both locale
+  files before Gradle starts and fails on a bare apostrophe, an escape Android
+  does not accept, a resource that exists in one language only, an Arabic plural
+  missing one of its six categories, or a translation that dropped a `%1$d`.
+
+- The "could not be removed from the cloud" message told the user that deleting
+  the account from the Supabase dashboard would take the remaining attachments
+  with it. It would not: `storage.objects` is not a child of `auth.users`, so
+  nothing cascades into it, and files whose keys were already gone would simply
+  stay in the bucket. The message now says the bucket survives the account and
+  points at the two things that do work.
+
+## [0.1.0] - 2026-09-26
+
+The first release. Everything below was written before it: the ten phases the
+prompt asks for, in order, each one built, tested and reviewed before the next.
+
+### Fixed
+
+- A memory edited on one device while another was syncing could stay on the first
+  phone and never reach the second, with no error and no retry. The download
+  window was wrong twice over. The watermark was stored as the naive local
+  rendering of the newest server stamp and sent back as the lower bound of a
+  `timestamptz` comparison, where a value without an offset is read in the
+  session's timezone: a device three hours ahead of UTC asked for rows newer than
+  a moment three hours in the server's future and skipped everything another
+  device changed in that window. The watermark is now the server's own instant,
+  carried separately from the local rendering used for comparison. The stamps
+  themselves were the client's edit times, so a row edited offline at 09:59 and
+  uploaded at 10:05 carried a stamp behind the 10:00 watermark of a device that
+  had already synced - the window is now inclusive, so that boundary row is
+  re-read and the resolver discards it as unchanged, and the schema stamps
+  `updated_at` on arrival with `greatest(client value, now())` so a row written
+  after a watermark is always greater than it.
+
+- A Kotlin file with an unbalanced bracket is now caught in a second, before
+  Gradle starts, instead of fifteen minutes into a CI run that reports it as
+  "Expecting a top level declaration" somewhere else in the file. That is not
+  hypothetical: it happened, in the contract test, and the message pointed at a
+  different line than the mistake. `ci/check-balance.py` walks every Kotlin file
+  past strings, raw strings, character literals and comments, and fails when a
+  bracket has no partner. It is not a parser and does not pretend to be: types,
+  names and arity still need the compiler, which still runs on every push.
+
+- The account row in `profiles` now exists before anything is uploaded, which it
+  did not. Every table's `user_id` is a foreign key to `public.profiles`, nothing
+  in the app wrote that row, and the schema had no trigger creating it either:
+  the first real sync against a real Supabase project would have failed on that
+  foreign key for every table and every user, with a message about a key not being
+  present in a table the client never touches. The schema now creates the row when
+  the auth user is created, and the app writes it too when a session appears, so
+  a project whose schema predates the trigger still syncs and the display name the
+  user typed can reach the server. Both halves are pinned by a test that reads the
+  schema and the client source, because no local test can see a server constraint.
+
+- The end-of-day note now synchronises, which it never did. It was written into
+  Room, `supabase/schema.sql` had a `diary_notes` table with its own policy
+  waiting for it, and nothing carried it to the server: sign in on another device
+  and the events of a day were there while the note about them was not. The table
+  now takes part in a sync run like the others, with two differences that come
+  from the schema - the key is `(user_id, note_date)` rather than an id, so the
+  engine carries the pair as one handle that SQL and Kotlin compose the same way,
+  and there is no `deleted_at`, so clearing the note travels as an empty body
+  instead of a tombstone. The profile screen's "waiting to sync" count now
+  includes notes too, which it did not.
+
+- The uploaded copies of your attachments can now be deleted, which they could
+  not be before. Deleting your local archive left them in the bucket with
+  nothing able to reach them: the keys live on the rows the wipe removes, so
+  after it ran the app had lost them for good. The confirmation now says how
+  many attachments you uploaded and offers to delete them, unchecked by default
+  — the button promises to clear *this device*, and a cloud copy may be the only
+  one another device can still fetch. Whatever is left over is reported by count
+  in the result, because that is the last moment the app can tell you.
+
+  The privacy policy said the app would not touch cloud data at all. It now says
+  what the app actually does: files it uploaded, on request, and never the
+  account itself.
+
+### Added
+
+- The release pipeline is prepared and rehearsed, and the app is still published
+  nowhere. The store listing now exists as files that both F-Droid and Google
+  Play read - `fastlane/metadata/android/{ar,en-US}/` with the title, the short
+  and full descriptions and a changelog per `versionCode` - and
+  `ci/check-store-metadata.py` fails the build when a field is over the limit the
+  stores enforce or when a version bump arrives without its changelog file. The
+  release workflow can be run by hand to rehearse a release: it runs the security
+  gate, the metadata check, the tests, `lintRelease`, builds both the APK and the
+  AAB and prints what a tag push would publish, then stops. Only `refs/tags/v*`
+  reaches the publishing step. The signing, F-Droid and Play steps, the Data
+  safety answers and the still-missing store images are written down in
+  `docs/RELEASE.md`, including that screenshots must come from a real device
+  rather than a mock-up. The AAB that Google Play accepts is now built on every
+  push - `assembleRelease bundleRelease` - and the build fails when it is
+  missing, so the Play artifact is verified per commit instead of first at
+  release time. A hand-run rehearsal of the release workflow is only possible
+  once the workflow is on the default branch, which is written down where the
+  command is.
+
+- "Near by" is a screen instead of a note saying which phase would build it. It
+  lists the memories and events inside one kilometre of a position you ask for,
+  closest first, each with its distance and its day, and tapping one opens it. The
+  position is read once, when the button is pressed, and the screen says plainly
+  that it has not been read before that: there is no tracking, and no record of
+  where you might have been. A position that cannot be read says so, and an empty
+  radius explains which of the two it is - nothing located at all, or nothing
+  nearby. It is reachable from the map and from the top of the timeline. The
+  filter and the ordering are `Geo.nearby`, and the screen is covered by
+  `NearbyViewModelTest` against a real database.
+
+- The camera can now be used from inside the app, which is what the images
+  specification asked for. *Take photo* opens a CameraX preview instead of
+  handing a file to whichever camera app the phone happens to have: the picture
+  is written straight into the app's own archive, so no storage permission and no
+  FileProvider grant are involved, and it is rotated the way the phone was held
+  at the moment it was taken rather than left for a later step to notice. The lamp
+  has three settings — off, automatic, on — remembered per lens, and the front
+  lens offers none because it has none. The camera is unbound the instant the
+  screen is left, so it is never held open behind another screen. A device with no
+  camera, or a refused permission, gets a clear message and keeps the gallery
+  picker. Recording video in the app is not part of this change; picking a video
+  still goes through the system gallery.
+
+- Photos are prepared before they leave the device, as the medium specification
+  asks. An upload is not the file: a JPEG is turned the way its Exif orientation
+  says, scaled to a longest edge of 2048 pixels and written at quality 82, and the
+  rewritten copy is used only when it came out smaller than the original — so
+  "compression" can never cost you bytes. A photo already upright and inside the
+  limit is not re-encoded at all: its metadata segments are removed and its pixels
+  are copied over byte for byte. The location, the camera model and the timestamp
+  therefore do not reach the bucket, while the file on the device keeps them.
+  Whatever this cannot rewrite faithfully is uploaded as it is — a PNG, a GIF, an
+  HEIC, or a photo whose stored orientation cannot be read — and a photo whose
+  pixels have to be turned is never parted from its Exif block unless the pixels
+  were turned first. The header reader, the size rules and the eight orientation
+  transforms are all unit tested, including where each corner of a photographed
+  test pattern ends up.
+
+- Attachments can be sent to the cloud, one at a time and only when asked.
+  Nothing uploads on its own: an attachment carries an explicit request, the
+  sync worker carries it out, and until then the row shows that it is waiting.
+  Removing an uploaded attachment deletes the object from the bucket as well,
+  and hides the count of attachments that have left this device.
+
+  The bytes go to a key of the form `{user id}/{attachment id}.{extension}`.
+  That shape is not a preference: the storage policies in `supabase/schema.sql`
+  decide access with `(storage.foldername(name))[1] = auth.uid()::text`, so an
+  object stored anywhere else belongs to nobody and is refused by the bucket.
+  The row is written after the bytes for the same kind of reason - the server's
+  `storage_path` is `not null`, so a row naming an object that is not there yet
+  would be a lie the next device would act on.
+
+  An attachment arriving from another device brings its bytes with it. The local
+  file is never removed by any of this, so a copy is added, never moved; and an
+  attachment nobody opted into never leaves this device at all, which is why it
+  has nothing to delete on the server when it is removed.
+
+  `media` gained `updated_at` and `deleted_at` on the server, and the local table
+  gained `updated_at`, `storage_path` and `upload_requested` in migration 3 to
+  4. The stamp is the load-bearing part: a download asks for rows changed since a
+  watermark, and an attachment deleted on another device keeps its original
+  `created_at`, so without a stamp that moves, the deletion would fall outside
+  every later window and never arrive.
+
+- A build guard that reads every Room `@Query` and fails when it is not the query
+  it appears to be: when the SQL names a parameter the function does not declare,
+  or when two string literals stand next to each other with no `+` between them.
+  Kotlin does not join those, so the query silently becomes its first fragment -
+  seven shipped that way once, and five of them compiled happily while losing
+  their `ORDER BY` and their `deleted_at IS NULL` clauses.
+
+- Video can be recorded inside the app rather than only picked from the gallery,
+  which is the other half of what the video specification asks for. The camera
+  has two modes, and the video one works a single button: press to start, press to
+  stop, with the elapsed time on screen. The recording is plain media — it is
+  never transcribed, analysed or summarised. Sound is captured only when the
+  microphone permission is already held; without it the video is recorded
+  silently and says so, rather than interrupting a shot with a permission dialog.
+  A recording shorter than a second, or one the camera ended with an error, is
+  deleted instead of being attached, so the archive holds no half-file. Playback
+  already used the system player, and picking a video from the gallery is
+  untouched.
+
+### Removed
+
+- The `FileProvider` the app declared. It was there to hand a photo file to
+  whichever camera app the phone happens to have; now that the photo is taken
+  inside the app nothing referenced it, and a provider that grants URI access to
+  another app should not stay declared out of habit.
+
+### Fixed
+
+- Backups were written but could never be read back. `DocumentFile.createFile`
+  appends the extension of the MIME type it is given, unconditionally, so
+  asking for `manifest.json` with `application/json` produced
+  `manifest.json.json`, and asking for an attachment with
+  `application/octet-stream` produced `name.jpg.bin`. The reader looks
+  documents up by the names the format defines, so every export was an archive
+  that could not be inspected or restored. Documents are now created with a
+  MIME type that has no extension, and the created name is checked afterwards,
+  because a provider is free to adjust it - a rename now fails the write and is
+  reported, instead of succeeding quietly and producing an unusable archive.
+  This was found by the first tests the backup repository has ever had.
+
+### Added
+
+- A build guard that fails in under a second when a plain function calls a
+  suspend DAO method. Kotlin rejects that at compile time, which meant the
+  mistake cost a whole ten-minute build cycle to discover - three times over.
+  It runs before Gradle now, so it reports itself immediately.
+
+- The three new strings about uploaded copies are plurals rather than a number
+  substituted into a sentence. Arabic says one attachment, two attachments and
+  eleven attachments three different ways, and `(%1$d مرفقًا)` was wrong for two
+  of those three. This is what the newly-listed `PluralsCandidate` warnings
+  pointed at.
+
+- The CI report now lists lint warnings by rule with a count and one example
+  location. It already listed compiler warnings that way; lint printed only a
+  total, which is why a run that added three of them could not say which three.
+
+- A third build guard, for an `import` that follows a declaration, which Kotlin
+  allows only at the beginning of a file. It comes from appending to an import
+  when a patch meant to add a file-level constant.
+
+- A second build guard, for a comment that separates a declaration's modifiers
+  from the declaration. It comes from anchoring a patch on a substring of a
+  declaration and splicing a documented block in front of it, which reads as
+  valid code and is rejected by the compiler a build cycle later - the same
+  shape of mistake the first guard exists for. Both run before Gradle.
+
+- Tests for the backup repository, which had none. They run against a real
+  archive on a real disk: the one part that cannot run here is the Storage
+  Access Framework grant, so `BackupArchive.root` became a seam and the tests
+  point the archive at an ordinary directory. Everything below it - the
+  serialisation, the merge decision, the database - is the code under test.
+  What they pin down is the rule an import exists to keep: it never overwrites
+  a record this device edited more recently, and it never resurrects one the
+  user deleted.
+
+- The links between records and the people and places they mention now
+  synchronise. A link carries no timestamp of its own, so there is nothing to
+  resolve a conflict with and no queue of its own to keep: it travels with the
+  record that owns it, whose `updated_at` already moves when its links change,
+  and it is replaced wholesale in both directions. That is what makes an unlink
+  reach another device instead of being merged back in.
+- `DailyEntryDao.replacePeople` and `replacePlaces`, which the memory side
+  already had. Both are whole-set replaces inside a transaction, so removing a
+  name in the editor really removes it.
+
+### Added
+
+- People and places now synchronise, which they never did. Until now both tables
+  were local-only, so reinstalling the app - or signing in on a second device -
+  silently lost every name the user had built up. Room moves to version 3, which
+  gives `people` and `places` the four columns synchronisation reads, and a
+  migration backfills `updated_at` from `created_at` so an installed archive is
+  queued for one upload rather than assumed to be on the server already.
+- They are pushed *before* memories and events. The server's link tables carry a
+  foreign key to them, so a memory that mentions a person can only be accepted
+  once that person exists there; sending the referenced rows first is what keeps
+  a first sync from failing on the very link it is trying to store.
+
+### Changed
+
+- Deleting a person or a place is now a tombstone rather than a removal, so the
+  deletion reaches other devices instead of the name quietly reappearing on the
+  next download. Every read path excludes tombstones, and typing a deleted name
+  again revives the old row - keeping its id, so the records already linked to it
+  are not orphaned, and staying clear of the unique `(user_id, name)` index.
+
+### Fixed
+
+- People and places can now actually be linked to a record. The database layer
+  and the repositories had accepted `personIds` and `placeIds` since Phase 7,
+  but no editor ever passed them, so `كل الأحداث مع أحمد` could only ever return
+  a person with zero records. Both the memory editor and the event editor now
+  show every name the user has as a chip, toggle the link on tap, and create a
+  person from a typed name — finding rather than creating, so one spelling of a
+  name stays one person. Links are loaded on edit and replaced on save, which is
+  what makes unlinking a name actually unlink it.
+- Creating a *place* from an editor is deliberately narrower: a place needs
+  coordinates, so the memory editor offers it only once the memory has a pin,
+  and the event editor — which has no map picker — links to existing places
+  rather than inventing one with no location.
+
+### Added — Phase 10: Testing and Release
+
+- A tag-triggered release workflow. Pushing `v1.0.0` runs the security gate, the
+  unit tests and `lintRelease`, builds both an APK and an AAB, and creates the
+  GitHub Release with the changelog as the notes. Signing comes from four
+  repository secrets; without them the workflow still builds but marks the
+  artifact debug-signed in bold, because a half-configured release should be
+  obviously unusable rather than quietly distributed.
+- Scale tests for the two hot paths §47 names. A twenty-year archive — 7,300
+  events plus 3,650 memories — still builds a correct newest-first timeline,
+  10,000 map pins cluster without losing a marker, and clustering work follows
+  the pin count rather than their spread. The bounds are loose on purpose: a
+  shared CI runner is slow and variable, and a flaky performance test teaches
+  everybody to ignore the build. Exact timings are printed so a real slowdown is
+  still visible inside the bound.
+- `docs/RELEASE.md` now matches what exists: the security gate and the release
+  build are pre-release requirements, and the tag flow and its secrets are
+  documented.
+
+- Account deletion, which the privacy policy already promised but no code path
+  delivered. One action on the profile screen now removes every memory, event,
+  diary note, person, place, attachment row and the media files themselves, plus
+  the sync bookmark and the account row. It asks first, and afterwards reports
+  how many records and files went rather than only that something did.
+- The link tables cascade from their parent through foreign keys, but `media` has
+  no foreign key, so `MediaDao.deleteForUser` reaches attachments through their
+  owner. Without it the wipe would leave rows nothing can display.
+- `MediaStore.clear` removes the bytes, which is the part a database cannot
+  reach, and recreates the folders on demand so a wipe does not break the next
+  photo.
+- CI now assembles a **release** APK as well as a debug one. That is the only
+  build that runs R8, so until now nothing had ever checked that the shrinker
+  rules are valid or that minification keeps everything the app needs. The gate
+  requires a release APK to exist, not merely for Gradle to exit zero.
+
+### Fixed
+
+- The privacy policy claimed the user could delete "your account together with
+  its cloud data". The app cannot delete a Supabase account and never could.
+  Both language versions now say plainly what the in-app deletion does — clears
+  this device — and that cloud rows stay on the connected project's server until
+  they are deleted there.
+
+### Added — Phase 9: Security and Privacy
+
+- A CI gate, `ci/check-security.sh`, that fails the build when a documented
+  guarantee stops holding in the source: a `service_role` key in the client, a
+  log call that bypasses `MmLog`, an OS backup switched back on, cleartext
+  traffic, a background location permission, release minification turned off, or
+  a log-stripping rule that no longer matches. Every check names the file and
+  line it objects to. All nine were verified to fail on a deliberately broken
+  tree, not just to pass on a clean one.
+- Tests that hold the Row Level Security contract against the SQL that will be
+  applied: every guarded table has a policy, the diary has no public or shared
+  read path at all, a public memory requires an explicit `PUBLIC` and a live
+  row, a shared one requires a grant, every write policy is owner-scoped, the
+  media bucket is private and folder-scoped, and the owner can delete their own
+  avatar. A policy dropped by a later edit now fails the build.
+- Tests for the client-side guarantees: `allowBackup=false`, no cleartext, the
+  exact permission set, release shrinking on, and the shape of the stripping
+  rule.
+- Privacy defaults are tested rather than assumed: a new memory is `PRIVATE`
+  unless the user says otherwise, and `DailyEntry` has no visibility property at
+  all, so §46's "never public by default" holds because the diary cannot be made
+  public in the first place.
+- `SupabaseConfig` now requires HTTPS. A project configured over plain HTTP is
+  treated as not configured, so the app stays offline instead of putting the
+  session token and the archive on the wire in the clear.
+- An owner-delete policy for the `avatars` bucket, which had public read and
+  owner write but no way to remove a file.
+- The privacy policy (AR + EN) now states both new guarantees.
+
+### Fixed
+
+- `allowBackup` was `true`, and `data_extraction_rules.xml` listed the diary
+  database and the whole media folder under `<cloud-backup>`. Android was
+  therefore uploading the user's diary and every photo to a third party's
+  servers, which nothing in the app or the policy disclosed and the user could
+  not turn off from inside the app. Backup is now off and those rule files are
+  gone; the export flow is how a copy gets made.
+- The ProGuard rule that strips debug logs declared `public static void d(...)`.
+  `MmLog` is a Kotlin `object`, so those are instance methods on the singleton
+  and the rule matched nothing — the documented guarantee that `d()` and `v()`
+  are stripped from release builds was not in fact true. The rule is now written
+  without `static`, and a test keeps it that way.
+
+### Added — Phase 8: Local Backup
+
+- Export writes the whole archive to a folder the user picks, through the
+  Storage Access Framework, so no storage permission is needed and the copy
+  lands wherever the user wants it: Documents, an SD card, a synced directory.
+  The layout is `manifest.json`, `memories.json`, `daily_entries.json`,
+  `people.json`, `places.json`, `media.json` and `media/`.
+- The archive holds the content of a record and none of this phone's
+  bookkeeping. No sync status, no tombstones, no last-synced stamp: those
+  describe one device's relationship with a server and would be meaningless on
+  another phone. The point of the format is that getting your life back never
+  depends on Supabase, or on this app, being reachable.
+- Import merges rather than replaces, through the same rule sync uses. A newer
+  local copy is kept, an older archived one is skipped, and a record deleted on
+  this device stays deleted however recent the archive is — restoring a backup
+  can neither destroy newer work nor resurrect a delete.
+- Nothing is written until the manifest has been read back and shown: the
+  archive's record counts and creation date appear in a confirmation dialog
+  first, because merging somebody's life into an existing archive is a decision
+  to make with the numbers in front of you.
+- Attachments are copied as plain files named `<ownerId>_<mediaId>.<ext>` and
+  re-linked to their record on the way back. An attachment whose owner is not
+  on this device is left in the folder rather than written as an orphan.
+- An archive written by a newer version still reads: unknown fields are ignored
+  rather than rejecting the document, and a format version this app cannot
+  understand is refused before anything is touched.
+- Reached from the profile tab under "Backup and restore".
+
+### Added — Phase 7: Search and Organisation
+
+- One search over the whole local archive: memory titles and bodies, event
+  titles and bodies, people, places and dates. Structured text search only —
+  the specification rules out a model interpreting the query, so every result
+  can be explained by pointing at the row that matched.
+- `SearchQueryParser` reads a search box as structure. `مذكرات سبتمبر` is a
+  month, `كل ما سجلته في صنعاء` is a place, `الأحداث مع أحمد` is a person,
+  `15 مارس 2019` is a day. Arabic-Indic digits read the same as western ones,
+  the Gregorian, Maghrebi, Levantine and English month names are all
+  recognised, and stop words are dropped so `عن` does not match the archive.
+- The screen says out loud what was understood — person, place, date, words —
+  because structured search can only be trusted if the structure is visible.
+- `DateConstraint` handles what a range cannot: a month with no year means that
+  month in every year.
+- People and places screens: add a name once, see how many records it is linked
+  to, open it to everything connected, delete it. A place asks for a position as
+  well as a name, because without coordinates it could not appear on the map.
+- Words are AND-ed, so a longer query is narrower rather than noisier. Naming a
+  person or place narrows by intersection; a bare name is offered as a way in
+  rather than silently pulling in everything linked to it.
+- Emotion filter on top of the words.
+- Everything is scoped to the signed-in account and excludes tombstones, so a
+  deleted record never resurfaces in search.
+- Tests: `SearchQueryParserTest`, `DateConstraintTest`, `SearchRepositoryImplTest`.
+
+### Added — Phase 6: Sync
+
+- The offline queue now drains. `SyncWorker` became a `CoroutineWorker` that
+  restores the session, finds the signed-in account and runs one synchronisation;
+  a run that tried and failed returns `retry`, so WorkManager backs off and tries
+  again on its own.
+- `SyncEngine`: push what changed locally, then pull what changed elsewhere.
+  Pushing first means a row this device just sent cannot come back as somebody
+  else's change and overwrite itself.
+- `ConflictResolver`, the whole policy in one pure, tested place: last write
+  wins on `updated_at`, **except** that a local delete always beats a live server
+  copy. That single rule is what stops a record deleted on a plane from returning
+  when the phone finds a network.
+- Deletions are sent as tombstones rather than as server-side deletes. A hard
+  delete would simply vanish from the next download, so another device would keep
+  its copy forever and the deletion would never spread.
+- Download uses a per-account watermark (`sync_meta`, Room schema version 2, an
+  additive migration), so a phone that syncs every fifteen minutes does not
+  re-read the whole archive each time.
+- `SyncTime` converts timestamps at the Room/server boundary. Room keeps naive
+  local text; the server column is `timestamptz` and would otherwise read every
+  record as UTC, shifting it by the device's offset.
+- The profile screen shows how much is waiting, what the last run did and when,
+  with a button to run one immediately.
+- Failures are contained per table and per direction, and never reach the caller:
+  a row that could not be sent is marked `SYNC_ERROR` and retried, and nothing is
+  ever deleted locally because a request failed.
+- Tests: `ConflictResolverTest`, `SyncEngineTest`, `SyncTimeTest`,
+  `SyncMetaMigrationTest`.
+
+### Added — Phase 5: Map
+
+- The home screen is now an interactive map. It shows every memory that has a
+  location and every event that has one, with an "I am here" button, an add
+  button and a way into search.
+- `MapProvider`, the abstraction the spec asks for: the app depends only on that
+  interface, so the tile host can be swapped, or the renderer replaced with an
+  SDK later, without touching a screen.
+- A Compose slippy-tile renderer. It draws only the tiles inside the viewport,
+  wraps columns across the antimeridian and skips rows past the projection, so
+  panning has no blank edge. No map SDK is added, so nothing here can be stranded
+  by an abandoned upstream library.
+- `WebMercator`: the projection maths, pure and tested, shared by the tiles, the
+  pins and the picker.
+- Marker clustering in screen space (`MapClustering`). A sparse map shows every
+  pin; a dense city collapses into countable bubbles that break apart as you zoom
+  in. Cluster longitudes are averaged on the unit circle, so a group spanning the
+  antimeridian is not thrown to Greenwich.
+- Manual location picking: move the map until the centred pin is where you mean.
+  A memory can now be pinned to a place while it is being created, and an
+  existing pin survives editing anything else.
+- Tiles are cached on disk through the same Coil image loader that serves photos,
+  and every request carries a real user agent, which the OpenStreetMap tile usage
+  policy requires. The tile host and its credit come from the build settings.
+- `LocationReader` reads a position without Google Play services, one shot, only
+  when the user presses for it, and always removes its listener.
+- Tests: `WebMercatorTest`, `MapClusteringTest`, `TileServerMapProviderTest`.
+
+### Added — Phase 4: Diary
+
+- Diary event CRUD. A day's event now has a real editor: title, details, date,
+  clock time and an optional emotion. Tapping an event on the day screen opens
+  it, and deleting it keeps a tombstone for the next sync.
+- The life timeline tab, which was a placeholder. Diary events and memories are
+  merged into one chronological stream, newest day first; inside a day the timed
+  events run morning to evening and the day's memories follow.
+- The timeline reads a bounded window (60 days) and grows a window at a time on
+  request, so a ten-year archive is never loaded all at once.
+- The calendar browser on the previously dead `calendar` route: move between
+  months and open any day. It reuses the month grid, so a dot means the same
+  thing in both places.
+- `TimelineBuilder`, a pure domain use case for the merge and ordering rules, so
+  they are tested on the JVM with no database and no Android.
+- `DiaryRepository.getEntry` and `MemoryRepository.watchBetween`, the two reads
+  the editor and the timeline window needed.
+- Tests: `TimelineBuilderTest` (ordering, grouping, tombstones, window bounds),
+  `EntryEditorViewModelTest` and `TimelineViewModelTest`.
+
+### Changed — Phase 4
+
+- The month calendar grid moved to a shared `MonthCalendarGrid` used by both the
+  month page and the calendar browser, instead of being drawn twice.
+- Deleting an event on the day screen is now an explicit control, since the row
+  itself opens the editor.
+
+### Added — Phase 3: Memories
+
+- Memory CRUD: create, read, update and soft-delete from the memories tab, with
+  a detail screen and a single editor used for both create and edit.
+- Photo, audio and video attachments. Photos are picked through the system photo
+  picker or taken with the camera; voice notes are recorded in-app; videos are
+  picked and played back locally.
+- Files are copied into app-private external storage, so the archive survives a
+  cache clear, is not indexed by the gallery and needs no storage permission.
+- Camera and microphone permissions are requested at the moment of use, never at
+  startup, and the recorder is released as soon as recording ends.
+- Attachments are plain files by design: audio is never transcribed and video is
+  never analysed or summarised. Only a thumbnail, a duration and a file size are
+  read.
+- `MediaRepository` with a per-owner aggregate query, so the memory list shows
+  thumbnails and media counts without one query per row.
+- A `deleted_at` tombstone on the `media` table. Removing an attachment deletes
+  the file and keeps the row, so an offline delete is replayed by the sync worker
+  instead of being resurrected.
+- Abandoning the editor deletes the files that were imported during it, so
+  nothing is left behind in app-private storage.
+- Tests: `MediaImporterTest` (accepted file types, extensions, duration
+  formatting), `MediaRepositoryImplTest` (attach, tombstone plus file removal,
+  counts, summary, discard), `MemoriesViewModelTest` and
+  `MemoryEditorViewModelTest`.
+
+### Fixed — Phase 3
+
+- "On this day" no longer includes the current year. The month-day pattern also
+  matched today's own records, so the card could list the day it was shown on.
+- The memory list, detail and editor no longer show the Phase 3 placeholder.
+
+### Added — Phase 2: Authentication
+
+- Email sign up, sign in, sign out and password reset through Supabase Auth.
+- Session persistence in EncryptedSharedPreferences backed by the Android
+  Keystore; the refresh token never reaches Room, the logs or a backup export.
+- Automatic session restoration on cold start, so a signed-in user is not shown
+  the sign-in form again (an `AuthState.Unknown` gate drives the splash).
+- An offline local account: when no Supabase project is configured the app still
+  has an identity and every feature works on-device. No password is stored or
+  checked for it, because there is no credential to verify.
+- Every query is now scoped to the signed-in user id; the diary streams restart
+  when the account changes.
+- Server failures map to stable `strings.xml` keys, so no server error text
+  (which can contain the email) is shown on screen.
+- Tests: `SupabaseAuthRepositoryTest` (offline path, session restore, sign out
+  keeps the archive) and the day screen now tested against a signed-in user.
+
+### Changed — Phase 2
+
+- `SupabaseClientProvider` depends on the `SessionManager` interface, and the
+  Auth plugin is installed with the Keystore-backed session manager.
+
+### Added — Phase 1: Foundation
+
+- Android project `com.memorymap` with `minSdk 26`, `compileSdk 36`, `targetSdk 36`,
+  declared once in `app/build.gradle.kts`.
+- Gradle version catalog (`gradle/libs.versions.toml`) as the single source of
+  every dependency and plugin version.
+- Jetpack Compose + Material 3 shell: light/dark theme, brand colors
+  (`#1A237E` / `#6A1B9A`), Cairo for Arabic and Inter for English, bundled in
+  `res/font` so typography needs no network.
+- Arabic as the default locale with an English `values-en` copy and a
+  `locales_config.xml` per-app language declaration; `supportsRtl="true"`.
+- Navigation foundation with the five top-level destinations (map, diary,
+  memories, timeline, account) and every parameterised route defined centrally.
+- Quick-add bottom sheet reachable from any tab.
+- Diary browsing that already works locally: diary home (today / yesterday /
+  this week / this month / this year), the day screen with the end-of-day note
+  and the ordered event log, the week page, the month calendar with content
+  markers, and the year page.
+- Room database v1 with the full schema: `users`, `memories`, `daily_entries`,
+  `diary_notes`, `media`, `people`, `places` and the five link tables, plus a
+  single per-day aggregation query feeding week/month/year/calendar.
+- Repository pattern with domain interfaces, so no screen touches Room or
+  Supabase directly.
+- Synchronization state machine (`PENDING_CREATE`, `PENDING_UPDATE`,
+  `PENDING_DELETE`, `SYNCED`, `SYNC_ERROR`) with soft deletes as tombstones.
+- Supabase client foundation reading client-only keys from `local.properties`,
+  running in offline-only mode when unconfigured.
+- WorkManager periodic sync job, network-constrained, with a Hilt worker factory.
+- Life statistics (recorded days, memories, events, places, people, photos,
+  audio, videos, most used emotion, busiest month) counted from local data.
+- "On this day" lookup by month and day across earlier years.
+- Adaptive launcher icon with a monochrome layer.
+- Unit tests: `DiaryTimeTest`, `GeoTest`, `BackupPlannerTest`,
+  `MemoryRepositoryImplTest`, `DiaryDatabaseTest` (real Room via Robolectric),
+  `DayViewModelTest`.
+- CI workflow that verifies every dependency coordinate, runs the unit tests,
+  lint and `assembleDebug`, and uploads the APK as an artifact.
+- Privacy policy in Arabic and English, Apache-2.0 license, release and signing
+  instructions, and the Supabase schema with Row Level Security policies.
+
+### Explicitly not in this phase
+
+The following are placeholders that state which phase implements them instead of
+showing fake data: nearby (Phase 5 follow-up) and backup export/import
+(Phase 8).
+
+[Unreleased]: https://github.com/hishamalmushrea-cloud/memories/commits/main
+[0.1.0]: https://github.com/hishamalmushrea-cloud/memories/releases/tag/v0.1.0

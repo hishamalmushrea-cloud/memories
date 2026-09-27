@@ -1,0 +1,130 @@
+# Privacy Policy — Memory Map
+
+Last updated: 23 September 2026
+
+## 1) The basic principle
+
+This app is **offline-first**. Your memories, diary, photos, recordings and videos
+are stored on your device. Linking a cloud account is optional, never required to
+use the app.
+
+## 2) What we never do
+
+- No ads.
+- No tracking.
+- No analytics.
+- No selling of data.
+- No advertising or analytics SDKs from any third party.
+- No audio-to-text transcription.
+- No video analysis or summarisation.
+- No AI used to write, interpret or summarise user content.
+
+## 3) Location
+
+- There is no continuous location tracking and no background location recording.
+- Location is read **on demand only**, in these cases:
+  - Opening the map and tapping "I am here".
+  - Creating a memory and choosing automatic location.
+  - Creating an event and choosing to attach a location.
+  - Picking a location manually on the map.
+  - Opening "Near by" and tapping "my location" to order what is around you by
+    distance.
+- The app is fully usable without granting the location permission.
+- Coordinates are never written to logs and never sent to a service that does not
+  need them.
+
+## 4) Media
+
+- Photos, audio recordings and videos are stored in the app's private storage on
+  your device. A photo you take in the app is captured by the app itself: the file
+  goes straight into that private storage and is never handed to another app to
+  write, which is also why no storage permission is declared.
+- Video stays local by default; uploading it is an explicit, optional action.
+- **What leaves the device is not the original.** A photo you choose to upload is
+  scaled so that its longest edge is 2048 pixels and written out as a JPEG, and
+  the metadata wrapped around the picture — Exif, XMP, Photoshop and comment
+  segments, which is where the capture location, the camera model and the
+  timestamp live — is removed before it is sent. A photo that is already the
+  right way up and inside that limit is not re-encoded at all: the metadata is
+  dropped and the pixels are copied over untouched.
+- Photos this cannot rewrite faithfully are uploaded exactly as they are,
+  metadata included: a PNG (which may be a screenshot with transparency), a GIF
+  (which may be moving), an HEIC (which does not decode on the oldest supported
+  phones), and any photo whose stored orientation cannot be read. Rewriting those
+  would risk the picture itself, and a file you asked to back up is better off in
+  the cloud than damaged or missing.
+- The file on your device is never modified. Only the uploaded copy is prepared,
+  so your phone — and any backup you export — keeps the originals. A device that
+  restores from the cloud gets the prepared copy instead, which is the trade-off
+  that makes backing up a phone full of photos possible on a free project.
+
+## 5) When you connect a Supabase account (optional)
+
+- Only the **client-side anon key** is used. The service role key is not present
+  in the app and must never be, because everything inside an APK is public.
+- All traffic uses HTTPS.
+- The session is stored using a modern secure storage mechanism (Android Keystore).
+- **Row Level Security** guarantees that:
+  - `PRIVATE` → the owner only.
+  - `SHARED` → the owner plus the users listed in `MemoryShare`.
+  - `PUBLIC` → according to the app policy, and never the default choice.
+- Diary entries are always `PRIVATE` by default.
+
+## 6) Limits of external services
+
+We do not assume that a free service is unlimited. Storage, bandwidth, database
+and map providers all have quotas, so the app keeps working locally even when the
+cloud service is temporarily unavailable.
+
+## 7) Your data and your control over it
+
+- **Export**: you can export your whole archive locally (JSON plus a media folder).
+- **Import**: you can restore that archive.
+- **Deletion**: you can delete an event, a memory, a photo, a video or a
+  recording one at a time, and you can delete **everything on the device at
+  once** from the profile screen. A clear confirmation always precedes a
+  permanent deletion, and the app tells you afterwards how many records and how
+  many media files it removed.
+- **The cloud copies, at deletion time**: the confirmation tells you how many
+  attachments you uploaded to the connected Supabase project, and lets you delete
+  those files along with the local archive. It also offers to delete **your
+  records from the server itself** while keeping the account. Both boxes are
+  unchecked by default, because the button promises to clear **this device** and
+  because a cloud copy may be the only one another device can still fetch. If you
+  do ask for the records to go, the uploaded files go with them without a second
+  question: their keys are deleted with the records, so there would be no way for
+  the app to reach them afterwards. Note that **once the wipe has run the app can
+  never delete them**, which is why the count is given before the deletion and
+  not after it.
+- **Deleting the account itself**: from the profile screen, after a separate
+  confirmation, the app deletes your account from the connected Supabase project:
+  your records, your uploaded files, your profile row and the auth user itself,
+  which frees your email address for signing up again. Nothing is left on the
+  server. **The order is deliberate**: the device's archive is wiped only after
+  the server confirms the deletion. If the server cannot be reached, nothing is
+  deleted - neither in your account nor on your device - and the app says so
+  rather than claiming a success that did not happen. With no project connected
+  there is no account on a server at all, and it says that too.
+- **What the in-app deletion does not do**: it does not delete your account from
+  the Supabase dashboard for you, and it cannot delete an account that was never
+  on a server. Everything above goes through your own project; if you would
+  rather do it from the dashboard, deleting the auth user there removes the
+  profile row and, through the schema's cascade, every row that belonged to it.
+- **No operating-system backup**: the app opts out of Android's automatic
+  backup, so your database and your media are never copied to a third party's
+  servers by the system. If you want a copy, you take one yourself with
+  **Export**, to a folder you choose. This is a deliberate trade: an automatic
+  backup would be convenient, and it would also mean your diary leaving your
+  device without the app ever telling you.
+- **Encrypted in transit**: any connection to a Supabase project is required to
+  be HTTPS. A project configured over plain HTTP is treated as not configured at
+  all, and the app simply stays offline rather than sending your session or your
+  archive where it could be read on the way.
+
+## 8) Children
+
+The app is meant for personal use and collects no data for any commercial purpose.
+
+## 9) Contact
+
+For any privacy question, open an issue in the project repository on GitHub.

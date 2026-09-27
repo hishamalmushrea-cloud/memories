@@ -1,0 +1,17 @@
+# The Gradle wrapper jar is a binary that must be committed so that
+# `./gradlew` works from a fresh clone.
+gradle/wrapper/gradle-wrapper.jar binary
+
+# Bundled fonts are binary assets.
+*.ttf binary
+*.otf binary
+
+# Normalise line endings for source and config.
+*.kt text eol=lf
+*.kts text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.properties text eol=lf
+*.yml text eol=lf

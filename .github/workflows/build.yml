@@ -1,0 +1,721 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+# The default workflow token in this repository is read-only, which is why the
+# report could not be published before. These are the minimum scopes needed to
+# commit the generated schema and to open the report issue.
+permissions:
+  contents: write
+  issues: write
+  checks: write
+
+jobs:
+  build:
+    name: Assemble and test (Phase 1)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Install the Android SDK packages the project needs
+        run: |
+          set -uo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          MANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          # Pre-accepting the licenses lets AGP auto-install anything it still
+          # needs (for example a build-tools revision) without prompting.
+          mkdir -p "$SDK/licenses"
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$SDK/licenses/android-sdk-license"
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$SDK/licenses/android-sdk-preview-license"
+
+          yes | "$MANAGER" --licenses > /dev/null || true
+          "$MANAGER" --install "platform-tools" "platforms;android-36"
+          # Best effort: if this exact build-tools revision is unavailable, AGP
+          # downloads the one it targets by itself.
+          "$MANAGER" --install "build-tools;36.0.0" || \
+            echo "::warning::build-tools;36.0.0 unavailable, AGP will fetch its own"
+          "$MANAGER" --list_installed || true
+
+      # Cheap, explicit failure when a version in the catalog does not exist.
+      - name: Verify every dependency coordinate resolves
+        run: bash ci/verify-dependencies.sh gradle/libs.versions.toml
+
+      - name: Check the security and privacy guarantees
+        run: bash ci/check-security.sh 2>&1 | tee /tmp/security.log || true
+
+      # The certificate check is the last thing between a build that succeeded and a
+      # release that is wrong, and until this step existed it first ran on the run that
+      # publishes - the one run that cannot be taken back. This exercises both readers
+      # with a throwaway key, in a second, before Gradle starts.
+      #
+      # Its output is logged and gated like every other stage: when it failed here and
+      # passed in the workspace, the job log was the only place that said why, and the
+      # job log is not reachable from everywhere. The report carries it now.
+      - name: Check the tools that decide whether a build is signed
+        run: |
+          set -o pipefail
+          bash ci/check-signing-tools.sh 2>&1 | tee /tmp/signing-tools.log
+
+      # Runs before Gradle on purpose: it is pure Python and answers in under a
+      # second, so a mistake that would otherwise die in the compiler and waste
+      # ten minutes of build reports itself immediately instead.
+      - name: Check that no plain function calls a suspend DAO method
+        run: python3 ci/check-suspend-calls.py
+
+      - name: Check that no comment separates a modifier from what it modifies
+        run: python3 ci/check-detached-comments.py
+
+      - name: Check every Room query is the query it appears to be
+        run: python3 ci/check-queries.py
+
+      - name: Check the imports in every Kotlin file
+        run: python3 ci/check-import-order.py
+
+      # Last of the cheap checks, and the one with the smallest scope: it can
+      # only see brackets. It exists because a spliced edit once closed a class
+      # early and the compiler reported it fifteen minutes later as "Expecting a
+      # top level declaration" somewhere else in the file.
+      - name: Check every Kotlin file is structurally balanced
+        run: python3 ci/check-balance.py
+
+      - name: Check every function that declares a value returns it
+        run: python3 ci/check-returns.py
+
+      - name: Check the workflows agree with each other
+        run: python3 ci/check-workflows.py
+
+      - name: Check no failure after an action would go unsaid
+        run: python3 ci/check-silent-failures.py
+
+      - name: Check no class extends one that cannot be extended
+        run: python3 ci/check-final-extensions.py
+
+      - name: Check the documents agree with the repository
+        run: python3 ci/check-docs.py
+
+      # The rule about signing is a decision, so it is run as one: the same script the
+      # release workflow consults is given every situation a run can be in, and the
+      # answers are compared. A policy that is only read is a policy nobody has tested.
+      # The other half of "what would a release build ship": the tile host. The static
+      # half runs here; the release workflow asks the same script the publishing question.
+      - name: Check the tile provider configuration
+        run: python3 ci/check-tile-provider.py
+
+      - name: Check the release signing policy against every situation
+        run: |
+          set -uo pipefail
+          python3 ci/check-release-signing.py
+          # Two of these six calls are *supposed* to exit non-zero, and a workflow `run:`
+          # step is executed as `bash -e`: a bare call would end the step at the first
+          # refusal, which is the answer it came for. `|| actual=$?` keeps the status and
+          # stays outside errexit's reach.
+          expect() {
+            actual=0
+            python3 ci/check-release-signing.py --ref "$1" --signing "$2" > /dev/null 2>&1 || actual=$?
+            if [ "$actual" != "$3" ]; then
+              echo "::error::$1 with signing=$2 exited $actual, wanted $3"
+              exit 1
+            fi
+            echo "  $1 with signing=$2 -> exit $actual (wanted $3)"
+          }
+          # A release must be signed; a rehearsal may not be; half a configuration is
+          # never intentional.
+          expect refs/tags/v0.1.0 complete 0
+          expect refs/tags/v0.1.0 partial 1
+          expect refs/tags/v0.1.0 none 1
+          expect refs/heads/main    complete 0
+          expect refs/heads/main    partial 1
+          expect refs/heads/main    none 0
+
+      - name: Check no name is declared twice in one package
+        run: python3 ci/check-duplicate-declarations.py
+
+      - name: Check the release notes can be built for this version
+        run: python3 ci/check-release-notes.py
+
+      - name: Check the store listing stays inside the store limits
+        run: python3 ci/check-store-metadata.py
+
+      - name: Check the string resources before aapt2 has to
+        run: python3 ci/check-strings.py
+
+      # The migration is the one part of this project that no Android build looks
+      # at: it is SQL, and the only thing that read it before was a test reading it
+      # as text. Here it is applied - twice - to a real PostgreSQL, and then driven
+      # as a signed-in user and as an anonymous one to see what the policies
+      # actually do. The runner image ships PostgreSQL; the wheel bundles its own
+      # server for the case where nothing else is installed.
+      - name: Check the Supabase schema on a real PostgreSQL
+        run: |
+          set -uo pipefail
+          if ! command -v initdb >/dev/null 2>&1 && ! ls /usr/lib/postgresql/*/bin/initdb >/dev/null 2>&1; then
+            python3 -m pip install --quiet --break-system-packages pgserver \
+              || python3 -m pip install --quiet --user pgserver || true
+          fi
+          {
+            echo "### Supabase schema"
+            python3 ci/check-schema.py
+          } 2>&1 | tee /tmp/schema.log || true
+
+      # Captured, and not allowed to stop the run: a configuration failure used to
+      # fail the job here and leave the report saying only "the job stopped before
+      # this step" for everything after it, with no line saying what Gradle
+      # objected to. Resolution is exactly where a new plugin or a new library
+      # fails first, so its output is the most useful thing the report can carry.
+      - name: Check the Gradle configuration
+        run: ./gradlew help --no-daemon --stacktrace 2>&1 | tee /tmp/help.log || true
+
+      # `|| true` plus a final gate: every stage runs even if an earlier one
+      # fails, so one push reports compile, test, lint and packaging problems
+      # together instead of one per push.
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace --continue 2>&1 | tee /tmp/unit.log || true
+
+      - name: Lint
+        run: ./gradlew lintDebug --no-daemon --stacktrace --continue 2>&1 | tee /tmp/lint.log || true
+
+      - name: Assemble the debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace --continue 2>&1 | tee /tmp/assemble.log || true
+
+      # A release build is the only thing that runs R8, so it is the only thing
+      # that can prove the shrinker rules are valid and that minification does not
+      # strip something the app needs. It falls back to debug signing when no
+      # keystore is supplied, which is what makes it runnable here at all.
+      # The AAB is the artifact Google Play accepts, and it is the only thing
+      # that exercises the bundle path instead of the APK path. Building it here
+      # means the Play upload is verified on every push rather than at release
+      # time, on the one run that cannot be rehearsed (see docs/RELEASE.md).
+      - name: Assemble the release APK and the Play bundle
+        run: ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace --continue 2>&1 | tee /tmp/release.log || true
+
+      # Everything up to here reads the source. This reads the certificate inside the
+      # artifact, which is the only place the answer to "which key signed this?" is
+      # written down: a property that never reached Gradle, a keystore that failed to
+      # load, a signing config that fell back to the debug key - all three build
+      # successfully and produce the wrong artifact.
+      #
+      # With the four secrets present the artifact must carry the release certificate.
+      # Without them a throwaway key is generated, so the rehearsal still proves that the
+      # signing properties reach Gradle and change the certificate - which is the part a
+      # rehearsal without signing would leave untested until release day.
+      - name: Prove the release build signs with the key it is given
+        env:
+          MAP_TILE_SERVER: ${{ vars.MEMORYMAP_TILE_SERVER }}
+          MAP_TILE_KEY: ${{ secrets.MEMORYMAP_TILE_KEY }}
+          MAP_ATTRIBUTION: ${{ vars.MEMORYMAP_TILE_ATTRIBUTION }}
+          KEYSTORE_B64: ${{ secrets.MEMORYMAP_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.MEMORYMAP_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MEMORYMAP_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MEMORYMAP_KEY_PASSWORD }}
+        run: |
+          set -uo pipefail
+          # apksigner reads an APK and keytool reads the bundle; both are looked up
+          # through the SDK path the setup step above also resolves this way.
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          {
+            bash ci/prepare-signing-keystore.sh
+            . /tmp/signing/signing.env
+            # Whatever tile configuration this repository has is passed the same way a
+            # release passes it, so the property plumbing is exercised on every push
+            # rather than first on the run that publishes.
+            TILE_ARGS=()
+            [ -n "${MAP_TILE_SERVER:-}" ] && TILE_ARGS+=("-PMAP_TILE_SERVER=$MAP_TILE_SERVER")
+            [ -n "${MAP_TILE_KEY:-}" ] && TILE_ARGS+=("-PMAP_TILE_KEY=$MAP_TILE_KEY")
+            [ -n "${MAP_ATTRIBUTION:-}" ] && TILE_ARGS+=("-PMAP_ATTRIBUTION=$MAP_ATTRIBUTION")
+            ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace \
+              -PMEMORYMAP_KEYSTORE="$SIGNING_KEYSTORE" \
+              -PMEMORYMAP_KEYSTORE_PASSWORD="$SIGNING_STORE_PASSWORD" \
+              -PMEMORYMAP_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
+              -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD" \
+              "${TILE_ARGS[@]}"
+            # Both artifacts, because they are read by different tools: the APK's
+            # certificate comes from the APK Signing Block (no JAR signature exists at
+            # minSdk 26) and the bundle's from the JAR signature. A release run would
+            # otherwise be the first time one of the two readers ever ran.
+            for artifact in \
+              app/build/outputs/apk/release/app-release.apk \
+              app/build/outputs/bundle/release/app-release.aab; do
+              if [ ! -f "$artifact" ]; then
+                echo "::error::$artifact was not built, so its certificate cannot be checked"
+                continue
+              fi
+              if [ "$SIGNING_MODE" = "release" ]; then
+                bash ci/verify-apk-signature.sh --release "$artifact"
+              else
+                bash ci/verify-apk-signature.sh --rehearsal "$artifact" "$SIGNING_EXPECTED_FINGERPRINT"
+              fi
+            done
+          } 2>&1 | tee /tmp/signing.log || true
+
+      - name: Show what was built
+        run: |
+          find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -printf "%p %s bytes\n" || true
+
+      # Everything else in ci/ reads the source. This reads what a person would
+      # install, after R8 has had its say: a key pasted into a resource, an asset
+      # or a library string is invisible to a source scan and visible here. Its
+      # output goes into the report as well, so the log is not the only record.
+      - name: Check the built artifacts carry nothing they must not
+        run: |
+          python3 ci/check-artifacts.py 2>&1 | tee /tmp/artifacts.log || true
+
+      # The Room schema is generated by KSP. This step only runs once the schema
+      # is deliberately tracked in git (see .gitignore), so exporting a new
+      # schema version shows up as a reviewable diff instead of a red build.
+      - name: Commit the generated Room schema if it is tracked
+        run: |
+          set -uo pipefail
+          git check-ignore -q app/schemas && { echo "app/schemas is git-ignored, nothing to do"; exit 0; }
+          if [ -n "$(git status --porcelain app/schemas)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app/schemas
+            git commit -m "chore(room): export generated schema [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push the schema"
+          fi
+
+      # The job log lives on blob storage, which a restricted network cannot
+      # reach, so the summary is published as an issue that the GitHub REST API
+      # can read back. Errors are printed instead of swallowed, and the step
+      # never changes the job verdict - the gate below owns that.
+      - name: Publish the build summary as an issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+
+          {
+            echo "### Stages"
+            # The checks that are not Gradle builds report their own verdict, in the
+            # words their own scripts print, so the summary names them the way the
+            # reports for the schema and the security scan already do.
+            if [ -f /tmp/artifacts.log ]; then
+              if grep -q "artifact check: PASS" /tmp/artifacts.log; then
+                echo "- artifacts.log: SUCCESS"
+              else
+                echo "- artifacts.log: FAILED: $(grep -n "artifact check: FAIL" /tmp/artifacts.log | head -1)"
+              fi
+            fi
+            if [ -f /tmp/security.log ]; then
+              if grep -q "security check: PASS" /tmp/security.log; then
+                echo "- security.log: SUCCESS"
+              else
+                echo "- security.log: FAILED"
+              fi
+            fi
+            if [ -f /tmp/signing-tools.log ]; then
+              if grep -q "signing tools check: PASS" /tmp/signing-tools.log; then
+                echo "- signing-tools.log: SUCCESS"
+              else
+                echo "- signing-tools.log: FAILED"
+              fi
+            else
+              echo "- signing-tools.log: NOT RUN (the job stopped before this step)"
+            fi
+            for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log /tmp/signing.log; do
+              if [ ! -f "$f" ]; then
+                echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
+                continue
+              fi
+              # The signing log is not a Gradle log, and reading it the way a Gradle log
+              # is read was wrong in both directions. It has no "BUILD SUCCESSFUL" of its
+              # own when the step stops before Gradle - a keystore that will not open does
+              # that - so the report said "UNKNOWN" about a step that had failed, and said
+              # it in the place a reader looks first. Its verdict is what the step exists
+              # to produce: one verified artifact per artifact built.
+              if [ "$f" = "/tmp/signing.log" ]; then
+                verified="$(grep -c "signature check: PASS" "$f" 2>/dev/null || true)"
+                if [ "$verified" = "2" ]; then
+                  verdict="SUCCESS (both artifacts carry the key they should)"
+                else
+                  verdict="FAILED: $verified of 2 artifacts verified"
+                fi
+                echo "- $(basename "$f"): $verdict"
+                continue
+              fi
+              # A failure is asked about first, and that order is the whole point:
+              # a `--continue` build prints BUILD SUCCESSFUL for the tasks that
+              # finished and BUILD FAILED for the build, so a log can hold both,
+              # and reading SUCCESS first turns a red run into a green report.
+              if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then
+                verdict="FAILED: $(grep -nE 'BUILD FAILED|FAILURE: Build failed' "$f" | head -1)"
+              elif grep -qE "BUILD SUCCESSFUL" "$f"; then verdict="SUCCESS"
+              else verdict="UNKNOWN"; fi
+              echo "- $(basename "$f"): $verdict"
+            done
+
+            # A cancelled run leaves a log with no verdict in it and no test XML,
+            # and the report it writes then reads exactly like a broken build with
+            # zero tests. It is neither: it is a run that a newer push stopped, so
+            # say that here rather than leaving it to be read as a result.
+            if [ ! -f /tmp/unit.log ] || ! grep -qE "BUILD SUCCESSFUL|BUILD FAILED|FAILURE: Build failed" /tmp/unit.log; then
+              echo
+              echo "> **This run reached no verdict.** A newer push cancels the run of an older"
+              echo "> commit, and what follows is whatever it had finished writing by then -"
+              echo "> zero tests and no lint report mean the build never got there, not that it"
+              echo "> failed. Read the report of the newest run instead."
+            fi
+
+            echo
+            echo "### Unit test results"
+            python3 - <<'PY' || echo "(no test XML found)"
+          import glob, xml.etree.ElementTree as ET
+          total = failures = errors = skipped = 0
+          detail = []
+          for path in sorted(glob.glob("app/build/test-results/**/*.xml", recursive=True)):
+              root = ET.parse(path).getroot()
+              t = int(root.get("tests", 0)); f = int(root.get("failures", 0)); e = int(root.get("errors", 0))
+              total += t; failures += f; errors += e; skipped += int(root.get("skipped", 0))
+              print(f"- {root.get('name', path)}: tests={t} failures={f} errors={e}")
+              for tc in root.iter("testcase"):
+                  for tag in ("failure", "error"):
+                      node = tc.find(tag)
+                      if node is not None:
+                          msg = (node.get("message") or "")[:500]
+                          txt = (node.text or "").strip()[:900]
+                          detail.append(f"{tc.get('classname')}.{tc.get('name')}\n  [{tag}] {msg}\n{txt}")
+          print()
+          print(f"TOTAL tests={total} failures={failures} errors={errors} skipped={skipped}")
+          if detail:
+              print()
+              print("### Failing tests")
+              print("\n\n".join(detail))
+          PY
+
+            # The XML and the log are two witnesses of one fact. When they
+            # disagree, one of them is wrong and saying nothing about it is how a
+            # failing task came to be reported as 449 tests and no failures.
+            if [ -f /tmp/unit.log ] && grep -q "There were failing tests" /tmp/unit.log; then
+              if ! grep -rl "<failure\|<error" app/build/test-results 2>/dev/null | grep -q .; then
+                echo
+                echo "> **The test log and the test results disagree.** Gradle reported failing"
+                echo "> tests and no result file contains one. The XML files were written by"
+                echo "> the run that failed; treat the tests as failed until that is resolved."
+              fi
+            fi
+
+            echo
+            echo "### Lint"
+            python3 - <<'PY' || echo "(lint report step failed)"
+          import glob, xml.etree.ElementTree as ET
+          paths = glob.glob("app/build/reports/lint-results*.xml")
+          if not paths:
+              print("(no lint report found)")
+          else:
+              # The rules whose message is advice about a version, and therefore
+              # wants to be read once per library rather than once per rule.
+              VERSION_RULES = {
+                  "GradleDependency",
+                  "NewerVersionAvailable",
+                  "AndroidGradlePluginVersion",
+              }
+              errors = 0
+              warnings = 0
+              shown = []
+              # Counted by rule so a run that adds three warnings says which
+              # three, instead of only that the total moved.
+              by_rule = {}
+              for path in paths:
+                  root = ET.parse(path).getroot()
+                  for issue in root.iter("issue"):
+                      sev = issue.get("severity", "")
+                      if sev == "Error":
+                          errors += 1
+                          loc = issue.find("location")
+                          where = "?"
+                          if loc is not None:
+                              where = loc.get("file", "?").split("/memories/")[-1] + ":" + loc.get("line", "?")
+                          shown.append("- [%s] %s\n  %s\n  %s" % (issue.get("id"), issue.get("message", ""), where, (issue.get("explanation") or "")[:220]))
+                      elif sev == "Warning":
+                          warnings += 1
+                          loc = issue.find("location")
+                          where = "?"
+                          if loc is not None:
+                              where = loc.get("file", "?").split("/memories/")[-1] + ":" + loc.get("line", "?")
+                          # Up to six places per rule, so a rule with a count
+                          # higher than one says which lines the rest are on
+                          # instead of only where the first one is. A version
+                          # advisory is the one rule whose message differs per
+                          # place - it names the library and the version to move
+                          # to - and those are the working list of a dependency
+                          # refresh, so every one of them is printed in full.
+                          version_rule = issue.get("id") in VERSION_RULES
+                          entry = by_rule.setdefault(issue.get("id"), [0, [], []])
+                          entry[0] += 1
+                          if version_rule:
+                              # Keyed on the pair, not on the place: lint reports
+                              # some version advisories with no location at all,
+                              # and deduplicating those by place kept only the
+                              # first one - hiding eight of the twenty-one.
+                              key = (where, issue.get("message", ""))
+                              if key not in entry[1]:
+                                  entry[1].append(key)
+                          elif len(entry[1]) < 6 and where not in entry[1]:
+                              entry[1].append((where, ""))
+              print("errors=%d warnings=%d" % (errors, warnings))
+              if by_rule:
+                  print()
+                  print("Warnings by rule:")
+                  for rule, (count, places, messages) in sorted(by_rule.items(), key=lambda pair: -pair[1][0]):
+                      print("- %s x%d" % (rule, count))
+                      for place, message in places:
+                          if place not in ("?", "?:?"):
+                              print("    %s" % place)
+                          if message:
+                              print("      %s" % message[:220])
+                      if count > len(places):
+                          print("    ... and %d more" % (count - len(places)))
+              if shown:
+                  print()
+                  print("\n".join(shown[:40]))
+          PY
+
+            echo
+            echo "### Bundle"
+            find app/build/outputs/bundle -name "*.aab" -printf "%p %s bytes\n" 2>/dev/null || echo "(none)"
+            echo
+            echo "### APK"
+            find app/build/outputs/apk -name "*.apk" -printf "%p %s bytes\n" 2>/dev/null || echo "(none)"
+            # What is inside the artifact, not only how large it is. A size on
+            # its own cannot tell a rebuilt APK from a stale one, and this
+            # repository has no way to download the artifact to look.
+            for apk in $(find app/build/outputs/apk -name "*.apk" 2>/dev/null | sort); do
+              echo "- $(basename "$apk") sha256 $(sha256sum "$apk" | cut -c1-16)"
+              unzip -l "$apk" 2>/dev/null | awk '/classes[0-9]*\.dex$|resources\.arsc$/ {printf "  %s %s bytes\n", $4, $1}'
+              echo "  own classes in the dex: $(unzip -p "$apk" 'classes*.dex' 2>/dev/null | grep -a -c 'com/memorymap' || echo 0)"
+            done
+
+            echo
+            echo "### Supabase schema"
+            if [ -f /tmp/schema.log ]; then
+              grep -E "^(ok:|schema check:|note:|FAIL|ERROR)" /tmp/schema.log | head -n 40 || true
+            else
+              echo "(the schema check did not run)"
+            fi
+
+            # The certificate, not the verdict: a reader can compare this with the
+            # fingerprint in ci/release-fingerprint.txt, and the run above says which
+            # of the two it was proving.
+            echo
+            echo "### Signing tools"
+            if [ -f /tmp/signing-tools.log ]; then
+              # The guard's own words: which reader answered, which certificate it read,
+              # and the first line of anything that failed.
+              grep -E "^   |^FAIL|check:" /tmp/signing-tools.log | head -25 || true
+            else
+              echo "(the signing tools check did not run)"
+            fi
+
+            echo
+            echo "### Signing"
+            if [ -f /tmp/signing.log ]; then
+              grep -E "^(signing:|signature check:|  [0-9A-F]{16,})" /tmp/signing.log | head -n 8 || true
+              # The step can end before Gradle starts - a keystore that will not open,
+              # a base64 value that is not base64, a password with a stray newline - and
+              # then none of the lines above exist and this section printed nothing at
+              # all. That is the one moment the reader needs it most, and it is a repeat
+              # of the mistake the security log made: a failure that reaches only the job
+              # log is a failure nobody here can act on. The raw tail is printed instead.
+              if ! grep -q "signature check: PASS" /tmp/signing.log; then
+                echo
+                echo "the signing step verified no artifact; its own output follows"
+                tail -n 40 /tmp/signing.log
+              fi
+            else
+              echo "(the signing proof did not run)"
+            fi
+
+            # The verdict is not the point; what the check read is. These lines name
+            # each artifact and its size, so a reader can see that something was
+            # opened rather than that nothing was found.
+            echo
+            echo "### Built artifacts"
+            if [ -f /tmp/artifacts.log ]; then
+              grep -E "^(app-|artifact check:|.* contains |.* is nowhere )" /tmp/artifacts.log \
+                | head -n 20 || true
+            else
+              echo "(the artifact check did not run)"
+            fi
+
+            echo
+            echo "### Room schema"
+            find app/schemas -type f 2>/dev/null || echo "(none)"
+
+            echo
+            echo "### Diagnostics from the Gradle output"
+            for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log; do
+              [ -f "$f" ] || continue
+              # `Dependency 'x' requires ... compile against version N` is AGP
+              # refusing a library because the app compiles against an older API
+              # level. It arrives as four lines around a "4 issues were found"
+              # header, and without these patterns the report kept the header and
+              # dropped every line that named the library.
+              grep -E "^e: |error:|What went wrong|Execution failed|Caused by:|OutOfMemory|Metaspace|Killed|Daemon|Dependency '|compile against version|currently compiled against|is currently compiled" "$f" | head -n 80 || true
+              # Which test failed, by name, before its stack frames: the frames
+              # were all this report had, and a file and line number in a helper
+              # do not name the test that broke.
+              grep -nE "FAILED$|> .* FAILED|There were failing tests" "$f" | head -n 40 || true
+            done
+
+            echo
+            echo "### Raw tail of the unit test log"
+            echo '```'
+            tail -n 150 /tmp/unit.log 2>/dev/null || true
+            echo '```'
+
+            echo "### Raw tail of the release log"
+            echo '```'
+            tail -n 150 /tmp/release.log 2>/dev/null || true
+            echo '```'
+          } > /tmp/report.md
+
+          head -c 40000 /tmp/report.md > /tmp/report-cut.md
+          echo "--- report preview (first 30 lines) ---"
+          head -n 30 /tmp/report-cut.md
+          echo "--- end preview ---"
+
+          # The job log is unreadable from a restricted network, so anything
+          # needed later has to be printed here or written into the issue.
+          echo "--- token diagnostics ---"
+          echo "actor=${GITHUB_ACTOR} trigger=${GITHUB_TRIGGERING_ACTOR} token_len=${#GH_TOKEN}"
+          gh auth status 2>&1 || true
+
+          # Two independent channels, each guarded, so a problem with one cannot
+          # hide the report or change the real build verdict.
+          if gh issue create \
+              --title "CI report ${GITHUB_REF_NAME} run ${GITHUB_RUN_ID}" \
+              --body-file /tmp/report-cut.md > /tmp/issue.out 2> /tmp/issue.err; then
+            echo "issue created:"
+            cat /tmp/issue.out
+          else
+            echo "issue create failed:"
+            cat /tmp/issue.err
+            cat /tmp/issue.out
+          fi
+
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/check-runs" \
+            --field "name=build-report" \
+            --field "head_sha=${GITHUB_SHA}" \
+            --field "status=completed" \
+            --field "conclusion=neutral" \
+            --field "output[title]=Build report" \
+            --raw-field "output[summary]=$(cat /tmp/report-cut.md)" > /dev/null 2>&1 \
+            && echo "check-run annotation created" \
+            || echo "check-run annotation failed"
+          true
+
+      - name: Fail the job if any stage failed
+        run: |
+          if [ -f /tmp/security.log ] && ! grep -q "security check: PASS" /tmp/security.log; then
+            echo "::error::the security check failed"
+            exit 1
+          fi
+          if [ -f /tmp/schema.log ] && ! grep -q "schema check: PASS" /tmp/schema.log; then
+            echo "::error::the Supabase schema check failed"
+            exit 1
+          fi
+          # The release build above is rebuilt with a key and then read back. If the
+          # certificate is not the one it should be - release key with the secrets,
+          # throwaway key without them - nothing about the artifact can be trusted.
+          # Both artifacts have to pass, not one of them: the count is compared rather
+          # than grepped for, because a loop that verified only the APK would still print
+          # one reassuring line.
+          verified="$(grep -c "signature check: PASS" /tmp/signing.log 2>/dev/null || true)"
+          if [ -f /tmp/signing.log ] && [ "$verified" != "2" ]; then
+            echo "::error::the release build was not signed with the expected certificate"
+            echo "::error::$verified of 2 artifacts verified (expected 2)"
+            grep -E "signature check:|reader:|FAIL|::error::" /tmp/signing.log | head -8 || true
+            exit 1
+          fi
+          # A check that only reaches the job log is a check nobody here can read.
+          if [ -f /tmp/artifacts.log ] && ! grep -q "artifact check: PASS" /tmp/artifacts.log; then
+            echo "::error::a built artifact carries something it must not"
+            grep "artifact check\|forbidden\|contains" /tmp/artifacts.log | head -5 || true
+            exit 1
+          fi
+          for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log /tmp/signing.log; do
+            [ -f "$f" ] || continue
+            if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then
+              echo "::error::$f reported a failed build"
+              exit 1
+            fi
+          done
+          debug_apk=$(find app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | head -1)
+          if [ -z "$debug_apk" ]; then
+            echo "::error::no debug APK was produced"
+            exit 1
+          fi
+          # An APK without the app's own classes in it is not this app, however
+          # the size changed or did not change between runs.
+          if ! unzip -p "$debug_apk" 'classes*.dex' 2>/dev/null | grep -aq "com/memorymap"; then
+            echo "::error::$debug_apk does not contain the app's own classes"
+            exit 1
+          fi
+          if ! find app/build/outputs/apk/release -name "*.apk" 2>/dev/null | grep -q .; then
+            echo "::error::no release APK was produced"
+            exit 1
+          fi
+          if ! find app/build/outputs/bundle/release -name "*.aab" 2>/dev/null | grep -q .; then
+            echo "::error::no release bundle was produced"
+            exit 1
+          fi
+          # A failing test that left no XML behind still failed, and the log is
+          # where it says so. This is checked first because the XML check below
+          # cannot see a failure whose result file never reached the disk.
+          if [ -f /tmp/unit.log ] && grep -q "There were failing tests" /tmp/unit.log; then
+            echo "::error::the unit test log reports failing tests"
+            exit 1
+          fi
+          if find app/build/test-results -name "*.xml" 2>/dev/null | grep -q .; then
+            if grep -rl "<failure\|<error" app/build/test-results 2>/dev/null | grep -q .; then
+              echo "::error::at least one unit test failed"
+              exit 1
+            fi
+          else
+            echo "::error::no unit test results were produced"
+            exit 1
+          fi
+          echo "all stages green"
+
+      - name: Upload the debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memorymap-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memorymap-reports
+          path: |
+            app/build/reports/tests
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+            app/schemas
+          if-no-files-found: ignore

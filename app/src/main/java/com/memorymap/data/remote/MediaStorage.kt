@@ -1,0 +1,86 @@
+package com.memorymap.data.remote
+
+/**
+ * The bucket an attachment's bytes live in.
+ *
+ * A port rather than a direct Supabase call, for the same reason the records
+ * tables have one: the upload path is the part of this feature that cannot be
+ * exercised without a project, so everything that decides *what* to upload has
+ * to be separable from the call that uploads it.
+ *
+ * Every method reports failure instead of throwing. A run that cannot reach the
+ * bucket has to leave the attachment visibly queued, not crash the worker.
+ */
+interface MediaStorage {
+
+    /** Writes [bytes] at [objectKey], replacing whatever was there. */
+    suspend fun upload(objectKey: String, bytes: ByteArray): Boolean
+
+    /** Reads the bytes at [objectKey], or null when it could not be read. */
+    suspend fun download(objectKey: String): ByteArray?
+
+    /** Removes the object at [objectKey]. */
+    suspend fun remove(objectKey: String): Boolean
+
+    /**
+     * Removes many objects, returning how many went.
+     *
+     * Separate from [remove] because the two have different jobs. A single
+     * object is removed as part of synchronising one attachment, where a failure
+     * has to stop the run and leave the row queued. A whole account's worth is
+     * removed once, at the end, where the only useful answer is a count: the
+     * rows that knew those keys are about to be deleted, so there is no second
+     * attempt to make.
+     */
+    suspend fun removeAll(objectKeys: List<String>): Int
+}
+
+/**
+ * Where one attachment sits inside the bucket.
+ *
+ * The first folder is the user id, and that is not a convention: the storage
+ * policies in `supabase/schema.sql` decide access with
+ * `(storage.foldername(name))[1] = auth.uid()::text`, so an object stored
+ * anywhere else belongs to nobody and is refused. Both halves of this rule are
+ * tested - here for the shape of the key, and in `SchemaSecurityTest` for the
+ * policy that requires it.
+ *
+ * The attachment's id is the file name, so the same attachment always lands on
+ * the same key on every device and a retry after a failed run replaces its own
+ * object instead of leaving a second copy beside it.
+ */
+object MediaObjectKey {
+
+    fun of(userId: String, mediaId: String, extension: String): String =
+        "$userId/$mediaId.${sanitise(extension)}"
+
+    /**
+     * The extension to keep for the file at [localPath], sanitised.
+     *
+     * The file name is taken before the extension, so a path with a dot in a
+     * directory name yields the file's own extension and not a fragment of the
+     * directory. The name carries the type: the object is stored without a
+     * content type of its own, and both the bucket and any later reader infer it
+     * from this.
+     */
+    fun extensionOf(localPath: String): String =
+        sanitise(localPath.substringAfterLast('/').substringAfterLast('.', ""))
+
+    /**
+     * A safe extension, or `bin` when there is nothing fit to use.
+     *
+     * Anything that could change where the object goes is refused rather than
+     * passed on: a stray separator would add a folder, and the storage policy
+     * reads folders to decide who owns what.
+     */
+    private fun sanitise(raw: String): String {
+        val cleaned = raw.trim().trimStart('.').lowercase()
+        val usable = cleaned.isNotBlank() &&
+            cleaned.length <= MAX_EXTENSION &&
+            cleaned.none { it.isWhitespace() || it == '/' || it == '\\' || it == '.' }
+        return if (usable) cleaned else "bin"
+    }
+
+    /** Long enough for `jpeg` and `m4a`, short enough to reject a whole path. */
+    private const val MAX_EXTENSION = 8
+}

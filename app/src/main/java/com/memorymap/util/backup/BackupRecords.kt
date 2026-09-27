@@ -1,0 +1,287 @@
+package com.memorymap.util.backup
+
+import com.memorymap.data.local.entities.DailyEntryEntity
+import com.memorymap.data.local.entities.MediaEntity
+import com.memorymap.data.local.entities.MemoryEntity
+import com.memorymap.data.local.entities.PersonEntity
+import com.memorymap.data.local.entities.PlaceEntity
+import com.memorymap.domain.model.SyncStatus
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/**
+ * The rows of a backup archive.
+ *
+ * These are deliberately *not* the Room entities. A backup is a document a human
+ * can open and read years from now, so it carries the content of a record and
+ * none of the device state around it: no `sync_status`, no `last_synced_at`, no
+ * tombstones. Those describe this phone's relationship with a server, and
+ * restoring them onto a different phone would be meaningless at best.
+ *
+ * Timestamps stay in the text the database holds, so an archive round-trips byte
+ * for byte instead of shifting by a timezone on the way through. For rows written
+ * by this version and later that text is an instant (`...Z`); an archive written
+ * before it holds plain local text, and both read back as the moment they mean.
+ */
+
+/**
+ * One memory, as the archive holds it.
+ *
+ * [personIds] and [placeIds] are who was there and where it happened, as ids into
+ * the people and places documents beside this one. Without them the archive holds
+ * the records but not the way they belong together: a memory restored on a new
+ * phone would come back without the people in it and, worse, the next sync would
+ * push it with no links at all and clear the ones the server still holds. They are
+ * optional so an archive written before them still reads - it simply has no links
+ * to restore.
+ */
+@Serializable
+data class MemoryBackup(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val title: String,
+    val text: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @SerialName("place_name") val placeName: String? = null,
+    @SerialName("memory_date") val memoryDate: String,
+    val emotion: String,
+    val visibility: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("person_ids") val personIds: List<String> = emptyList(),
+    @SerialName("place_ids") val placeIds: List<String> = emptyList(),
+)
+
+/**
+ * One diary event, as the archive holds it.
+ *
+ * [personIds] and [placeIds] are as on [MemoryBackup]: without them a restored
+ * day would lose the people in it and the next sync would clear the links the
+ * server still holds.
+ */
+@Serializable
+data class EntryBackup(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val date: String,
+    val time: String,
+    val title: String,
+    val text: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @SerialName("place_id") val placeId: String? = null,
+    val emotion: String? = null,
+    @SerialName("linked_memory_id") val linkedMemoryId: String? = null,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+    @SerialName("person_ids") val personIds: List<String> = emptyList(),
+    @SerialName("place_ids") val placeIds: List<String> = emptyList(),
+)
+
+@Serializable
+data class PersonBackup(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val name: String,
+    @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class PlaceBackup(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    @SerialName("created_at") val createdAt: String,
+)
+
+/**
+ * An attachment as recorded in the archive.
+ *
+ * [archivePath] is where the bytes live inside the folder, so an import can put
+ * them back without guessing from a file name.
+ */
+@Serializable
+data class MediaBackup(
+    val id: String,
+    @SerialName("owner_type") val ownerType: String,
+    @SerialName("owner_id") val ownerId: String,
+    @SerialName("media_type") val mediaType: String,
+    @SerialName("archive_path") val archivePath: String,
+    @SerialName("mime_type") val mimeType: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    @SerialName("duration_ms") val durationMs: Long? = null,
+    @SerialName("created_at") val createdAt: String,
+)
+
+/** Conversions between the archive documents and the rows Room holds. */
+object BackupMappers {
+
+    fun MemoryEntity.toBackup(
+        personIds: List<String> = emptyList(),
+        placeIds: List<String> = emptyList(),
+    ) = MemoryBackup(
+        id = id,
+        userId = userId,
+        title = title,
+        text = text,
+        latitude = latitude,
+        longitude = longitude,
+        placeName = placeName,
+        memoryDate = memoryDate,
+        emotion = emotion,
+        visibility = visibility,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        personIds = personIds,
+        placeIds = placeIds,
+    )
+
+    /**
+     * A restored row, owned by the account doing the import.
+     *
+     * [ownerId] is required rather than taken from the archive, and that is the
+     * point: an archive written while signed in as one account can be imported
+     * while signed in as another, and a row carrying the exporting account's id
+     * would be invisible to the person who just restored it - and queued for
+     * upload under an id the server's row-level security rejects, leaving a
+     * record that can never sync and never be seen. The bytes are the user's own
+     * either way; who owns them is the account holding them now.
+     *
+     * Restored rows come back pending. Marking them `SYNCED` would claim an upload
+     * that never happened. A row the device already had a copy of comes back as an
+     * update; a row it had never seen comes back as a create.
+     */
+    fun MemoryBackup.toEntity(
+        ownerId: String,
+        syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    ) = MemoryEntity(
+        id = id,
+        userId = ownerId,
+        title = title,
+        text = text,
+        latitude = latitude,
+        longitude = longitude,
+        placeName = placeName,
+        memoryDate = memoryDate,
+        emotion = emotion,
+        visibility = visibility,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncStatus = syncStatus.name,
+    )
+
+    fun DailyEntryEntity.toBackup(
+        personIds: List<String> = emptyList(),
+        placeIds: List<String> = emptyList(),
+    ) = EntryBackup(
+        id = id,
+        userId = userId,
+        date = date,
+        time = time,
+        title = title,
+        text = text,
+        latitude = latitude,
+        longitude = longitude,
+        placeId = placeId,
+        emotion = emotion,
+        linkedMemoryId = linkedMemoryId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        personIds = personIds,
+        placeIds = placeIds,
+    )
+
+    /** A restored diary row; see [MemoryBackup.toEntity] for why [ownerId] is required. */
+    fun EntryBackup.toEntity(
+        ownerId: String,
+        syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    ) = DailyEntryEntity(
+        id = id,
+        userId = ownerId,
+        date = date,
+        time = time,
+        title = title,
+        text = text,
+        latitude = latitude,
+        longitude = longitude,
+        placeId = placeId,
+        emotion = emotion,
+        linkedMemoryId = linkedMemoryId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncStatus = syncStatus.name,
+    )
+
+    fun PersonEntity.toBackup() = PersonBackup(
+        id = id,
+        userId = userId,
+        name = name,
+        createdAt = createdAt,
+    )
+
+    /** A restored person; see [MemoryBackup.toEntity] for why [ownerId] is required. */
+    fun PersonBackup.toEntity(ownerId: String) = PersonEntity(
+        id = id,
+        userId = ownerId,
+        name = name,
+        createdAt = createdAt,
+        updatedAt = createdAt,
+        syncStatus = SyncStatus.PENDING_CREATE.name,
+    )
+
+    fun PlaceEntity.toBackup() = PlaceBackup(
+        id = id,
+        userId = userId,
+        name = name,
+        latitude = latitude,
+        longitude = longitude,
+        createdAt = createdAt,
+    )
+
+    /** A restored place; see [MemoryBackup.toEntity] for why [ownerId] is required. */
+    fun PlaceBackup.toEntity(ownerId: String) = PlaceEntity(
+        id = id,
+        userId = ownerId,
+        name = name,
+        latitude = latitude,
+        longitude = longitude,
+        createdAt = createdAt,
+        updatedAt = createdAt,
+        syncStatus = SyncStatus.PENDING_CREATE.name,
+    )
+
+    fun MediaEntity.toBackup(archivePath: String) = MediaBackup(
+        id = id,
+        ownerType = ownerType,
+        ownerId = ownerId,
+        mediaType = mediaType,
+        archivePath = archivePath,
+        mimeType = mimeType,
+        width = width,
+        height = height,
+        durationMs = durationMs,
+        createdAt = createdAt,
+    )
+
+    /**
+     * [storedPath] is where the bytes were copied back to on this device, which
+     * is not the path in the archive and not the path on the phone that wrote it.
+     */
+    fun MediaBackup.toEntity(storedPath: String) = MediaEntity(
+        id = id,
+        ownerType = ownerType,
+        ownerId = ownerId,
+        mediaType = mediaType,
+        uri = storedPath,
+        mimeType = mimeType,
+        width = width,
+        height = height,
+        durationMs = durationMs,
+        createdAt = createdAt,
+        syncStatus = SyncStatus.PENDING_CREATE.name,
+    )
+}
