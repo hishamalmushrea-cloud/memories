@@ -189,7 +189,12 @@ class MemoryEditorViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { referenceRepository.findOrCreatePerson(userId, name) }
                 .onSuccess { person -> _state.update { it.copy(personIds = it.personIds + person.id) } }
-                .onFailure { MmLog.e("Could not add the person", it) }
+                .onFailure {
+                    MmLog.e("Could not add the person", it)
+                    // A name typed and not added looks like the app ignoring it,
+                    // so the failure is said out loud rather than only written down.
+                    _state.update { state -> state.copy(errorRes = R.string.memory_error_reference) }
+                }
         }
     }
 
@@ -210,7 +215,10 @@ class MemoryEditorViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { referenceRepository.savePlace(place) }
                 .onSuccess { _state.update { it.copy(placeIds = it.placeIds + place.id) } }
-                .onFailure { MmLog.e("Could not add the place", it) }
+                .onFailure {
+                    MmLog.e("Could not add the place", it)
+                    _state.update { state -> state.copy(errorRes = R.string.memory_error_reference) }
+                }
         }
     }
 
@@ -293,7 +301,10 @@ class MemoryEditorViewModel @Inject constructor(
                         }
                     }
                 }
-            }.onFailure { MmLog.e("Unable to change an attachment's upload state", it) }
+            }.onFailure {
+                MmLog.e("Unable to change an attachment's upload state", it)
+                _state.update { state -> state.copy(errorRes = R.string.memory_error_media) }
+            }
         }
     }
 
@@ -307,7 +318,10 @@ class MemoryEditorViewModel @Inject constructor(
                     mediaRepository.discard(item)
                     _state.update { it.copy(pendingAttachments = it.pendingAttachments - item) }
                 }
-            }.onFailure { MmLog.e("Unable to remove the attachment", it) }
+            }.onFailure {
+                MmLog.e("Unable to remove the attachment", it)
+                _state.update { state -> state.copy(errorRes = R.string.memory_error_media) }
+            }
         }
     }
 
@@ -360,7 +374,10 @@ class MemoryEditorViewModel @Inject constructor(
                 memoryRepository.delete(memoryId)
                 mediaRepository.removeAllFor(MediaOwner.MEMORY, memoryId)
             }
-                .onFailure { MmLog.e("Unable to delete the memory", it) }
+                .onFailure {
+                    MmLog.e("Unable to delete the memory", it)
+                    _state.update { state -> state.copy(errorRes = R.string.memory_error_delete) }
+                }
                 .onSuccess { _state.update { it.copy(isSaved = true) } }
         }
     }

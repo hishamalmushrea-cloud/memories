@@ -10,6 +10,29 @@ and the observation column is what "it works" looks like when it does.
 be quoted: until the boxes are ticked, the answer to "how do you know it works?" is
 "the tests pass", not "it was tried".
 
+### The refusal of a file the project cannot take
+
+- [ ] Attach a video larger than the project's per-file limit (50 MB by default) to a
+      memory, then switch its cloud button on. A message must appear naming the limit in
+      megabytes, and the attachment must **not** be queued: check in the profile screen
+      that the pending count did not move.
+- [ ] The same video on another memory, with the cloud button left off: nothing should
+      be said at all, because nothing was refused.
+- [ ] A photo over 50 MB on disk but under it after preparation (a large phone photo)
+      must be accepted and must arrive in the bucket. This is the case a naive size
+      check at the button would have broken.
+- [ ] With the cloud button on for a file that is accepted, force a sync with no network:
+      the attachment stays queued, and no message about size appears.
+- [ ] In Arabic and in English, the message names the limit and does not read "0 MB".
+
+#### Failures the app should say out loud
+
+- [ ] Add a person to a memory while the database is fine — nothing is said. (To see the
+      failure path by hand, the surest way is to fill the storage or kill the database;
+      these are listed so the *wording* is checked when it does happen.)
+- [ ] Delete a memory from the editor and from the list: on success the row goes, and on
+      failure something must be said rather than nothing happening.
+
 ## Before you start
 
 - A physical Android device, API 26 or newer, with a camera, a microphone and GPS.

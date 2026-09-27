@@ -312,6 +312,26 @@ when the files are as they are: a differing action version, an edited SDK step, 
 ungated publish step, a lost log capture, a stage that stops writing its log, a log
 read that nothing writes, and an action following a branch.
 
+## Stage 10 — failures that were only written down  (partly done)
+
+**Why.** The oversized attachment was one instance of a family: an action the person
+took, a failure, and nothing said. `grep` found 26 places under `ui/` where a failure
+goes to the log and nowhere else. Most are reads — a day that will not load shows an
+empty day, which is at least visibly empty — but eight are actions someone took
+deliberately, and those fail silently: to them the app simply did nothing.
+
+**What was done.** In the memory editor, which already has somewhere to say it, five of
+them now also set a message: a person or a place that could not be added, an attachment
+that could not be imported or removed, the upload request that could not be recorded,
+and a delete that did not happen ("the memory could not be deleted; nothing was
+removed"). Two sentences were added in both languages. That is the editor's share.
+
+**Still open.** The list and detail screens have no error channel at all, so a failed
+delete there still only writes to the log, as does a failed diary-entry save or delete
+in the day view. Each needs the same treatment the editor already had: a field in the
+state and one line in the screen. `docs/MANUAL_QA.md` is where the behaviour of each
+one is checked by hand.
+
 ## Open items, in one place
 
 1. **The schema has never been applied to a hosted Supabase project.** It passes the

@@ -156,6 +156,14 @@ to 25), one group per
 
 ### Fixed
 
+- In the memory editor, five failures that were only written to the log now also
+  say something on screen: a person or a place that could not be added, an
+  attachment that could not be imported or removed, an upload request that could
+  not be recorded, and a delete that did not happen. The rest of the audit - 26
+  log-only failure paths under `ui/`, of which about eight follow a deliberate
+  action - is recorded in `docs/READINESS.md` with what each one needs; the list
+  and detail screens have no error channel yet.
+
 - **A red run that was reported green.** The stage line read `unit.log: SUCCESS`
   for a log that ended in `BUILD FAILED`: a `--continue` Gradle build prints
   `BUILD SUCCESSFUL` for the tasks that finished and `BUILD FAILED` for the build,

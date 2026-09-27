@@ -159,6 +159,8 @@
     <string name="memory_action_discard">تجاهل</string>
     <string name="memory_error_title">اكتب عنوانًا للذكرى</string>
     <string name="memory_error_media">تعذّرت إضافة هذا الملف</string>
+    <string name="memory_error_reference">تعذّر إضافة الاسم. حاول مرة أخرى.</string>
+    <string name="memory_error_delete">تعذّر حذف الذكرى. لم يُحذف شيء.</string>
     <string name="memory_error_attachment_too_large">هذا الملف أكبر من الحد الذي يقبله مشروعك: %1$d ميغابايت للملف الواحد. يبقى محفوظًا على هذا الجهاز.</string>
     <string name="memory_error_no_account">لا يوجد حساب نشط</string>
     <string name="memory_error_save">تعذّر حفظ الذكرى</string>
