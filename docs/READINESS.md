@@ -276,6 +276,32 @@ TalkBack, and a release build on the phone.
 **Verified by.** Someone going through it, and the list being the honest answer
 to "how do you know it works?". Until then the honest answer is "the tests
 pass".
+## Open items, in one place
+
+1. **The schema has never been applied to a hosted Supabase project.** It passes the
+   harness on a real PostgreSQL, and that harness is the strongest thing a runner
+   can do - but a hosted project brings extensions, roles and policies the local
+   server does not have. Needs a project and its keys; see the README section on
+   verifying the schema.
+2. **Screenshots** for the store: needs a device.
+3. **The signing secrets** (`MEMORYMAP_KEYSTORE_*`, `MEMORYMAP_KEY_*`): without them
+   the release build falls back to the debug key and says so.
+4. **The `compileSdk 37` / AGP 9 decision** (stage 5): the newest releases of most
+   dependencies are unreachable from `compileSdk 36`, and the API levels are the
+   specification's choice. The evidence is in stage 5 above.
+5. **A file over the service's size cap** (50 MB on the free plan) is refused by the
+   server and reaches the user as a failed sync with no reason to act on. Documented
+   in `docs/SERVICE_LIMITS.md`; the fix is a pre-flight check with a message, and it
+   needs UI work rather than a one-line guard.
+6. **A pre-upgrade watermark** written before stamps carried an offset stays naive
+   for exactly one sync; every row after that is an instant, and both shapes read.
+7. **The map tile host must be chosen before publishing.** The public OSM tile
+   server does not permit an app's traffic at scale without permission
+   (`docs/SERVICE_LIMITS.md`).
+8. **The manual QA list** in `docs/MANUAL_QA.md` has not been walked; until it has,
+   the answer to "how do you know it works?" is "the tests pass".
+9. **The app is published nowhere** and must not be described as published.
+
 ## Order
 
 Stages 2, 3, 4 and 6 are done and green. Stage 5 is code but needs the GitHub

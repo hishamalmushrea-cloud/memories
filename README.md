@@ -379,6 +379,16 @@ testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRe
   (الأجوبة مكتوبة في [`docs/RELEASE.md`](docs/RELEASE.md)).
 - **التوقيع والخطوات التفصيلية**: [`docs/RELEASE.md`](docs/RELEASE.md).
 
+## حدود الخدمات الخارجية
+
+الاستخدام المجاني ليس بلا حدود: [docs/SERVICE_LIMITS.md](docs/SERVICE_LIMITS.md)
+يوثّق جدول Supabase المجاني (قاعدة 500 م.ب، خزن 1 غ.ب، نقل 5 غ.ب، أكبر ملف 50 م.ب،
+وتوقّف المشروع بعد أسبوع خمول، وبلا نسخ احتياطي)، وشروط سياسة شرائح OpenStreetMap
+(معرّف تطبيق حقيقي، إسناد، تخزين مؤقت، ومنع التنزيل الجماعي)، وماذا يعني ذلك لهذا
+الأرشيف بالأرقام. وأهمّ سطر فيه لمن ينشر: توزيع تطبيق يطلب الشرائح من خادم OSM العام
+يُعدّ «استخدامًا كثيفًا» ويحتاج إذنًا مسبقًا أو مزوّدًا آخر، والتطبيق يجعل المزوّد
+إعداد بناء لا سطرًا في الكود.
+
 ## الخارطة
 
 - [x] **Phase 1** – Foundation: Gradle, Compose, Theme, Navigation, Room, Supabase foundation, CI

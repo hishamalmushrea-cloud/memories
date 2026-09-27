@@ -8,6 +8,21 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- `docs/SERVICE_LIMITS.md` documents the limits of the two external services
+  this app depends on, which the specification asks for by name: the Supabase
+  free plan (500 MB database that goes read-only when exceeded, 1 GB file
+  storage, 50 MB per file, 5 + 5 GB of traffic, project paused after a week of
+  inactivity, no backups on the free plan) and OpenStreetMap's tile usage
+  policy, including the rule that distributing an app which fetches from
+  `tile.openstreetmap.org` is heavy use and needs permission or a different
+  host. It also writes down what keeps working when either is unavailable, and
+  the one limit this app does not yet handle: a file over the service's size
+  cap is refused by the server and surfaces as a failed sync with no reason
+  the user can act on.
+- The tile HTTP `User-Agent` now names the app, its version and the repository,
+  which is what the tile policy requires (a library default is blocked, and a
+  contact is asked for).
+
 - The two images a Play listing needs are generated from the app's own palette
   by `tools/make_store_images.py`: the 512×512 icon (the launcher design
   rasterised) and the 1024×500 feature graphic, written into both locales'

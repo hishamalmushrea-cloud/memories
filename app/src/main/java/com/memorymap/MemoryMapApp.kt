@@ -70,6 +70,14 @@ class MemoryMapApp : Application(), Configuration.Provider, ImageLoaderFactory {
         const val TILE_CACHE_BYTES = 100L * 1024 * 1024
 
         /** Identifies the app to tile hosts, as their usage policies ask. */
-        val USER_AGENT = "MemoryMap/${BuildConfig.VERSION_NAME} (offline-first personal archive)"
+        /**
+         * The app's name, its version and where to find it.
+         *
+         * OpenStreetMap's tile policy requires a User-Agent that names the
+         * application and gives a way to contact whoever runs it - traffic with a
+         * library's default User-Agent is blocked, because nobody can tell who is
+         * behind it or ask them to slow down. The repository is the contact.
+         */
+        val USER_AGENT = "MemoryMap/${BuildConfig.VERSION_NAME} (+https://github.com/hishamalmushrea-cloud/memories)"
     }
 }
