@@ -164,6 +164,10 @@ to 25), one group per
 
 ### Fixed
 
+- `docs/PLATFORM_UPGRADE.md`: the compileSdk 36 → 37 decision written out — the exact
+  versions each step needs, the run that would catch each kind of mistake, the order to
+  take them in, and the fact that Google Play does not require it (API 36 has been the
+  requirement for new apps and updates since 31 August 2026). Nothing in it is applied.
 - A build check keeps it that way: `ci/check-silent-failures.py` fails the build when
   a failure under `ui/` can only reach the log, with the nine deliberate exceptions
   (the reads, and two playback calls) listed one by one beside their reason.

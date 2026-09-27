@@ -442,6 +442,7 @@ assembleDebug → assembleRelease + bundleRelease
 - [سياسة الخصوصية – العربية](docs/legal/PRIVACY_AR.md) · [Privacy Policy (English)](docs/legal/PRIVACY_EN.md)
 - [مخطط قاعدة البيانات وسياسات RLS](supabase/schema.sql)
 - [التوقيع والنشر](docs/RELEASE.md)
+- [رفع سقف المنصّة: القرار وما يتطلّبه](docs/PLATFORM_UPGRADE.md) — لم يُطبَّق، وهو قرارك
 
 ## الرخصة
 
