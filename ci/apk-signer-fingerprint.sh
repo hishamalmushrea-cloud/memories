@@ -57,12 +57,14 @@ via_keytool() {
         echo "$artifact carries $signers signatures; this check reads the first" >&2
     fi
 
+    # `|| true`: CI runs this file as `bash -e`, and a pipeline that finds nothing exits
+    # non-zero, which would end the script at the line that was supposed to handle it.
     fingerprint="$(printf '%s\n' "$certificates" \
         | grep -A1 "SHA256:" \
         | grep -oE "([0-9a-fA-F]{2}:){31}[0-9a-fA-F]{2}" \
         | head -1 \
         | tr -d ':' \
-        | tr '[:lower:]' '[:upper:]')"
+        | tr '[:lower:]' '[:upper:]' || true)"
     [ -n "$fingerprint" ] || return 0
     echo "  reader: keytool -printcert -jarfile (JAR signature, v1)" >&2
     printf '%s\n' "$fingerprint"
@@ -101,7 +103,7 @@ via_apksigner() {
             | sed 's/.*digest: *//' \
             | tr -d ':' \
             | tr -d '[:space:]' \
-            | tr '[:lower:]' '[:upper:]')"
+            | tr '[:lower:]' '[:upper:]' || true)"
         if [ -n "$fingerprint" ]; then
             echo "  reader: $tool verify --print-certs (APK Signature Scheme v2/v3)" >&2
             printf '%s\n' "$fingerprint"

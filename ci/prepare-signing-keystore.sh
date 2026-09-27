@@ -50,8 +50,11 @@ fingerprint_of() {
         | tr '[:lower:]' '[:upper:]'
 }
 
+# `|| true` on every command substitution here: a workflow `run:` step is executed with
+# `bash -e`, so a pipeline that finds nothing would end the script at the line written to
+# explain that nothing was found.
 released="$(grep -E "^SHA256=" "$ROOT/ci/release-fingerprint.txt" | tail -1 | cut -d= -f2 \
-    | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+    | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]' || true)"
 if [ -z "$released" ]; then
     echo "ci/release-fingerprint.txt has no SHA256= line" >&2
     exit 1
@@ -74,7 +77,7 @@ if [ -n "${KEYSTORE_B64:-}" ]; then
     }
     chmod 600 "$KEYSTORE"
 
-    actual="$(fingerprint_of "$KEYSTORE" "$KEYSTORE_PASSWORD" "$KEY_ALIAS")"
+    actual="$(fingerprint_of "$KEYSTORE" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" || true)"
     if [ -z "$actual" ]; then
         echo "the keystore could not be opened with the password and alias supplied:" >&2
         echo "  alias: $KEY_ALIAS" >&2
@@ -124,7 +127,7 @@ if ! keytool -genkeypair \
 fi
 chmod 600 "$KEYSTORE"
 
-actual="$(fingerprint_of "$KEYSTORE" "$PASSWORD" "$ALIAS")"
+actual="$(fingerprint_of "$KEYSTORE" "$PASSWORD" "$ALIAS" || true)"
 if [ -z "$actual" ]; then
     echo "the rehearsal keystore was generated but cannot be opened again" >&2
     exit 1

@@ -41,7 +41,7 @@ if [ -z "$artifact" ] || [ ! -f "$artifact" ]; then
     exit 1
 fi
 
-released="$(grep -E "^SHA256=" "$FINGERPRINT_FILE" | tail -1 | cut -d= -f2 | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+released="$(grep -E "^SHA256=" "$FINGERPRINT_FILE" | tail -1 | cut -d= -f2 | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]' || true)"
 if [ -z "$released" ]; then
     echo "$FINGERPRINT_FILE has no SHA256= line, so there is nothing to compare against" >&2
     exit 1
