@@ -214,6 +214,33 @@ class MediaSyncTest {
     }
 
     @Test
+    fun `a refused row keeps the bytes and does not upload them again`() = runTest {
+        // The order is: the bytes go up first, then the row that points at them.
+        // The failure this covers is the one in the middle - the bucket accepted
+        // the bytes and the server refused the row - because the user's next
+        // action is to try again, and the second attempt must not send a second
+        // copy of a photo they already spent their data on.
+        attach(optIn = true)
+        api.mediaUpsertsFail = true
+
+        val failure = runCatching { table.pushUpserts(table.pending(userId)) }.exceptionOrNull()
+
+        assertNotNull(failure)
+        assertEquals(emptyList<MediaRecord>(), api.mediaSent)
+        assertEquals(listOf("$userId/media-1.jpg"), storage.uploadCalls)
+        // Still queued, and the row now knows where its bytes went, so the retry
+        // has nothing left to upload.
+        assertEquals(listOf("media-1"), table.pending(userId).map { it.id })
+        assertEquals("$userId/media-1.jpg", db.mediaDao().getById("media-1")!!.storagePath)
+
+        api.mediaUpsertsFail = false
+        table.pushUpserts(table.pending(userId))
+
+        assertEquals("the bytes must not be uploaded twice", storage.uploadCalls.size, 1)
+        assertEquals("$userId/media-1.jpg", api.mediaSent.single().storagePath)
+    }
+
+    @Test
     fun `an attachment already in the bucket is not uploaded twice`() = runTest {
         attach(optIn = true, storagePath = "$userId/media-1.jpg")
 

@@ -89,6 +89,15 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- A backup now carries the links between records, not only the records.
+  `person_ids` and `place_ids` are written for every memory and every diary
+  event. Restoring an archive used to bring back a memory without the people
+  who were in it and with no place link at all, and the damage did not stop
+  at the phone: the restored record is queued for upload, and the next sync
+  pushes a memory together with its link set - which was empty - so the
+  server's links for that memory were cleared. An archive written before this
+  change still reads: the fields are optional and simply hold no links.
+
 - On Android 12 and later nothing was declared about backup extraction, which is
   what the `DataExtractionRules` lint check points at: the platform reads
   `android:dataExtractionRules` from API 31 up, and `android:allowBackup="false"`

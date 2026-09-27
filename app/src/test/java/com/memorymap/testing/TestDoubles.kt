@@ -302,6 +302,7 @@ class RecordingSyncApi : SyncApi {
     override suspend fun fetchEntryPlaces(entryIds: List<String>) = entryPlacesToReturn
 
     override suspend fun upsertMedia(rows: List<MediaRecord>) {
+        if (mediaUpsertsFail) throw IllegalStateException("the media row was refused")
         mediaSent += rows
     }
 
@@ -312,6 +313,12 @@ class RecordingSyncApi : SyncApi {
     override suspend fun fetchDiaryNotes(userId: String, since: String?) = diaryNotesToReturn
 
     override suspend fun fetchMedia(userId: String, since: String?) = mediaToReturn
+
+    /**
+     * When set, writing a media row fails - the bytes are in the bucket and the
+     * row that describes them never reaches the server.
+     */
+    var mediaUpsertsFail = false
 }
 
 /**
@@ -326,10 +333,14 @@ class RecordingMediaStorage : MediaStorage {
     val objects = mutableMapOf<String, ByteArray>()
     val removed = mutableListOf<String>()
 
+    /** Every key an upload was asked for, repeats included. */
+    val uploadCalls = mutableListOf<String>()
+
     /** When set, every call fails, as an unreachable bucket would. */
     var failing = false
 
     override suspend fun upload(objectKey: String, bytes: ByteArray): Boolean {
+        uploadCalls += objectKey
         if (failing) return false
         objects[objectKey] = bytes
         return true

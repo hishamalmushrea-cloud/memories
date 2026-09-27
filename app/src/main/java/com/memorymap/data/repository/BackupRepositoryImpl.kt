@@ -109,11 +109,34 @@ class BackupRepositoryImpl @Inject constructor(
                 ),
             )
 
+            // The links are read here rather than inside the mapper, because they
+            // live in their own tables and the mapper is pure.
+            val memoryPeople = memories.associate { it.id to memoryDao.peopleOf(it.id) }
+            val memoryPlaces = memories.associate { it.id to memoryDao.placesOf(it.id) }
+            val entryPeople = entries.associate { it.id to dailyEntryDao.peopleOf(it.id) }
+            val entryPlaces = entries.associate { it.id to dailyEntryDao.placesOf(it.id) }
+
             // The manifest is written last: an archive holding one has everything
             // else in it, so a half-written folder is recognised as unusable.
             val written = with(BackupMappers) {
-                archive.writeMemories(root, memories.map { it.toBackup() }) &&
-                    archive.writeEntries(root, entries.map { it.toBackup() }) &&
+                archive.writeMemories(
+                    root,
+                    memories.map { row ->
+                        row.toBackup(
+                            personIds = memoryPeople[row.id].orEmpty(),
+                            placeIds = memoryPlaces[row.id].orEmpty(),
+                        )
+                    },
+                ) &&
+                    archive.writeEntries(
+                        root,
+                        entries.map { row ->
+                            row.toBackup(
+                                personIds = entryPeople[row.id].orEmpty(),
+                                placeIds = entryPlaces[row.id].orEmpty(),
+                            )
+                        },
+                    ) &&
                     archive.writePeople(root, people.map { it.toBackup() }) &&
                     archive.writePlaces(root, places.map { it.toBackup() }) &&
                     archive.writeMedia(root, mediaRows) &&
@@ -174,11 +197,13 @@ class BackupRepositoryImpl @Inject constructor(
                     when (decision) {
                         BackupMerge.Decision.INSERT -> {
                             memoryDao.upsert(row.toEntity())
+                            restoreLinks(row.id, row.personIds, row.placeIds)
                             memoriesRestored++
                         }
 
                         BackupMerge.Decision.UPDATE -> {
                             memoryDao.upsert(row.toEntity(SyncStatus.PENDING_UPDATE))
+                            restoreLinks(row.id, row.personIds, row.placeIds)
                             memoriesRestored++
                         }
 
@@ -194,11 +219,15 @@ class BackupRepositoryImpl @Inject constructor(
                     when (decision) {
                         BackupMerge.Decision.INSERT -> {
                             dailyEntryDao.upsert(row.toEntity())
+                            dailyEntryDao.replacePeople(row.id, row.personIds)
+                            dailyEntryDao.replacePlaces(row.id, row.placeIds)
                             entriesRestored++
                         }
 
                         BackupMerge.Decision.UPDATE -> {
                             dailyEntryDao.upsert(row.toEntity(SyncStatus.PENDING_UPDATE))
+                            dailyEntryDao.replacePeople(row.id, row.personIds)
+                            dailyEntryDao.replacePlaces(row.id, row.placeIds)
                             entriesRestored++
                         }
 
@@ -220,6 +249,19 @@ class BackupRepositoryImpl @Inject constructor(
                 skipped = skipped,
             )
         }
+
+    /**
+     * Puts a restored memory's links back.
+     *
+     * Only on insert and update, never on skip: a row this device already holds a
+     * newer copy of must not have its links rewritten by an older archive. An
+     * archive written before the links were kept carries none, and replacing with
+     * an empty list is then correct - there is nothing to restore.
+     */
+    private suspend fun restoreLinks(memoryId: String, personIds: List<String>, placeIds: List<String>) {
+        memoryDao.replacePeople(memoryId, personIds)
+        memoryDao.replacePlaces(memoryId, placeIds)
+    }
 
     /**
      * Copies attachments out of the archive and re-links them to their record.

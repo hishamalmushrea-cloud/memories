@@ -24,6 +24,17 @@ import kotlinx.serialization.Serializable
  * before it holds plain local text, and both read back as the moment they mean.
  */
 
+/**
+ * One memory, as the archive holds it.
+ *
+ * [personIds] and [placeIds] are who was there and where it happened, as ids into
+ * the people and places documents beside this one. Without them the archive holds
+ * the records but not the way they belong together: a memory restored on a new
+ * phone would come back without the people in it and, worse, the next sync would
+ * push it with no links at all and clear the ones the server still holds. They are
+ * optional so an archive written before them still reads - it simply has no links
+ * to restore.
+ */
 @Serializable
 data class MemoryBackup(
     val id: String,
@@ -38,8 +49,17 @@ data class MemoryBackup(
     val visibility: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
+    @SerialName("person_ids") val personIds: List<String> = emptyList(),
+    @SerialName("place_ids") val placeIds: List<String> = emptyList(),
 )
 
+/**
+ * One diary event, as the archive holds it.
+ *
+ * [personIds] and [placeIds] are as on [MemoryBackup]: without them a restored
+ * day would lose the people in it and the next sync would clear the links the
+ * server still holds.
+ */
 @Serializable
 data class EntryBackup(
     val id: String,
@@ -55,6 +75,8 @@ data class EntryBackup(
     @SerialName("linked_memory_id") val linkedMemoryId: String? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
+    @SerialName("person_ids") val personIds: List<String> = emptyList(),
+    @SerialName("place_ids") val placeIds: List<String> = emptyList(),
 )
 
 @Serializable
@@ -98,7 +120,10 @@ data class MediaBackup(
 /** Conversions between the archive documents and the rows Room holds. */
 object BackupMappers {
 
-    fun MemoryEntity.toBackup() = MemoryBackup(
+    fun MemoryEntity.toBackup(
+        personIds: List<String> = emptyList(),
+        placeIds: List<String> = emptyList(),
+    ) = MemoryBackup(
         id = id,
         userId = userId,
         title = title,
@@ -111,6 +136,8 @@ object BackupMappers {
         visibility = visibility,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        personIds = personIds,
+        placeIds = placeIds,
     )
 
     /**
@@ -136,7 +163,10 @@ object BackupMappers {
         syncStatus = syncStatus.name,
     )
 
-    fun DailyEntryEntity.toBackup() = EntryBackup(
+    fun DailyEntryEntity.toBackup(
+        personIds: List<String> = emptyList(),
+        placeIds: List<String> = emptyList(),
+    ) = EntryBackup(
         id = id,
         userId = userId,
         date = date,
@@ -150,6 +180,8 @@ object BackupMappers {
         linkedMemoryId = linkedMemoryId,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        personIds = personIds,
+        placeIds = placeIds,
     )
 
     fun EntryBackup.toEntity(syncStatus: SyncStatus = SyncStatus.PENDING_CREATE) = DailyEntryEntity(

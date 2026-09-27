@@ -139,20 +139,41 @@ The report prints the message of every version advisory it sees, one line per
 library, because those lines are the working list of this stage and a runner is
 the only thing here that can resolve a version.
 
-## Stage 6 — the round trips a user actually does
+## Stage 6 — the round trips a user actually does  ✅ done
 
-**Why.** The unit tests cover units. Nobody has yet proved that a backup written
-on one device restores on another, that a deleted memory stays deleted after a
-sync (the tombstone path), or that a photo and its row stay consistent when the
-upload succeeds and the row write fails.
+**Why.** The unit tests cover units. Nothing had proved that a backup written
+on one phone restores onto a second one, that a deleted memory stays deleted
+after a sync, or that a failed upload cannot lose a photo's bytes.
 
-**What.** Robolectric tests for the backup → new database → restore round trip,
-the delete-then-sync-then-download path, and the media ordering (upload, then
-row), each against the real Room database and fakes at the network boundary.
+**What was found.** The backup did not carry the links between records. A
+memory restored on a new phone came back without the people who were in it and
+with no place link, and because a restored row is queued for upload, the next
+sync sent it with an empty link set - which clears the links the server still
+held. `person_ids` and `place_ids` are now written for memories and diary
+events and restored on import (never on a row the archive is older than).
 
-**Verified by.** Tests that fail if the ordering is reversed — checked by
-reversing it.
+**Verified by.** Three tests, each of which fails if the behaviour comes back:
 
+- `BackupTwoDeviceTest` runs two real Room databases against one archive folder,
+  the closest thing to two phones that can run here. It asserts the content,
+  the links, the attachment's bytes in a file that exists, that everything
+  restored is `PENDING_CREATE` (a fresh install has synced nothing), that a
+  second import changes nothing, and that a link removed on the new phone is
+  not put back by an older archive.
+- `DeletedMemorySyncTest` runs the real table, the real database and the real
+  engine: a deletion reaches the server as a tombstone, the same run cannot
+  bring the memory back, a later run cannot either, a tombstone newer than the
+  local row is applied, and one older than a local edit is refused.
+- `MediaSyncTest.a refused row keeps the bytes and does not upload them again`
+  covers the half-finished upload: the bucket took the bytes and the server
+  refused the row, so the retry sends the row and uploads nothing a second
+  time. The bucket counts its calls now, which is what makes that checkable.
+
+**Known limitation.** The manifest has no account in it, so an archive written
+for one account and restored while signed in as another writes rows under the
+archive's account: invisible, never uploaded, and not deleted. Nothing is lost
+and nothing leaks, but the user is told nothing. Left as it is rather than
+silently re-owning somebody else's records; see the open issue list.
 ## Stage 7 — release mechanics
 
 **Why.** `docs/RELEASE.md` describes the flow; nothing has executed it. A release
