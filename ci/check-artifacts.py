@@ -96,10 +96,15 @@ def native_libraries(path: pathlib.Path) -> list[str]:
     said otherwise on the next run. Google Play requires those libraries to be 64-bit and
     16 KB page-size aligned, so finding them means the question is real rather than settled.
     """
+    # Matched anywhere in the archive, not only at its root: an APK keeps them at
+    # `lib/<abi>/name.so` and a bundle keeps them at `base/lib/<abi>/name.so`. The first
+    # version of this check looked at the root only, and the run reported the bundle as
+    # having no native libraries - a false "none" in a check whose whole purpose is that
+    # there is no such thing as an unchecked assumption about a built artifact.
     with zipfile.ZipFile(path) as archive:
         return sorted(
             name for name in archive.namelist()
-            if name.startswith("lib/") and name.endswith(".so")
+            if re.fullmatch(r"(?:.*/)?lib/[^/]+/[^/]+\.so", name)
         )
 
 

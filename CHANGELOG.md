@@ -6,7 +6,66 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- **The privacy policy is readable inside the app.** Google Play requires the policy to be
+  reachable from the app itself as well as from the store listing, and this project had it
+  only as documents in `docs/legal/`. The account screen now opens it in either language:
+  the same text, shipped as an asset, shown with its Markdown markers removed and nothing
+  else changed, because a policy the renderer rewrites is a policy the reader cannot trust.
+  `ci/check-docs.py` compares the shipped copy with the document byte for byte, so the two
+  cannot drift - the failure mode of having one text in two places.
+
+- `ci/check-tile-provider.py`: the tile host as a release decision rather than a paragraph.
+  The map's default is the public OpenStreetMap server, which the foundation's policy allows
+  a development build to use and requires prior permission for once an app is distributed.
+  The host, the credit, the key and the deepest zoom are build settings now, and `release.yml`
+  asks this policy **before** it builds: a `v*` tag is refused when the template cannot be
+  filled in, when it asks for a key and none is configured, or when it is still the public
+  OSM host and no permission has been recorded. The options and their limits are in
+  `docs/SERVICE_LIMITS.md` section 2.2.
+
+- `ci/verify-live-supabase.py` and `docs/SUPABASE_SETUP.md`: the other half of the schema
+  check. `ci/check-schema.py` proves the SQL applies to a real PostgreSQL and says plainly
+  that GoTrue, PostgREST and storage are not part of it; this talks to a project you created
+  and reports what it found. It is read-only - the sign-in it attempts uses credentials that
+  cannot exist, so nothing is created - and it refuses a `service_role` key before making a
+  single request, then asks all twelve tables whether the anon key can read a row.
+
+- `ci/check-artifacts.py` now checks the native libraries a build ships, because the app
+  ships twelve of them (Compose and CameraX) while the build file says "no NDK": every
+  artifact is run through `zipalign -c -P 16 -v 4`, which is the alignment Google Play
+  requires and a 16 KB page device enforces by refusing to load the library. A missing or
+  too-old `zipalign` is reported as a toolchain problem, never as a misaligned artifact.
+  The first version looked for the libraries at the archive root, so it read the two APKs
+  and reported the bundle as having none - a false "none", in a bundle that keeps them under
+  `base/lib/`. It matches anywhere in the archive now, and the two paths (APK, bundle) are
+  both exercised against fixtures.
+
+- Tests for the five screens that had none - sign-in, backup, the week/month/year
+  aggregation, the manual location picker and search - 51 tests covering decisions rather
+  than lines: a sign-in with no email is refused before anything leaves the device, a second
+  tap while a request is in flight sends nothing, an archive written by a newer app is
+  refused before it is merged, the month page asks for its own first and last day including
+  29 February, the picker's pin is the centre of the map and its zoom is clamped to what the
+  tile provider serves, and typing in the search box runs the parsed query once for the
+  finished word rather than once per keystroke.
+
 ### Changed
+
+- **The zoom a picker opens at is part of its first state.** The initial value handed to
+  `stateIn` carried the data class's default, so the map drew one frame at the wrong
+  distance and then jumped to the zoom the flow produced. Two tests read that first value
+  and caught it.
+
+- **A tile template that needs a key keeps its placeholder when no key is configured.**
+  `?key={key}` says out loud that this build has no key; `?key=` reads like a provider
+  refusing a request that looked complete. The release path refuses the case either way.
+
+- **The shipped privacy policy no longer contains the role's literal token.** The artifact
+  scan refuses that string in anything that ships, and it is right to: it cannot tell a
+  mention of the role from a copy of its key, and the shipped copies cannot be exempted
+  because they go to every phone. The policy says the same thing with the words separated.
 
 - **A release can no longer be signed with the debug key.** `release.yml` used to
   read four signing secrets, build anyway when they were absent, and put a bold
