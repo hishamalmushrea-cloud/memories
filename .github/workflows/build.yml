@@ -90,6 +90,9 @@ jobs:
       - name: Check every function that declares a value returns it
         run: python3 ci/check-returns.py
 
+      - name: Check the workflows agree with each other
+        run: python3 ci/check-workflows.py
+
       - name: Check the store listing stays inside the store limits
         run: python3 ci/check-store-metadata.py
 

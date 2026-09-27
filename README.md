@@ -264,7 +264,7 @@ python3 ci/check-schema.py
    service_role` الذي تضعه Supabase فعلًا لكل دالة جديدة.
 3. يُطبّق [`supabase/schema.sql`](supabase/schema.sql) **بنصّه وبمساره**، مرتين، مع
    `ON_ERROR_STOP`، فيُبلَّغ عن رقم السطر الحقيقي في الملف عند أول خطأ.
-4. ينفّذ [`supabase/verify/10_checks.sql`](supabase/verify/10_checks.sql): 22 فحصًا
+4. ينفّذ [`supabase/verify/10_checks.sql`](supabase/verify/10_checks.sql): 24 ضمانًا
    سلوكيًا بصفة `authenticated` وبصفة `anon` — لا بصفة مالك الجداول، فلا شيء
    يتجاوز RLS.
 5. يقرأ أسماء الجداول والدوال من كود العميل (`PostgrestSyncApi.kt`، `AccountApi.kt`)
@@ -317,9 +317,10 @@ python3 ci/check-schema.py
 
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
-استعلامات Room، ترتيب الاستيراد وتكراره، قيود المتجر، نصوص الموارد، توازن الأقواس،
-إرجاع القيم) → فحص مخطط Supabase على PostgreSQL حقيقي → gradlew help →
-testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRelease
+استعلامات Room، ترتيب الاستيراد وتكراره، اتفاق ملفَّي الـworkflow، قيود المتجر، نصوص
+الموارد، توازن الأقواس، إرجاع القيم) → فحص مخطط Supabase على PostgreSQL حقيقي →
+gradlew help → testDebugUnitTest → lintDebug → assembleDebug →
+assembleRelease + bundleRelease
 ```
 
 ويرفع الـAPK كـartifact. هذه هي الطريقة التي يُتحقق بها من البناء، لأن أي بناء يُدّعى نجاحه يجب أن يكون مبنيًا فعليًا.
@@ -346,9 +347,17 @@ testDebugUnitTest → lintDebug → assembleDebug → assembleRelease + bundleRe
 > مرتين — مرة لتختار الصيغة ومرة لتُكتب داخل النص — وهذا ما يظهر في الكود.
 
 > ملاحظة: مخطط Supabase يُفحص بتشغيله لا بقراءته. `ci/check-schema.py` يشغّل
-> PostgreSQL حقيقيًا، يُطبّق الملف مرتين، ثم ينفّذ 22 فحصًا سلوكيًا بصفة مستخدم
+> PostgreSQL حقيقيًا، يُطبّق الملف مرتين، ثم ينفّذ 24 ضمانًا سلوكيًا بصفة مستخدم
 > مسجَّل وبصفة زائر مجهول: العزل بين الحسابين، وأوضاع الظهور الثلاثة، ومجلدات
 > التخزين، ودالّتا الحذف. التفصيل في «التحقق من مخطط Supabase» أعلاه.
+
+> ملاحظة: `ci/check-workflows.py` يقارن ملفَّي الـworkflow ببعضهما: أن يكون كل
+> `uses` مثبّتًا على إصدار (لا فرعًا يتحرّك)، وأن تستخدم النسخة نفسها من كل إجراء في
+> الملفين، وأن تكون خطوة تركيب Android SDK حرفيًا هي نفسها فيهما — اختلافها يعني
+> إصدارًا يفشل حيث نجح البناء. وقد وجد هذا الفحص عند كتابته اختلافًا حقيقيًا:
+> `release.yml` كان يستخدم `actions/setup-java@v4` والبناء `@v5`. ويتحقق أيضًا من أن
+> كل سجل `/tmp/*.log` يقرأه التقرير يكتبه فعلًا خطوةٌ ما، لأن مرحلة لا يُلتقط ناتجها
+> لا يمكن تفسير فشلها.
 
 > ملاحظة: مخطط Room المُصدَّر (`app/schemas/`) يولّده KSP أثناء البناء، وهو
 > مستثنى من Git حاليًا لأن توكن CI في هذا المستودع لا يملك صلاحية الدفع.

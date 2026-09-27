@@ -286,6 +286,32 @@ TalkBack, and a release build on the phone.
 **Verified by.** Someone going through it, and the list being the honest answer
 to "how do you know it works?". Until then the honest answer is "the tests
 pass".
+## Stage 9 — the two workflows, compared with each other  (done)
+
+**Why.** `release.yml` was written before it had ever run, and its differences from
+`build.yml` were all ways for a first release to fail: the SDK step had three of
+them, found by hand. Nothing was comparing the two files, so the next difference
+would be found the same way — by a release failing.
+
+**What was done.** `ci/check-workflows.py` runs on every push and compares the
+two workflows: every action pinned to a version, the same version of a shared
+action in both, the Android SDK step identical in both, every `/tmp/*.log` the
+report reads written by some step (the configuration failure that took three runs
+to explain had no log at all), every Gradle stage in the build workflow reporting
+through the gate at the end rather than dying at the step, the release never
+swallowing a failure, and only a version tag publishing. It is written with
+Python's standard library only, because a check that needs a package the runner
+might not have becomes a build failure about nothing.
+
+**What was found.** On its first run it found two differences: the release used
+`actions/setup-java@v4` where the build used `@v5`, and its copy of the SDK step
+had drifted in small ways again. Both are the same step now.
+
+**Proof.** The check was shown to fail on each of seven injected faults and to pass
+when the files are as they are: a differing action version, an edited SDK step, an
+ungated publish step, a lost log capture, a stage that stops writing its log, a log
+read that nothing writes, and an action following a branch.
+
 ## Open items, in one place
 
 1. **The schema has never been applied to a hosted Supabase project.** It passes the

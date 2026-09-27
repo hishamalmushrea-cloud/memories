@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -42,29 +42,28 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # The same step as in build.yml, and deliberately identical to it: this
-      # workflow had its own version, written before anything had run it, and the
-      # differences were all ways for a release to fail on its first execution.
-      # `yes | sdkmanager` under `set -euo pipefail` fails on the SIGPIPE that `yes`
-      # takes when sdkmanager exits; a `build-tools` revision that does not exist is
-      # a hard failure here and a note in the build workflow, where it is treated as
-      # best effort because AGP fetches its own; and with neither ANDROID_HOME nor
-      # ANDROID_SDK_ROOT set, `${ANDROID_HOME:-$ANDROID_SDK_ROOT}` is an unbound
-      # variable under `set -u` rather than the runner's real SDK path.
+      # The same step as in build.yml, verbatim: ci/check-workflows.py fails if the
+      # two ever differ, because a release that fails where the build succeeded is
+      # the worst way to find out that the two had drifted apart.
       - name: Install the Android SDK packages the project needs
         run: |
           set -uo pipefail
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           MANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
 
+          # Pre-accepting the licenses lets AGP auto-install anything it still
+          # needs (for example a build-tools revision) without prompting.
           mkdir -p "$SDK/licenses"
           printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$SDK/licenses/android-sdk-license"
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$SDK/licenses/android-sdk-preview-license"
 
           yes | "$MANAGER" --licenses > /dev/null || true
           "$MANAGER" --install "platform-tools" "platforms;android-36"
+          # Best effort: if this exact build-tools revision is unavailable, AGP
+          # downloads the one it targets by itself.
           "$MANAGER" --install "build-tools;36.0.0" || \
             echo "::warning::build-tools;36.0.0 unavailable, AGP will fetch its own"
+          "$MANAGER" --list_installed || true
 
       - name: Check the security and privacy guarantees
         run: bash ci/check-security.sh

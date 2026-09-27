@@ -8,6 +8,19 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- `ci/check-workflows.py`, which compares the two workflows with each other:
+  every action pinned to a version (never a branch that moves), the same version
+  of an action in both files, the Android SDK step character-for-character
+  identical in both, every `/tmp/*.log` the report reads written by some step,
+  every Gradle stage in the build workflow reporting through the gate at the end
+  instead of dying at the step, and only a version tag publishing a release. It
+  is written without a YAML library, so CI cannot fail for a reason that has
+  nothing to do with the project.
+- The check found two real differences on its first run: `release.yml` used
+  `actions/setup-java@v4` where the build used `@v5`, and its copy of the Android
+  SDK step had drifted again in small ways. Both are now the same step in both
+  files, with the drift impossible to reintroduce silently.
+
 - `docs/SPEC_COMPLIANCE.md` maps each section of the specification to where it is
   implemented and what proves it - a named test, a CI check, or a file that can be
   opened - and ends with what is *not* proven: the schema has never run on a
