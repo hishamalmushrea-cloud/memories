@@ -118,6 +118,7 @@ def rules():
     strings, plurals = string_counts()
     files = source_files()
     guards = guard_files()
+    # Built after WORDS is defined, because the pattern is derived from it.
     checks = guarantees()
     compliance = DOCS / "SPEC_COMPLIANCE.md"
     readiness = DOCS / "READINESS.md"
@@ -132,14 +133,31 @@ def rules():
          [files], "the app row: Kotlin files"),
         (readiness, r"\| Tests \| (\d+) unit tests",
          [tests], "the tests row of the readiness summary"),
-        (readiness, r"\| Guards \| (eleven|twelve|thirteen|fourteen|\d+) `check-\*\.py` files",
+        (readiness, rf"\| Guards \| ({NUMBER_WORD}) `check-\*\.py` files",
          [guards], "the guards row of the readiness summary"),
         (readiness, r"passes (\d+) checks on a real PostgreSQL",
          [checks], "the database row of the readiness summary"),
     ]
 
 
-WORDS = {"eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14}
+# The numbers a summary may spell out instead of writing in digits. One table, used both
+# to read a claim and to build the pattern that finds it: the rule for the guards row used
+# to enumerate the words itself, so it stopped matching the day the count grew past the
+# last word in the list - the same kind of staleness this guard exists to catch.
+WORDS = {
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+}
+NUMBER_WORD = "|".join([*WORDS, r"\d+", r"[a-z]+"])
 
 # A path claim: something inside backticks that ends in a file extension this repository
 # uses. Directories (`ui/theme/`) and globs are not path claims and are left alone.
@@ -166,8 +184,11 @@ DOCUMENTS = ("README.md", "docs/SPEC_COMPLIANCE.md", "docs/READINESS.md", "docs/
              "docs/MANUAL_QA.md", "docs/SERVICE_LIMITS.md", "docs/PLATFORM_UPGRADE.md")
 
 
-def as_number(text: str) -> int:
-    return WORDS.get(text, None) if not text.isdigit() else int(text)
+def as_number(text: str) -> int | None:
+    """The value of a claim's number, or None when it is a word this table has never met."""
+    if text.isdigit():
+        return int(text)
+    return WORDS.get(text)
 
 
 def path_claims():
@@ -246,8 +267,13 @@ def main() -> int:
                 f"number(s) but expects {len(expected)}, so it would check nothing"
             )
             continue
-        for index, (quoted, actual) in enumerate(zip(numbers, expected)):
-            if quoted != actual:
+        for quoted, actual in zip(numbers, expected):
+            if quoted is None:
+                problems.append(
+                    f"{document.name}: {description} is spelled with a word this guard has "
+                    f"no number for - add it to WORDS, or write it in digits"
+                )
+            elif quoted != actual:
                 problems.append(
                     f"{document.name}: {description} says {quoted}, this repository has "
                     f"{actual}"

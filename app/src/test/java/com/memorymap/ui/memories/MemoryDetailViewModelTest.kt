@@ -13,8 +13,8 @@ import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.Memory
-import com.memorymap.domain.repository.MediaRepository
-import com.memorymap.domain.repository.MemoryRepository
+import com.memorymap.testing.FailingDeleteMemoryRepository
+import com.memorymap.testing.FailingRemoveMediaRepository
 import com.memorymap.testing.FakeAuthRepository
 import java.io.File
 import java.time.LocalDate
@@ -301,23 +301,4 @@ class MemoryDetailViewModelTest {
         }
         return state
     }
-}
-
-/**
- * A memory repository that is real except for its delete, written as a delegation so a
- * method added to the interface cannot go missing here.
- */
-private class FailingDeleteMemoryRepository(
-    private val delegate: MemoryRepository,
-) : MemoryRepository by delegate {
-    override suspend fun delete(id: String): Unit =
-        throw IllegalStateException("the database refused the delete")
-}
-
-/** The same idea for the attachment delete. */
-private class FailingRemoveMediaRepository(
-    private val delegate: MediaRepository,
-) : MediaRepository by delegate {
-    override suspend fun remove(id: String): Unit =
-        throw IllegalStateException("the file is in use")
 }

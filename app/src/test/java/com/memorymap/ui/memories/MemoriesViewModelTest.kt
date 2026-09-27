@@ -12,7 +12,7 @@ import com.memorymap.domain.model.MediaItem
 import com.memorymap.domain.model.MediaOwner
 import com.memorymap.domain.model.MediaType
 import com.memorymap.domain.model.Memory
-import com.memorymap.domain.repository.MemoryRepository
+import com.memorymap.testing.FailingDeleteMemoryRepository
 import com.memorymap.testing.FakeAuthRepository
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -213,17 +213,4 @@ class MemoriesViewModelTest {
         }
         return state
     }
-}
-
-/**
- * Every call goes to [delegate] except the delete, which throws.
- *
- * Written as a decorator rather than a hand-written fake so it cannot drift from
- * the interface: a method added to `MemoryRepository` arrives here automatically.
- */
-private class FailingDeleteMemoryRepository(
-    private val delegate: MemoryRepository,
-) : MemoryRepository by delegate {
-    override suspend fun delete(id: String): Unit =
-        throw IllegalStateException("the database refused the delete")
 }

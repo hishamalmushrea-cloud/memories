@@ -102,6 +102,9 @@ jobs:
       - name: Check the documents agree with the repository
         run: python3 ci/check-docs.py
 
+      - name: Check no name is declared twice in one package
+        run: python3 ci/check-duplicate-declarations.py
+
       - name: Check the release notes can be built for this version
         run: python3 ci/check-release-notes.py
 

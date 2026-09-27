@@ -168,6 +168,9 @@ to 25), one group per
   versions each step needs, the run that would catch each kind of mistake, the order to
   take them in, and the fact that Google Play does not require it (API 36 has been the
   requirement for new apps and updates since 31 August 2026). Nothing in it is applied.
+- `ci/check-duplicate-declarations.py` fails when two files declare the same top-level
+  type or property in one package and source set - the mistake that cost a run, where a
+  test double was written a second time and no test could run at all.
 - `ci/check-docs.py` also checks the repository secrets: every secret a workflow reads
   has to be named in `docs/RELEASE.md`, and every name the document tells a maintainer to
   create has to be read by something. A mismatch there fails nothing by itself - the

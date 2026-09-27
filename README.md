@@ -329,8 +329,9 @@ python3 ci/check-schema.py
 ```text
 verify-dependencies → check-security → فحوص Python (نداءات suspend، التعليقات،
 استعلامات Room، ترتيب الاستيراد وتكراره، اتفاق ملفَّي الـworkflow، صلاحية بناء ملاحظات
-الإصدار، صمت الإخفاقات بعد فعل مقصود، توسيع صنف نهائي، مطابقة المستندات للواقع، قيود المتجر،
-نصوص الموارد، توازن الأقواس، إرجاع القيم) → فحص مخطط Supabase على PostgreSQL حقيقي →
+الإصدار، صمت الإخفاقات بعد فعل مقصود، توسيع صنف نهائي، تكرار إعلان الاسم، مطابقة المستندات
+للواقع، قيود المتجر، نصوص الموارد، توازن الأقواس، إرجاع القيم) → فحص مخطط Supabase على
+PostgreSQL حقيقي →
 gradlew help → testDebugUnitTest → lintDebug → assembleDebug → assembleRelease +
 bundleRelease → فحص ما تحمله القطع المبنية
 ```

@@ -27,6 +27,8 @@ import com.memorymap.domain.model.WipeSummary
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
 import com.memorymap.domain.repository.AuthRepository
+import com.memorymap.domain.repository.MediaRepository
+import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.util.ImageOptimizer
 import com.memorymap.util.UploadBytes
@@ -219,6 +221,29 @@ class FakeReferenceRepository(
     override suspend fun entriesAtPlace(placeId: String): List<DailyEntry> = emptyList()
 
     override suspend fun memoriesAtPlace(placeId: String): List<Memory> = emptyList()
+}
+
+/**
+ * A memory repository that is real except for its delete, which throws.
+ *
+ * Written as a decorator over the interface rather than as a hand-written fake, so a
+ * method added to `MemoryRepository` arrives here without anyone remembering to add it -
+ * and so the shape of "storage refused the delete" is decided in one place and shared by
+ * the tests that need it.
+ */
+class FailingDeleteMemoryRepository(
+    private val delegate: MemoryRepository,
+) : MemoryRepository by delegate {
+    override suspend fun delete(id: String): Unit =
+        throw IllegalStateException("the database refused the delete")
+}
+
+/** The same idea for removing one attachment. */
+class FailingRemoveMediaRepository(
+    private val delegate: MediaRepository,
+) : MediaRepository by delegate {
+    override suspend fun remove(id: String): Unit =
+        throw IllegalStateException("the file is in use")
 }
 
 /**
