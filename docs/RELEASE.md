@@ -8,15 +8,49 @@ The first version this document is written for is `0.1.0` (`versionCode` 1).
 
 ## 1) Create a signing key (once, keep it safe)
 
+This is the command the release key of this project was created with, on JDK 17:
+
 ```bash
 keytool -genkeypair -v \
+  -storetype PKCS12 \
   -keystore memorymap-release.jks \
   -keyalg RSA -keysize 4096 -validity 10000 \
-  -alias memorymap
+  -alias memorymap \
+  -dname "CN=Memory Map, OU=Mobile, O=Memory Map, L=<city>, ST=<region>, C=<country>"
 ```
 
-Back the keystore up outside this repository. The Android ecosystem ties your app
-identity to this key: losing it means being unable to update the app.
+Two things about that command are worth knowing before you run it:
+
+- **`-storetype PKCS12` is what JDK 17 does by default**, and PKCS12 does not have
+  a separate key password: the store and the private key share one. A `-keypass`
+  is ignored with a warning ("Different store and key passwords not supported for
+  PKCS12 KeyStores"), and the resulting file cannot be opened with the password
+  you thought you set. So the project uses **one password** for both, and
+  `MEMORYMAP_KEYSTORE_PASSWORD` and `MEMORYMAP_KEY_PASSWORD` hold the same value.
+  The build keeps the fourth property for JKS keystores, where the two are
+  genuinely separate.
+- The validity is deliberately long (10000 days, ~27 years). The app's identity is
+  this certificate, so a renewal is not a renewal: Play only accepts an update
+  signed with the same certificate, unless Play App Signing holds an upload key
+  that can be reset.
+
+Back the keystore up outside this repository, in two places, and write the
+password down where you keep the file. Losing the key means being unable to update
+the app under its own name - and no later commit can undo a key that leaks, which
+is why `ci/check-keystore-leaks.py` reads the Git index for one on every push.
+
+Record the certificate in the repository so a build can be checked against it
+(the value below is this project's; yours will differ):
+
+```bash
+keytool -list -v -keystore memorymap-release.jks -alias memorymap | grep SHA256
+# then put it in ci/release-fingerprint.txt as: SHA256=<64 uppercase hex digits>
+```
+
+`ci/release-fingerprint.txt` holds only the public certificate fingerprint, so it
+is committed on purpose. If it ever changes, the app's identity has changed and
+Google Play will refuse a differently-signed upload - treat the diff as a release
+blocker, not as a detail.
 
 ## 2) Build a signed release
 
@@ -31,19 +65,38 @@ Never commit the keystore or its passwords. Pass them at build time:
 ```
 
 `app/build.gradle.kts` reads those four properties into the
-`releaseFromProperties` signing config. When they are absent, the release build
-falls back to the debug key so that a CI build never fails for a missing secret —
-which also means **an unsigned-by-design build is never mistaken for a real one**:
-check the signing report before shipping.
+`releaseFromProperties` signing config. Locally, when they are absent, the release
+build falls back to the debug key - that is convenient when you only want to see
+that R8 accepts the code, and it is why the artifact has to be checked rather than
+assumed. To see which key a build actually used:
 
 ```bash
 ./gradlew signingReport
+# the certificate inside a finished artifact, no password needed:
+bash ci/apk-signer-fingerprint.sh app/build/outputs/apk/release/app-release.apk
+bash ci/verify-apk-signature.sh --release app/build/outputs/apk/release/app-release.apk
 ```
+
+The second command is the one that matters before publishing: with `--release` it
+fails unless the artifact carries the certificate recorded in
+`ci/release-fingerprint.txt`. `/tmp/signing/signing.env`, written by
+`ci/prepare-signing-keystore.sh` when a release runs, is read-only to the run and
+holds no password that survives it.
+
+**In CI the fallback cannot reach a release.** A `v*` tag with fewer than all four
+secrets fails before Gradle starts (see §4); a manual run without them builds a
+rehearsal artifact with a generated throwaway key, and `ci/verify-apk-signature.sh
+--rehearsal` fails unless that artifact is signed with something *other* than the
+release certificate. There is no configuration in which a tag publishes a
+debug-signed artifact.
 
 ## 3) What must be true before a release
 
 - [ ] `./gradlew testDebugUnitTest` passes.
 - [ ] `./gradlew lintRelease` produces no errors.
+- [ ] `bash ci/check-signing-tools.sh` passes. It checks the two tools that read a
+      signature rather than the artifact itself, because the artifact check first ran
+      on a release run until this existed.
 - [ ] `bash ci/check-security.sh` passes. This is the gate that fails when a
       documented guarantee stops holding: a `service_role` key in the client, a
       log call that bypasses `MmLog`, `allowBackup` switched back on, cleartext
@@ -62,6 +115,11 @@ check the signing report before shipping.
         strings | grep -i service_role || echo "clean"
       ```
 - [ ] The APK size is checked; large bundled media or fonts are justified.
+- [ ] The artifact carries the release certificate:
+      `bash ci/verify-apk-signature.sh --release app/build/outputs/apk/release/app-release.apk`
+- [ ] `python3 ci/check-keystore-leaks.py` passes. It reads the Git index, not the
+      working tree, so an untracked local keystore is not noise - and a file added
+      with `git add -f` is still a failure. `bash ci/check-security.sh` runs it.
 
 Pushing a `v*` tag runs all of the above in `.github/workflows/release.yml`
 before it publishes, so the checklist is enforced and not merely written down.
@@ -108,22 +166,46 @@ git push origin v1.0.0
 ```
 
 `.github/workflows/release.yml` runs the security gate, the unit tests and
-`lintRelease`, builds both an APK and an AAB, and creates the GitHub Release
-with the changelog as the notes.
+`lintRelease`, builds both an APK and an AAB, **checks the certificate inside
+them**, and creates the GitHub Release with the changelog as the notes.
 
-Signing needs four repository secrets:
+Signing needs four repository secrets. Set them once, before the first tag:
 
 | Secret | Value |
 |---|---|
-| `MEMORYMAP_KEYSTORE_B64` | the keystore, `base64 -w0 memorymap-release.jks` |
-| `MEMORYMAP_KEYSTORE_PASSWORD` | keystore password |
-| `MEMORYMAP_KEY_ALIAS` | the alias |
-| `MEMORYMAP_KEY_PASSWORD` | key password |
+| `MEMORYMAP_KEYSTORE_B64` | the keystore, `base64 -w0 memorymap-release.jks` (one line, no newline) |
+| `MEMORYMAP_KEYSTORE_PASSWORD` | the keystore password |
+| `MEMORYMAP_KEY_ALIAS` | the alias, `memorymap` for the key in §1 |
+| `MEMORYMAP_KEY_PASSWORD` | the same password as the store, because PKCS12 has one (see §1) |
 
-Without `MEMORYMAP_KEYSTORE_B64` the workflow still builds, but the artifact is
-debug-signed and the release body says so in bold. That is deliberate: a
-half-configured release should be obviously unusable rather than quietly
-distributed.
+```bash
+base64 -w0 memorymap-release.jks > keystore.b64      # then paste the file's contents
+gh secret set MEMORYMAP_KEYSTORE_B64      --repo <owner>/<repo> < keystore.b64
+gh secret set MEMORYMAP_KEYSTORE_PASSWORD --repo <owner>/<repo>   # prompts, or < file
+gh secret set MEMORYMAP_KEY_ALIAS         --repo <owner>/<repo>
+gh secret set MEMORYMAP_KEY_PASSWORD      --repo <owner>/<repo>
+```
+
+`gh secret set` needs admin rights on the repository; the web UI (Settings →
+Secrets and variables → Actions) does the same thing without them. Never paste a
+secret value into an issue, a pull request, a chat or a log - the value is the key.
+
+**What the workflow does with them** (`ci/check-release-signing.py` is the policy,
+and `build.yml` exercises it against all six situations on every push):
+
+| Ref | Secrets | Result |
+|---|---|---|
+| `v*` tag | all four | builds, and the artifact's certificate must equal `ci/release-fingerprint.txt` |
+| `v*` tag | some | fails before Gradle starts, naming the missing secret |
+| `v*` tag | none | fails before Gradle starts - a release is not a rehearsal |
+| any other ref | all four | builds and verifies against the release certificate, publishes nothing |
+| any other ref | some | fails: half a configuration is never intentional |
+| any other ref | none | builds a rehearsal with a generated throwaway key, and the certificate must differ from the release one |
+
+So a tag can never publish a debug-signed artifact, and a missing secret is
+reported as a missing secret rather than discovered as an install failure. If you
+have not set the secrets yet, do not tag: push the commit, run the workflow by
+hand (`gh workflow run release.yml --ref main`) and read the rehearsal log.
 
 To do it by hand instead:
 

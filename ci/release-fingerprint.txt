@@ -1,0 +1,19 @@
+# The release signing certificate, as a public fact
+#
+# This is the SHA-256 fingerprint of the certificate inside the release keystore
+# (`memorymap-release.jks`, alias `memorymap`). It is public information - it is what
+# every install of the app carries and what anyone can read out of the APK - and it is
+# recorded here for one reason: so that a build can be *checked* rather than trusted.
+#
+# `ci/verify-apk-signature.sh` reads this file and compares it with the certificate the
+# built APK actually carries. On a release run the two must match; on a rehearsal they
+# must differ, because a rehearsal has no business producing something that looks like a
+# real release.
+#
+# If the keystore is ever replaced, this line changes in the same commit as the secrets -
+# deliberately, as a reviewable act, because a changed fingerprint means the app's
+# identity changed and Play will refuse an upload signed by a different key unless the
+# upload key was reset there first. See docs/RELEASE.md.
+#
+# Format: upper-case hex, no colons. `keytool -list -v` prints it with colons; strip them.
+SHA256=CE3CCB9790CF0A7B52524222886AC6BEEB96A01EA4D22EA1073D1283687AD2E4

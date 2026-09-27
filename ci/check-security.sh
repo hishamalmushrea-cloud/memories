@@ -63,7 +63,15 @@ elif grep -A4 "assumenosideeffects class com.memorymap.util.MmLog" "$PROGUARD" |
     fail "MmLog d()/v() are declared static; they are instance methods, so nothing is stripped"
 fi
 
-# 8. Every table the schema enables RLS on must have at least one policy, or it
+# 8. Nothing in the index may be a signing key or a signing password. .gitignore
+#    is a hint, and a file added before the hint - or added with `git add -f` - is
+#    tracked forever; this reads the index instead. ci/check-keystore-leaks.py
+#    explains why this is the one mistake a later commit cannot undo.
+if ! python3 ci/check-keystore-leaks.py; then
+    problems=$((problems + 1))
+fi
+
+# 9. Every table the schema enables RLS on must have at least one policy, or it
 #    is locked to the owner by accident and silently unusable.
 python3 - <<'PY' || problems=$((problems + 1))
 import re, sys

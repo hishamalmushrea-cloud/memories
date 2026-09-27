@@ -6,7 +6,74 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- **A release can no longer be signed with the debug key.** `release.yml` used to
+  read four signing secrets, build anyway when they were absent, and put a bold
+  "this artifact is debug-signed" paragraph in the release notes. That produced a
+  distributable-looking release that Play refuses, distinguished from a real one
+  only by a paragraph. Now a `v*` tag with fewer than all four secrets fails
+  *before* Gradle starts and names the missing secret; a manual run without them
+  builds a rehearsal with a generated throwaway key whose certificate must be
+  *different* from the release certificate; and the certificate inside the built
+  APK and AAB is read with `keytool` and compared with
+  `ci/release-fingerprint.txt`. Four separate mistakes all build successfully and
+  produce the wrong artifact - a property that never reached Gradle, a keystore
+  that failed to load, a signing config that fell back, a wrong alias - which is
+  why the check reads the artifact instead of trusting the configuration.
+
 ### Added
+
+- `ci/check-release-signing.py`: the signing policy as a decision rather than as
+  prose, so the workflow and the tests ask the same function "may this ref build
+  with this configuration?". Six situations are exercised on every push: a tag
+  with all four secrets builds, a tag with some or none fails, and a manual run
+  builds only with a complete configuration or none at all. The static half also
+  fails when `release.yml` stops consulting the policy, stops verifying the
+  certificate, stops passing one of the four properties, or when
+  `app/build.gradle.kts` stops reading one of them - the four ways this wiring
+  could rot silently.
+
+- `ci/check-keystore-leaks.py`, run by `check-security.sh` on every push: a
+  signing key must never reach the repository, and a `.gitignore` entry cannot
+  promise that. A file added before the rule, or added with `git add -f`, is
+  tracked forever and invisible to `.gitignore`, so this reads the Git index
+  instead - for key-shaped names, for private-key text, for a raw DER store with
+  an innocent name, and for the base64 form in a file nobody would look at. The
+  reason it is worth a guard of its own: a leaked key is the one mistake here that
+  no later commit can undo. Android only installs an update signed by the
+  certificate the installed copy already trusts, so the cost is the app's identity
+  rather than one release. Found by its own test: the first version failed on
+  itself, because the file named the PEM markers it searches for.
+
+- `ci/apk-signer-fingerprint.sh` and `ci/verify-apk-signature.sh`: read the signer
+  certificate out of a finished APK or AAB and compare it with the expected
+  fingerprint - `--release` for "must be this one", `--rehearsal` for "must not
+  be". Two readers, because the two artifacts are signed differently: an AAB is a
+  JAR and `keytool` reads its certificate, while an APK built at `minSdk` 26 has no
+  JAR signature at all - AGP drops v1 above 23 ("V1 signature is useless if minSdk
+  is 24+") - so `apksigner` reads the APK Signing Block. The script says which
+  reader answered, because a fallback nobody can see is a fallback that hides a
+  mistake.
+
+- `ci/check-signing-tools.sh`, run on every push with a throwaway key: the
+  certificate read back from a signed archive, both modes refusing what they must,
+  an unsigned archive failing instead of reporting an empty value, and the APK
+  path parsed from apksigner's output. Until it existed, the verification that
+  decides whether a release is correctly signed first ran on the run that
+  publishes. Two of its own defects were found by writing it: an APK at minSdk 26
+  is unreadable by `keytool`, and setting an environment variable for a single
+  command made the check pass while the tool under test never ran.
+
+- `ci/release-fingerprint.txt`: the public SHA-256 of the release certificate, so
+  a built artifact can be checked against the key it claims to be signed with.
+  Public by construction; the key itself is never in the repository.
+
+- `build.yml` proves the signing path on every push, not only at release time:
+  it prepares a keystore (the real one when the secrets exist, a generated
+  throwaway otherwise), runs `assembleRelease` with the four properties, and
+  verifies the certificate in the result. The rehearsal is the part that matters
+  - without it the properties reach Gradle for the first time on release day.
 
 - `ci/release-notes.sh` and `ci/check-release-notes.py`: the notes of a GitHub
   release are cut from `CHANGELOG.md` by a script that is now run on every push,

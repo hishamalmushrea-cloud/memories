@@ -237,11 +237,34 @@ def main() -> int:
         condition = "\n".join(step.lines)
         if "refs/tags/v" not in condition:
             fail(f"'{step.label()}' publishes without being gated on a version tag")
-    signing = find(release_steps, "Materialise the signing key if the secrets are present")
-    if signing is None:
-        fail("release.yml has no signing key step")
-    elif "MEMORYMAP_KEYSTORE_B64" not in "\n".join(signing.lines):
-        fail("the signing step does not read the keystore secret")
+    # The signing path has three parts now, and each is checked because each one alone
+    # is not enough: the keystore has to be prepared from the secret, the artifact has to
+    # be verified against the recorded certificate, and a tag with no secrets has to be
+    # refused. The old single "materialise the key" step is gone - it warned instead of
+    # failing, which is how a debug-signed artifact used to reach a release.
+    keystore = find(release_steps, "Put a keystore where the build can use it")
+    if keystore is None:
+        fail("release.yml has no step that prepares the signing keystore")
+    elif "MEMORYMAP_KEYSTORE_B64" not in "\n".join(keystore.lines):
+        fail("the keystore step does not read the keystore secret")
+
+    verify = find(release_steps, "Verify the artifacts carry the certificate they should")
+    if verify is None:
+        fail("release.yml never verifies the built artifact's certificate")
+    elif "verify-apk-signature.sh" not in "\n".join(verify.lines):
+        fail("the verification step does not call ci/verify-apk-signature.sh")
+
+    decision = find(release_steps, "Decide whether this run may build a release artifact")
+    if decision is None:
+        fail("release.yml does not decide whether this run may build an unsigned artifact")
+    else:
+        body = "\n".join(decision.lines)
+        if "check-release-signing.py" not in body:
+            fail("the signing decision does not use ci/check-release-signing.py")
+        if "refs/tags" not in body and "GITHUB_REF" not in body:
+            fail("the signing decision does not look at the ref, so it cannot tell a tag from a rehearsal")
+        if "|| true" in body:
+            fail("the signing decision cannot fail the run")
 
     if len(build_steps) < 20:
         fail(

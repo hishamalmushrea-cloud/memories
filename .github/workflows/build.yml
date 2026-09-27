@@ -65,6 +65,13 @@ jobs:
       - name: Check the security and privacy guarantees
         run: bash ci/check-security.sh 2>&1 | tee /tmp/security.log || true
 
+      # The certificate check is the last thing between a build that succeeded and a
+      # release that is wrong, and until this step existed it first ran on the run that
+      # publishes - the one run that cannot be taken back. This exercises both readers
+      # with a throwaway key, in a second, before Gradle starts.
+      - name: Check the tools that decide whether a build is signed
+        run: bash ci/check-signing-tools.sh
+
       # Runs before Gradle on purpose: it is pure Python and answers in under a
       # second, so a mistake that would otherwise die in the compiler and waste
       # ten minutes of build reports itself immediately instead.
@@ -101,6 +108,31 @@ jobs:
 
       - name: Check the documents agree with the repository
         run: python3 ci/check-docs.py
+
+      # The rule about signing is a decision, so it is run as one: the same script the
+      # release workflow consults is given every situation a run can be in, and the
+      # answers are compared. A policy that is only read is a policy nobody has tested.
+      - name: Check the release signing policy against every situation
+        run: |
+          set -uo pipefail
+          python3 ci/check-release-signing.py
+          expect() {
+            python3 ci/check-release-signing.py --ref "$1" --signing "$2" > /dev/null 2>&1
+            actual=$?
+            if [ "$actual" != "$3" ]; then
+              echo "::error::$1 with signing=$2 exited $actual, wanted $3"
+              exit 1
+            fi
+            echo "  $1 with signing=$2 -> exit $actual (wanted $3)"
+          }
+          # A release must be signed; a rehearsal may not be; half a configuration is
+          # never intentional.
+          expect refs/tags/v0.1.0 complete 0
+          expect refs/tags/v0.1.0 partial 1
+          expect refs/tags/v0.1.0 none 1
+          expect refs/heads/main    complete 0
+          expect refs/heads/main    partial 1
+          expect refs/heads/main    none 0
 
       - name: Check no name is declared twice in one package
         run: python3 ci/check-duplicate-declarations.py
@@ -163,6 +195,54 @@ jobs:
       - name: Assemble the release APK and the Play bundle
         run: ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace --continue 2>&1 | tee /tmp/release.log || true
 
+      # Everything up to here reads the source. This reads the certificate inside the
+      # artifact, which is the only place the answer to "which key signed this?" is
+      # written down: a property that never reached Gradle, a keystore that failed to
+      # load, a signing config that fell back to the debug key - all three build
+      # successfully and produce the wrong artifact.
+      #
+      # With the four secrets present the artifact must carry the release certificate.
+      # Without them a throwaway key is generated, so the rehearsal still proves that the
+      # signing properties reach Gradle and change the certificate - which is the part a
+      # rehearsal without signing would leave untested until release day.
+      - name: Prove the release build signs with the key it is given
+        env:
+          KEYSTORE_B64: ${{ secrets.MEMORYMAP_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.MEMORYMAP_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MEMORYMAP_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MEMORYMAP_KEY_PASSWORD }}
+        run: |
+          set -uo pipefail
+          # apksigner reads an APK and keytool reads the bundle; both are looked up
+          # through the SDK path the setup step above also resolves this way.
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          {
+            bash ci/prepare-signing-keystore.sh
+            . /tmp/signing/signing.env
+            ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace \
+              -PMEMORYMAP_KEYSTORE="$SIGNING_KEYSTORE" \
+              -PMEMORYMAP_KEYSTORE_PASSWORD="$SIGNING_STORE_PASSWORD" \
+              -PMEMORYMAP_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
+              -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD"
+            # Both artifacts, because they are read by different tools: the APK's
+            # certificate comes from the APK Signing Block (no JAR signature exists at
+            # minSdk 26) and the bundle's from the JAR signature. A release run would
+            # otherwise be the first time one of the two readers ever ran.
+            for artifact in \
+              app/build/outputs/apk/release/app-release.apk \
+              app/build/outputs/bundle/release/app-release.aab; do
+              if [ ! -f "$artifact" ]; then
+                echo "::error::$artifact was not built, so its certificate cannot be checked"
+                continue
+              fi
+              if [ "$SIGNING_MODE" = "release" ]; then
+                bash ci/verify-apk-signature.sh --release "$artifact"
+              else
+                bash ci/verify-apk-signature.sh --rehearsal "$artifact" "$SIGNING_EXPECTED_FINGERPRINT"
+              fi
+            done
+          } 2>&1 | tee /tmp/signing.log || true
+
       - name: Show what was built
         run: |
           find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -printf "%p %s bytes\n" || true
@@ -220,7 +300,7 @@ jobs:
                 echo "- security.log: FAILED"
               fi
             fi
-            for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
+            for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log /tmp/signing.log; do
               if [ ! -f "$f" ]; then
                 echo "- $(basename "$f"): NOT RUN (the job stopped before this step)"
                 continue
@@ -385,6 +465,17 @@ jobs:
               echo "(the schema check did not run)"
             fi
 
+            # The certificate, not the verdict: a reader can compare this with the
+            # fingerprint in ci/release-fingerprint.txt, and the run above says which
+            # of the two it was proving.
+            echo
+            echo "### Signing"
+            if [ -f /tmp/signing.log ]; then
+              grep -E "^(signing:|signature check:|  [0-9A-F]{16,})" /tmp/signing.log | head -n 8 || true
+            else
+              echo "(the signing proof did not run)"
+            fi
+
             # The verdict is not the point; what the check read is. These lines name
             # each artifact and its size, so a reader can see that something was
             # opened rather than that nothing was found.
@@ -474,13 +565,26 @@ jobs:
             echo "::error::the Supabase schema check failed"
             exit 1
           fi
+          # The release build above is rebuilt with a key and then read back. If the
+          # certificate is not the one it should be - release key with the secrets,
+          # throwaway key without them - nothing about the artifact can be trusted.
+          # Both artifacts have to pass, not one of them: the count is compared rather
+          # than grepped for, because a loop that verified only the APK would still print
+          # one reassuring line.
+          verified="$(grep -c "signature check: PASS" /tmp/signing.log 2>/dev/null || true)"
+          if [ -f /tmp/signing.log ] && [ "$verified" != "2" ]; then
+            echo "::error::the release build was not signed with the expected certificate"
+            echo "::error::$verified of 2 artifacts verified (expected 2)"
+            grep -E "signature check:|reader:|FAIL|::error::" /tmp/signing.log | head -8 || true
+            exit 1
+          fi
           # A check that only reaches the job log is a check nobody here can read.
           if [ -f /tmp/artifacts.log ] && ! grep -q "artifact check: PASS" /tmp/artifacts.log; then
             echo "::error::a built artifact carries something it must not"
             grep "artifact check\|forbidden\|contains" /tmp/artifacts.log | head -5 || true
             exit 1
           fi
-          for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log; do
+          for f in /tmp/help.log /tmp/unit.log /tmp/lint.log /tmp/assemble.log /tmp/release.log /tmp/signing.log; do
             [ -f "$f" ] || continue
             if grep -qE "BUILD FAILED|FAILURE: Build failed" "$f"; then
               echo "::error::$f reported a failed build"

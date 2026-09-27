@@ -137,7 +137,9 @@ be quoted: until the boxes are ticked, the answer to "how do you know it works?"
 | Install the release APK (R8 minified) | The app starts and works as it does in debug. |
 | Open the app and watch logcat for its own tag | No debug logging from this app in a release build. |
 | Try to reach the app's screens without a network for an hour | Still usable offline. |
-| Check the APK with `apksigner verify` | Signed with the release key, not the debug one. |
+| Check the APK with `apksigner verify` | Signed with the release key, not the debug one. The same thing is checkable without the SDK: `bash ci/apk-signer-fingerprint.sh <apk>` prints the certificate's SHA-256, and it must equal the value in `ci/release-fingerprint.txt`. |
+| Install the release APK over an earlier build signed with the same key | Android replaces the app rather than refusing the install: this is what "the certificate is the app's identity" means in practice, and it is why a leaked key cannot be rotated. |
+| Install a build signed with a different key over it | Android refuses with an "app not installed" / signature-mismatch error. That refusal is the proof that the previous check was meaningful - if it installs, one of the two builds is debug-signed. |
 
 ## What a green run here means, and what it does not
 

@@ -79,39 +79,85 @@ jobs:
       - name: Lint
         run: ./gradlew lintRelease --no-daemon --stacktrace
 
-      - name: Materialise the signing key if the secrets are present
+      # The decision, before anything is built. On a version tag the four secrets must
+      # be there and the artifact is then checked against the recorded certificate; a
+      # manual run may deliberately go without them, because it cannot publish and a
+      # rehearsal that skips signing proves nothing about the signing path. What is
+      # never allowed is a half-configured setup, on any trigger.
+      - name: Decide whether this run may build a release artifact
         id: signing
         env:
           KEYSTORE_B64: ${{ secrets.MEMORYMAP_KEYSTORE_B64 }}
-        run: |
-          set -euo pipefail
-          if [ -z "${KEYSTORE_B64:-}" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::no MEMORYMAP_KEYSTORE_B64 secret; the artifact will be debug-signed"
-            exit 0
-          fi
-          echo "$KEYSTORE_B64" | base64 -d > /tmp/memorymap-release.jks
-          echo "present=true" >> "$GITHUB_OUTPUT"
-
-      - name: Build the signed release APK and bundle
-        env:
           KEYSTORE_PASSWORD: ${{ secrets.MEMORYMAP_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.MEMORYMAP_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.MEMORYMAP_KEY_PASSWORD }}
         run: |
+          set -uo pipefail
+          present=0
+          for value in "$KEYSTORE_B64" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            if [ -n "$value" ]; then present=$((present + 1)); fi
+          done
+          case "$present" in
+            4) state=complete ;;
+            0) state=none ;;
+            *) state=partial ;;
+          esac
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "secrets present: $present of 4 ($state)"
+          python3 ci/check-release-signing.py --ref "$GITHUB_REF" --signing "$state"
+
+      # Decodes the keystore, or generates a throwaway one for a rehearsal, and - the
+      # part that saves a five-minute build - refuses to continue if the certificate
+      # inside does not match the fingerprint this repository records.
+      - name: Put a keystore where the build can use it
+        env:
+          KEYSTORE_B64: ${{ secrets.MEMORYMAP_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.MEMORYMAP_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MEMORYMAP_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MEMORYMAP_KEY_PASSWORD }}
+        run: bash ci/prepare-signing-keystore.sh
+
+      - name: Build the signed release APK and bundle
+        run: |
           set -euo pipefail
-          ARGS=(--no-daemon --stacktrace)
-          if [ "${{ steps.signing.outputs.present }}" = "true" ]; then
-            ARGS+=(-PMEMORYMAP_KEYSTORE=/tmp/memorymap-release.jks)
-            [ -n "${KEYSTORE_PASSWORD:-}" ] && ARGS+=(-PMEMORYMAP_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD")
-            [ -n "${KEY_ALIAS:-}" ] && ARGS+=(-PMEMORYMAP_KEY_ALIAS="$KEY_ALIAS")
-            [ -n "${KEY_PASSWORD:-}" ] && ARGS+=(-PMEMORYMAP_KEY_PASSWORD="$KEY_PASSWORD")
-          fi
-          ./gradlew assembleRelease bundleRelease "${ARGS[@]}"
+          . /tmp/signing/signing.env
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace \
+            -PMEMORYMAP_KEYSTORE="$SIGNING_KEYSTORE" \
+            -PMEMORYMAP_KEYSTORE_PASSWORD="$SIGNING_STORE_PASSWORD" \
+            -PMEMORYMAP_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
+            -PMEMORYMAP_KEY_PASSWORD="$SIGNING_KEY_PASSWORD"
+
+      # Reading the certificate out of the artifact is the only way to know which key
+      # signed it: every configuration that can go wrong here goes wrong silently, and
+      # the artifact is the one place the answer is written down. The bundle is checked
+      # as well as the APK, because the bundle is what Play receives.
+      #
+      # The two artifacts are read by different tools. The bundle is a JAR and keytool
+      # reads its certificate; the APK has no JAR signature at all, because AGP drops v1
+      # once minSdk is 24 or above ("V1 signature is useless if minSdk is 24+") and this
+      # project's minSdk is 26, so apksigner - which lives in the build-tools installed
+      # above - reads the APK Signing Block instead. ci/apk-signer-fingerprint.sh picks,
+      # tries the other reader if the first finds nothing, and says which answered.
+      - name: Verify the artifacts carry the certificate they should
+        run: |
+          set -euo pipefail
+          # apksigner is looked up through the SDK path, which the setup step above also
+          # resolves this way.
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          . /tmp/signing/signing.env
+          for artifact in \
+            app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/bundle/release/app-release.aab; do
+            if [ "$SIGNING_MODE" = "release" ]; then
+              bash ci/verify-apk-signature.sh --release "$artifact"
+            else
+              bash ci/verify-apk-signature.sh --rehearsal "$artifact" "$SIGNING_EXPECTED_FINGERPRINT"
+            fi
+          done
 
       - name: Shred the key
         if: always()
-        run: rm -f /tmp/memorymap-release.jks
+        run: rm -rf /tmp/signing
 
       - name: Show what was built
         run: |
@@ -126,10 +172,23 @@ jobs:
       - name: Check the built artifacts carry nothing they must not
         run: python3 ci/check-artifacts.py
 
+      # The keystore was shredded a few steps above, so this reads the decision that was
+      # made before the build rather than the environment file it produced. Which of the
+      # two sentences is printed is the difference between "this artifact could be
+      # published" and "this artifact must never be published", so it is not left to the
+      # reader of the log to infer from the presence of a directory.
       - name: Say what a real run would publish
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          echo "Dry run: no release was created."
+          set -uo pipefail
+          if [ "${{ steps.signing.outputs.state }}" = "complete" ]; then
+            echo "Dry run with the real key: the artifacts carry the release certificate, and"
+            echo "no release was created because this run is not a tag push."
+          else
+            echo "Dry run with a throwaway key: the artifacts are NOT release-signed and"
+            echo "must not be distributed. No release was created."
+          fi
+          echo
           echo "A tag push would publish these assets under the tag name:"
           find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) \
             -printf "  %p %s bytes\n"
@@ -162,16 +221,16 @@ jobs:
             find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \)
           )
 
-          if [ "${{ steps.signing.outputs.present }}" != "true" ]; then
-            {
-              echo "> **This artifact is debug-signed, not release-signed.**"
-              echo "> It is installable for testing and must not be distributed."
-              echo
-              cat "$NOTES_FILE"
-            } > /tmp/notes.md
-            NOTES_FILE=/tmp/notes.md
-          fi
+          # No branch here for "the artifact is debug-signed": a tag with no signing
+          # secrets is refused before the build, and the certificate in the artifacts is
+          # verified before this step runs, so by the time a release is created it is
+          # signed with the key this repository records. The note that used to live here
+          # described an artifact nobody should have been able to produce.
+          cat "$NOTES_FILE" > /tmp/notes-final.md
+          printf '\n---\n\nSigned with the release certificate `%s`.\n' \
+            "$(grep -E '^SHA256=' ci/release-fingerprint.txt | tail -1 | cut -d= -f2)" \
+            >> /tmp/notes-final.md
 
           gh release create "$TAG" "${ASSETS[@]}" \
             --title "Memory Map ${TAG}" \
-            --notes-file "$NOTES_FILE"
+            --notes-file /tmp/notes-final.md
