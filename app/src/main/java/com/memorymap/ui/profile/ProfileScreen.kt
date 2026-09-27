@@ -101,6 +101,12 @@ fun ProfileScreen(
                 ) {
                     Text(stringResource(R.string.backup_action_open))
                 }
+                OutlinedButton(
+                    onClick = { navController.navigate(Routes.PRIVACY) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.privacy_action_open))
+                }
             }
         }
 

@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.memorymap.ui.backup.BackupScreen
 import com.memorymap.ui.diary.CalendarScreen
 import com.memorymap.ui.diary.DiaryHomeScreen
 import com.memorymap.ui.diary.EntryEditorScreen
@@ -18,8 +19,8 @@ import com.memorymap.ui.memories.MemoriesScreen
 import com.memorymap.ui.memories.MemoryDetailScreen
 import com.memorymap.ui.memories.MemoryEditorScreen
 import com.memorymap.ui.nearby.NearbyScreen
+import com.memorymap.ui.profile.PrivacyScreen
 import com.memorymap.ui.profile.ProfileScreen
-import com.memorymap.ui.backup.BackupScreen
 import com.memorymap.ui.search.PeopleScreen
 import com.memorymap.ui.search.PlacesScreen
 import com.memorymap.ui.search.SearchScreen
@@ -54,6 +55,7 @@ fun MemoryMapNavHost(
         composable(Routes.PEOPLE) { PeopleScreen(navController) }
         composable(Routes.PLACES) { PlacesScreen(navController) }
         composable(Routes.BACKUP) { BackupScreen() }
+        composable(Routes.PRIVACY) { PrivacyScreen() }
 
         composable(
             route = Routes.DAY,

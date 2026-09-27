@@ -84,6 +84,24 @@ def scan(path: pathlib.Path):
     return entries, control, found
 
 
+def native_libraries(path: pathlib.Path) -> list[str]:
+    """Every `lib/<abi>/*.so` in the artifact.
+
+    Google Play requires the native libraries an app ships to be 64-bit where they exist
+    and 16 KB page-size aligned, and asks for evidence rather than a promise. This project
+    declares no NDK, no `jniLibs` and no `externalNativeBuild`, so the honest expectation is
+    that the list is empty - and an expectation about a built artifact is worth checking on
+    the artifact. A library appearing here means a dependency started shipping one, and the
+    alignment question becomes real; it is a failure rather than a note so that the answer
+    is never "we assumed".
+    """
+    with zipfile.ZipFile(path) as archive:
+        return sorted(
+            name for name in archive.namelist()
+            if name.startswith("lib/") and name.endswith(".so")
+        )
+
+
 def main(argv: list[str]) -> int:
     paths = [pathlib.Path(argument) for argument in argv] or list(DEFAULT_ARTIFACTS)
     problems = []
@@ -104,9 +122,20 @@ def main(argv: list[str]) -> int:
                 f"scan is not reading the artifact rather than that the artifact is clean"
             )
             continue
+        libraries = native_libraries(path)
+        if libraries:
+            problems.append(
+                f"{path.name}: ships {len(libraries)} native library(ies) ({libraries[:3]}"
+                f"{' ...' if len(libraries) > 3 else ''}), so Google Play's 64-bit and 16 KB "
+                f"page-size requirements apply and are not checked here - verify them with "
+                f"`zipalign -c -P 16 -v 4` on the APK and on every ABI, then write the result "
+                f"down rather than leaving this check to fail"
+            )
+            continue
         if not found:
             size = path.stat().st_size
-            print(f"{path.name}: {entries} entries, {size:,} bytes, nothing forbidden")
+            print(f"{path.name}: {entries} entries, {size:,} bytes, nothing forbidden, "
+                  f"no native libraries")
 
     for problem in problems:
         print(problem)

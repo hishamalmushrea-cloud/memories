@@ -12,7 +12,7 @@ stage, and the last stage cannot be done from this repository alone.
 | | |
 |---|---|
 | Build | `assembleDebug`, `assembleRelease` and `bundleRelease` all pass in CI; debug APK ≈ 29.0 MB (sha256 `fdd5cc4a11731d03…` in the newest run), release APK ≈ 4.5 MB, AAB ≈ 9.9 MB |
-| Tests | 537 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, again with the oversized-attachment refusal and the failed-delete messages, and again this round: the five screens that had no test - auth, backup, diary periods, the location picker and search - plus the tile provider's key, zoom and credit) |
+| Tests | 544 unit tests, 0 failures, 0 errors, 0 skipped (the count moved with stages 4 and 6, again with the oversized-attachment refusal and the failed-delete messages, and again this round: the five screens that had no test - auth, backup, diary periods, the location picker and search - plus the tile provider's key, zoom and credit) |
 | Lint | 0 errors, 25 warnings, all of them version advice: 14 `GradleDependency`, 9 `NewerVersionAvailable`, 2 `AndroidGradlePluginVersion`. Stage 5 took this from 37; every remaining one waits on `compileSdk 37` or AGP 9 |
 | Guards | eighteen `check-*.py` files in `ci/` - sixteen that read the repository before Gradle, plus the artifact check that reads what was built and the signing check that reads the certificate inside it - and `check-security.sh`, `check-signing-tools.sh`, `verify-dependencies.sh` and `check-schema.py` against a live PostgreSQL |
 | Database | `supabase/schema.sql` applies twice and passes 24 checks on a real PostgreSQL (stage 1) |
@@ -66,7 +66,7 @@ backup extraction on Android 12 and later, where the platform reads
 | `AndroidGradlePluginVersion` | 2 | the wrapper and AGP are behind | moved to stage 5 with the rest of the version work, which took the total from 37 to 25 |
 
 **Verified by.** `lintDebug` warnings by rule in the run's report issue, and the
-unit tests still passing with nothing skipped (537 in the last full run).
+unit tests still passing with nothing skipped (544 in the last full run).
 
 **Deliberately not touched.** `Icons.Outlined.Article` in `QuickAddSheet.kt` is
 deprecated, and it is a *compiler* warning rather than a lint one. The obvious

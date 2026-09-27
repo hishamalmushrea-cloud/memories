@@ -250,6 +250,40 @@ def documented_names():
     return set(re.findall(r"MEMORYMAP_[A-Z0-9_]+", text))
 
 
+# The privacy policy is a document and a shipped asset. Two copies of one text drift
+# silently, and the copy that drifts is the one a reader of the app sees, so the pair is
+# compared byte for byte. The asset is what the app shows: `assets/` cannot hold a symlink
+# through a Gradle build, and a build task that copies the document would be a build that
+# can fail for a reason unrelated to the app.
+PRIVACY_PAIRS = (
+    ("docs/legal/PRIVACY_AR.md", "app/src/main/assets/privacy_ar.md", "Arabic"),
+    ("docs/legal/PRIVACY_EN.md", "app/src/main/assets/privacy_en.md", "English"),
+)
+
+
+def privacy_problems() -> list[str]:
+    """The shipped policy assets, compared with the documents they were copied from."""
+    problems = []
+    for document, asset, language in PRIVACY_PAIRS:
+        document_path = ROOT / document
+        asset_path = ROOT / asset
+        if not document_path.exists():
+            problems.append(f"{document}: missing, so the {language} policy cannot be checked")
+            continue
+        if not asset_path.exists():
+            problems.append(
+                f"{asset}: missing, so the app would show no {language} privacy policy while "
+                f"Google Play requires one inside the app"
+            )
+            continue
+        if document_path.read_bytes() != asset_path.read_bytes():
+            problems.append(
+                f"{asset} and {document} are no longer the same text, so the policy the app "
+                f"shows is not the policy this repository publishes"
+            )
+    return problems
+
+
 def main() -> int:
     problems = []
     checked = 0
@@ -340,15 +374,17 @@ def main() -> int:
             "publishes signed builds - this check is looking in the wrong place"
         )
 
+    problems += privacy_problems()
+
     for problem in problems:
         print(problem)
     if problems:
         print(f"document check: FAIL ({len(problems)} claims that are not true)")
         return 1
 
-    print(f"document check: PASS ({checked} numeric claims, {paths} paths and "
-          f"{len(secrets)} secret names, {len(variables)} repository variable names "
-          f"agree with the repository)")
+    print(f"document check: PASS ({checked} numeric claims, {paths} paths, "
+          f"{len(secrets)} secret names, {len(variables)} repository variable names and "
+          f"{len(PRIVACY_PAIRS)} privacy documents agree with the repository)")
     return 0
 
 

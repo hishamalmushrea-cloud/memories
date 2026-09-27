@@ -278,6 +278,10 @@
         <item quantity="other">%1$d سجل</item>
     </plurals>
 
+    <!-- Privacy policy, shown inside the app because the store requires it there too -->
+    <string name="privacy_action_open">سياسة الخصوصية</string>
+    <string name="privacy_unavailable">تعذّر فتح نص سياسة الخصوصية. النص الكامل موجود في ملف PRIVACY_AR.md داخل المستودع.</string>
+
     <!-- Phase 8: local backup -->
     <string name="backup_title">النسخ الاحتياطي</string>
     <string name="backup_intro">احفظ نسخة من ذكرياتك في مجلد تختاره أنت على جهازك، ثم استوردها متى شئت. النسخة ملفات عادية يمكن قراءتها، ولا تعتمد على أي خادم.</string>

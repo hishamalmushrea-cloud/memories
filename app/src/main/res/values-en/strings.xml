@@ -363,4 +363,7 @@
     <string name="camera_error_too_short">The recording was too short to keep</string>
     <string name="camera_error_capture">The photo could not be captured</string>
 
+    <!-- Privacy policy, shown inside the app because the store requires it there too -->
+    <string name="privacy_action_open">Privacy policy</string>
+    <string name="privacy_unavailable">The privacy policy text could not be opened. The full text is in the PRIVACY_EN.md file in the repository.</string>
 </resources>
