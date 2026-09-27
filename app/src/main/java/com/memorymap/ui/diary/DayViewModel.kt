@@ -9,6 +9,7 @@ import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.util.MmLog
+import com.memorymap.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -29,6 +30,8 @@ data class DayUiState(
     val diaryNote: String = "",
     val onThisDay: List<OnThisDayItem> = emptyList(),
     val isLoading: Boolean = true,
+    /** A message for an action that failed; null when the last one worked. */
+    val errorRes: Int? = null,
 )
 
 /**
@@ -54,6 +57,16 @@ class DayViewModel @Inject constructor(
     private val note = MutableStateFlow<String?>(null)
     private val memories = MutableStateFlow<List<OnThisDayItem>>(emptyList())
 
+    /**
+     * The last thing that went wrong, if anything.
+     *
+     * Held apart from the reads on purpose: `state` is rebuilt whenever the day or
+     * the account changes, and a message that lived inside it would be wiped by
+     * the refresh an edit triggers - the user would see the failure for a moment
+     * and then not.
+     */
+    private val message = MutableStateFlow<Int?>(null)
+
     val state: StateFlow<DayUiState> = authRepository.currentUserId
         .flatMapLatest { userId ->
             if (userId == null) {
@@ -63,13 +76,15 @@ class DayViewModel @Inject constructor(
                     diaryRepository.watchDay(userId, date),
                     note,
                     memories,
-                ) { entries, diaryNote, onThisDay ->
+                    message,
+                ) { entries, diaryNote, onThisDay, errorRes ->
                     DayUiState(
                         date = date,
                         entries = entries,
                         diaryNote = diaryNote.orEmpty(),
                         onThisDay = onThisDay,
                         isLoading = false,
+                        errorRes = errorRes,
                     )
                 }
             }
@@ -94,17 +109,30 @@ class DayViewModel @Inject constructor(
     fun saveDiaryNote(text: String) {
         viewModelScope.launch {
             note.value = text
+            message.value = null
             runCatching { currentUserId()?.let { diaryRepository.saveDiaryNote(it, date, text) } }
-                .onFailure { MmLog.e("Unable to save the diary note", it) }
+                .onFailure {
+                    MmLog.e("Unable to save the diary note", it)
+                    message.value = R.string.diary_error_save_note
+                }
         }
     }
 
     /** Deletes one event of the day, keeping the tombstone for the next sync. */
     fun deleteEntry(entryId: String) {
         viewModelScope.launch {
+            message.value = null
             runCatching { diaryRepository.deleteEntry(entryId) }
-                .onFailure { MmLog.e("Unable to delete the entry", it) }
+                .onFailure {
+                    MmLog.e("Unable to delete the entry", it)
+                    message.value = R.string.diary_error_delete_entry
+                }
         }
+    }
+
+    /** Called once a message has been shown. */
+    fun clearError() {
+        message.value = null
     }
 
     /** The account every write is scoped to; null before a session exists. */

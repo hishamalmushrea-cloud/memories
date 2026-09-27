@@ -10,6 +10,7 @@ import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.util.MmLog
+import com.memorymap.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +28,8 @@ data class MemoryDetailUiState(
     val attachments: List<MediaItem> = emptyList(),
     val isLoading: Boolean = true,
     val isDeleted: Boolean = false,
+    /** A message for a delete that failed; null when the last one worked. */
+    val errorRes: Int? = null,
 )
 
 /**
@@ -75,7 +78,10 @@ class MemoryDetailViewModel @Inject constructor(
             runCatching {
                 memoryRepository.delete(memoryId)
                 mediaRepository.removeAllFor(MediaOwner.MEMORY, memoryId)
-            }.onFailure { MmLog.e("Unable to delete the memory", it) }
+            }.onFailure {
+                MmLog.e("Unable to delete the memory", it)
+                _state.update { it.copy(errorRes = R.string.memory_error_delete) }
+            }
         }
     }
 
@@ -83,9 +89,15 @@ class MemoryDetailViewModel @Inject constructor(
     fun removeAttachment(item: MediaItem) {
         viewModelScope.launch {
             runCatching { mediaRepository.remove(item.id) }
-                .onFailure { MmLog.e("Unable to remove the attachment", it) }
+                .onFailure {
+                    MmLog.e("Unable to remove the attachment", it)
+                    _state.update { it.copy(errorRes = R.string.memory_error_media) }
+                }
         }
     }
+
+    /** Called once a message has been shown. */
+    fun clearError() = _state.update { it.copy(errorRes = null) }
 
     /** Exposes the id so the UI can open the editor for this memory. */
     val id: String get() = memoryId

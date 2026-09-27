@@ -8,6 +8,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- `ci/release-notes.sh` and `ci/check-release-notes.py`: the notes of a GitHub
+  release are cut from `CHANGELOG.md` by a script that is now run on every push,
+  so that the tag push is not the first time it executes. It found a real defect:
+  the original extraction matched a version anywhere in a heading, so tagging
+  `v0.1.0` against a changelog containing `## [10.1.0]` would have published that
+  section under the wrong tag. Versions are matched as whole headings now, and the
+  guard builds that case from the current version instead of waiting for it.
+
 - An attachment the cloud project cannot accept is refused **before** it is sent,
   with a reason. A video or a recording over the project's per-file limit is
   refused at the upload button with a message naming the limit in megabytes, a

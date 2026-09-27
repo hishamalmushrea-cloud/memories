@@ -41,6 +41,7 @@ import com.memorymap.R
 import com.memorymap.domain.model.DailyEntry
 import com.memorymap.domain.usecase.DiaryTime
 import com.memorymap.navigation.Routes
+import com.memorymap.ui.common.FailureBanner
 import java.time.format.DateTimeFormatter
 
 /**
@@ -63,6 +64,11 @@ fun DayScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        FailureBanner(
+            messageRes = state.errorRes,
+            onDismiss = viewModel::clearError,
+        )
+
         Text(
             text = DiaryTime.dayHeader(state.date, locale),
             style = MaterialTheme.typography.headlineSmall,

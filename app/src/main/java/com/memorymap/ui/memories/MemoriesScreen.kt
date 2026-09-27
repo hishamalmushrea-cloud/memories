@@ -56,6 +56,7 @@ import com.memorymap.navigation.Routes
 import com.memorymap.ui.common.emotionLabel
 import com.memorymap.ui.common.formatLong
 import com.memorymap.ui.common.rememberLocale
+import com.memorymap.ui.common.FailureBanner
 import java.io.File
 
 /**
@@ -72,6 +73,11 @@ fun MemoriesScreen(
     var pendingDelete by remember { mutableStateOf<Memory?>(null) }
 
     Column(Modifier.fillMaxSize()) {
+        FailureBanner(
+            messageRes = state.errorRes,
+            onDismiss = viewModel::clearError,
+        )
+
         OutlinedTextField(
             value = state.query,
             onValueChange = viewModel::onQueryChange,

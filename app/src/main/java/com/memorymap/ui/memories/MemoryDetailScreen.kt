@@ -58,6 +58,7 @@ import com.memorymap.ui.common.rememberLocale
 import com.memorymap.ui.common.visibilityLabel
 import com.memorymap.util.MediaImporter
 import com.memorymap.ui.common.VideoPlayer
+import com.memorymap.ui.common.FailureBanner
 import java.io.File
 
 /**
@@ -104,122 +105,128 @@ fun MemoryDetailScreen(
     val audioItems = state.attachments.filter { it.type == MediaType.AUDIO }
     val videos = state.attachments.filter { it.type == MediaType.VIDEO }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = stringResource(R.string.action_cancel),
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = { navController.navigate(Routes.memoryEditor(memory.id)) }) {
-                    Icon(
-                        Icons.Outlined.Edit,
-                        contentDescription = stringResource(R.string.action_edit),
-                    )
-                }
-                IconButton(onClick = { confirmDelete = true }) {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = stringResource(R.string.action_delete),
-                    )
-                }
-            }
-        }
-
-        item {
-            Column {
-                Text(memory.title, style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(memory.memoryDate.formatLong(locale)) },
-                    )
-                    AssistChip(onClick = {}, label = { Text(emotionLabel(memory.emotion)) })
-                    AssistChip(onClick = {}, label = { Text(visibilityLabel(memory.visibility)) })
-                }
-                if (!memory.placeName.isNullOrBlank()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = memory.placeName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        if (memory.text.isNotBlank()) {
-            item { Text(memory.text, style = MaterialTheme.typography.bodyLarge) }
-        }
-
-        if (photos.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.memory_section_photos, photos.size)) }
-            items(photos, key = { "photo-${it.id}" }) { photo ->
-                AsyncImage(
-                    model = File(photo.uri),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium),
-                )
-            }
-        }
-
-        if (audioItems.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.memory_section_audio, audioItems.size)) }
-            items(audioItems, key = { "audio-${it.id}" }) { item ->
-                AudioRow(
-                    item = item,
-                    isPlaying = audio.isPlaying && audio.currentPath == item.uri,
-                    positionMs = if (audio.currentPath == item.uri) audio.positionMs else 0L,
-                    onPlayPause = { audio.play(item.uri) },
-                    onDelete = { viewModel.removeAttachment(item) },
-                )
-            }
-        }
-
-        if (videos.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.memory_section_videos, videos.size)) }
-            items(videos, key = { "video-${it.id}" }) { item ->
-                VideoCard(
-                    item = item,
-                    onDelete = { viewModel.removeAttachment(item) },
-                )
-            }
-        }
-    }
-
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.memory_delete_title)) },
-            text = { Text(stringResource(R.string.memory_delete_body, memory.title)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.delete()
-                        confirmDelete = false
-                    },
-                ) { Text(stringResource(R.string.action_delete)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
+    Column(Modifier.fillMaxSize()) {
+        FailureBanner(
+            messageRes = state.errorRes,
+            onDismiss = viewModel::clearError,
         )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = stringResource(R.string.action_cancel),
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { navController.navigate(Routes.memoryEditor(memory.id)) }) {
+                        Icon(
+                            Icons.Outlined.Edit,
+                            contentDescription = stringResource(R.string.action_edit),
+                        )
+                    }
+                    IconButton(onClick = { confirmDelete = true }) {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = stringResource(R.string.action_delete),
+                        )
+                    }
+                }
+            }
+
+            item {
+                Column {
+                    Text(memory.title, style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(memory.memoryDate.formatLong(locale)) },
+                        )
+                        AssistChip(onClick = {}, label = { Text(emotionLabel(memory.emotion)) })
+                        AssistChip(onClick = {}, label = { Text(visibilityLabel(memory.visibility)) })
+                    }
+                    if (!memory.placeName.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = memory.placeName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            if (memory.text.isNotBlank()) {
+                item { Text(memory.text, style = MaterialTheme.typography.bodyLarge) }
+            }
+
+            if (photos.isNotEmpty()) {
+                item { SectionTitle(stringResource(R.string.memory_section_photos, photos.size)) }
+                items(photos, key = { "photo-${it.id}" }) { photo ->
+                    AsyncImage(
+                        model = File(photo.uri),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium),
+                    )
+                }
+            }
+
+            if (audioItems.isNotEmpty()) {
+                item { SectionTitle(stringResource(R.string.memory_section_audio, audioItems.size)) }
+                items(audioItems, key = { "audio-${it.id}" }) { item ->
+                    AudioRow(
+                        item = item,
+                        isPlaying = audio.isPlaying && audio.currentPath == item.uri,
+                        positionMs = if (audio.currentPath == item.uri) audio.positionMs else 0L,
+                        onPlayPause = { audio.play(item.uri) },
+                        onDelete = { viewModel.removeAttachment(item) },
+                    )
+                }
+            }
+
+            if (videos.isNotEmpty()) {
+                item { SectionTitle(stringResource(R.string.memory_section_videos, videos.size)) }
+                items(videos, key = { "video-${it.id}" }) { item ->
+                    VideoCard(
+                        item = item,
+                        onDelete = { viewModel.removeAttachment(item) },
+                    )
+                }
+            }
+        }
+
+        if (confirmDelete) {
+            AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text(stringResource(R.string.memory_delete_title)) },
+                text = { Text(stringResource(R.string.memory_delete_body, memory.title)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.delete()
+                            confirmDelete = false
+                        },
+                    ) { Text(stringResource(R.string.action_delete)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmDelete = false }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
     }
 }
 
@@ -306,7 +313,8 @@ private fun VideoCard(item: MediaItem, onDelete: () -> Unit) {
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
                     .clip(MaterialTheme.shapes.medium),
-            )
+                )
+            }
         }
     }
 }

@@ -142,6 +142,9 @@
     <string name="memory_action_discard">Discard</string>
     <string name="memory_error_title">Give the memory a title</string>
     <string name="memory_error_media">That file could not be added</string>
+    <string name="diary_error_save_note">Today\'s note could not be saved.</string>
+    <string name="diary_error_delete_entry">The event could not be deleted. Nothing was removed.</string>
+    <string name="action_dismiss">Dismiss the message</string>
     <string name="memory_error_reference">That name could not be added. Try again.</string>
     <string name="memory_error_delete">The memory could not be deleted. Nothing was removed.</string>
     <string name="memory_error_attachment_too_large">This file is over what your project accepts: %1$d MB for one file. It stays on this device.</string>

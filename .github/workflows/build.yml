@@ -93,6 +93,9 @@ jobs:
       - name: Check the workflows agree with each other
         run: python3 ci/check-workflows.py
 
+      - name: Check the release notes can be built for this version
+        run: python3 ci/check-release-notes.py
+
       - name: Check the store listing stays inside the store limits
         run: python3 ci/check-store-metadata.py
 

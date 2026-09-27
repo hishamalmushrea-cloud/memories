@@ -9,6 +9,7 @@ import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.util.MmLog
+import com.memorymap.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +28,8 @@ data class MemoriesUiState(
     val summary: Map<String, MediaSummary> = emptyMap(),
     val query: String = "",
     val isLoading: Boolean = true,
+    /** A message for a delete that failed; null when the list is healthy. */
+    val errorRes: Int? = null,
 )
 
 /**
@@ -77,9 +80,15 @@ class MemoriesViewModel @Inject constructor(
             runCatching {
                 memoryRepository.delete(memoryId)
                 mediaRepository.removeAllFor(MediaOwner.MEMORY, memoryId)
-            }.onFailure { MmLog.e("Unable to delete the memory", it) }
+            }.onFailure {
+                MmLog.e("Unable to delete the memory", it)
+                _state.update { it.copy(errorRes = R.string.memory_error_delete) }
+            }
         }
     }
+
+    /** Called once a message has been shown. */
+    fun clearError() = _state.update { it.copy(errorRes = null) }
 
     /** Case-insensitive match over title, body and place, mirroring the DAO. */
     private fun Memory.matches(term: String): Boolean {

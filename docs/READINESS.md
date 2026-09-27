@@ -332,6 +332,30 @@ in the day view. Each needs the same treatment the editor already had: a field i
 state and one line in the screen. `docs/MANUAL_QA.md` is where the behaviour of each
 one is checked by hand.
 
+## Stage 11 — the release notes path  (done)
+
+**Why.** `release.yml` builds a GitHub release's notes by cutting the version's
+section out of `CHANGELOG.md`. That code runs on a version tag and nowhere else, so
+every line of it would be executed for the first time at the one moment there is
+nothing to compare against: a published release with empty notes or somebody else's.
+
+**What was done.** The extraction moved into `ci/release-notes.sh` - so there is one
+implementation rather than one in the workflow - and `ci/check-release-notes.py` runs
+it on every push: the version in `app/build.gradle.kts` must have a section, that
+section must be what comes out (and only that section), a tag with no section must
+fail rather than succeed empty, the section must not run on into the next one or into
+the file's link definitions, and `release.yml` must call the script.
+
+**What was found.** The original `awk` asked whether a line contained the version
+anywhere, so a tag of `v0.1.0` would also have matched a section headed `## [10.1.0]`
+and published it under the wrong tag. The match is on the whole bracketed heading now,
+and the guard constructs that case from the real version rather than waiting for it -
+the shadow version is the current one with a digit in front, which always contains it.
+
+**Proof.** Four faults injected one at a time: the substring match, the link
+definitions left in, a missing section exiting 0, and the workflow keeping its own
+copy. Each was caught; the files as they are pass.
+
 ## Open items, in one place
 
 1. **The schema has never been applied to a hosted Supabase project.** It passes the

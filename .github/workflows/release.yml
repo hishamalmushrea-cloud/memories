@@ -135,20 +135,17 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           # The section of the changelog for this version, not the whole file: the
           # notes of a release are read by someone deciding whether to install it,
-          # and the first version's notes are not that. Falls back to the whole
-          # changelog if the tag has no matching section.
+          # and the first version's notes are not that. The extraction lives in
+          # `ci/release-notes.sh` and is run on every push by
+          # `ci/check-release-notes.py`, so this step is not the first execution of
+          # it; the whole changelog is the fallback when a tag has no section.
           NOTES_FILE=/dev/null
           if [ -f CHANGELOG.md ]; then
-            VERSION="${TAG#v}"
-            awk -v want="$VERSION" '
-              /^## / { printing = index($0, want) > 0 && index($0, "Unreleased") == 0 }
-              printing { print }
-            ' CHANGELOG.md > /tmp/notes-section.md
-            if [ -s /tmp/notes-section.md ]; then
+            if bash ci/release-notes.sh "$TAG" CHANGELOG.md > /tmp/notes-section.md; then
               NOTES_FILE=/tmp/notes-section.md
             else
               NOTES_FILE=CHANGELOG.md
-              echo "::warning::no changelog section for $VERSION; publishing the whole file"
+              echo "::warning::no changelog section for ${TAG#v}; publishing the whole file"
             fi
           fi
 
