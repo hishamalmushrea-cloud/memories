@@ -45,7 +45,9 @@ class ClientSecurityTest {
     fun `no permission is declared that a feature does not use`() {
         // Location is on demand only, so there is deliberately no background
         // variant; adding one would be a tracking capability the app does not
-        // have a use for.
+        // have a use for. POST_NOTIFICATIONS is here because the daily reminder
+        // posts one local notification - a feature that uses it - and not for
+        // any push service; there is none.
         val declared = Regex("""uses-permission android:name="([^"]+)"""")
             .findAll(manifest).map { it.groupValues[1] }.toSet()
 
@@ -57,6 +59,7 @@ class ClientSecurityTest {
                 "android.permission.ACCESS_COARSE_LOCATION",
                 "android.permission.CAMERA",
                 "android.permission.RECORD_AUDIO",
+                "android.permission.POST_NOTIFICATIONS",
             ),
             declared,
         )
