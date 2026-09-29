@@ -65,6 +65,16 @@ jobs:
             echo "::warning::build-tools;36.0.0 unavailable, AGP will fetch its own"
           "$MANAGER" --list_installed || true
 
+      # The first gate, before anything is built or signed. It aggregates the static
+      # release guards and adds the fingerprint-format check, so a tag pushed against a
+      # repository that is not ready - no changelog section for the version, a malformed
+      # certificate fingerprint, a credential the docs never named - fails here in seconds
+      # with the list of what is missing, rather than four minutes into a signed build.
+      # The signing and tile *decisions* that need the secret values still run later, at
+      # the moment this workflow has them; this is the readiness of the repository itself.
+      - name: Check this repository is ready to release
+        run: python3 ci/check-release-ready.py
+
       - name: Check the security and privacy guarantees
         run: bash ci/check-security.sh
 

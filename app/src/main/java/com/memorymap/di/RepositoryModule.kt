@@ -14,7 +14,10 @@ import com.memorymap.data.repository.BackupRepositoryImpl
 import com.memorymap.data.repository.DiaryRepositoryImpl
 import com.memorymap.data.repository.SupabaseAuthRepository
 import com.memorymap.data.local.LocalMediaFileStore
+import com.memorymap.data.local.LockSettings
 import com.memorymap.data.local.MediaFileStore
+import com.memorymap.data.local.SharedPreferencesLockSettings
+import com.memorymap.data.repository.AppLockRepositoryImpl
 import com.memorymap.data.repository.MediaRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
@@ -23,6 +26,7 @@ import com.memorymap.data.repository.SearchRepositoryImpl
 import com.memorymap.data.repository.SyncRepositoryImpl
 import com.memorymap.data.repository.UserRepositoryImpl
 import com.memorymap.domain.map.MapProvider
+import com.memorymap.domain.repository.AppLockRepository
 import com.memorymap.domain.repository.AuthRepository
 import com.memorymap.domain.repository.BackupRepository
 import com.memorymap.domain.repository.DiaryRepository
@@ -134,6 +138,19 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: SupabaseAuthRepository): AuthRepository
+
+    /** The front-door lock, behind its interface so the gate depends on the domain. */
+    @Binds
+    @Singleton
+    abstract fun bindAppLockRepository(impl: AppLockRepositoryImpl): AppLockRepository
+
+    /**
+     * The one persistent fact the lock keeps - is it on? - behind a port, so the
+     * state machine is testable with an in-memory fake and no Android.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindLockSettings(impl: SharedPreferencesLockSettings): LockSettings
 
     companion object {
 

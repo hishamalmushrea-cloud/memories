@@ -161,6 +161,25 @@ jobs:
       - name: Check the string resources before aapt2 has to
         run: python3 ci/check-strings.py
 
+      # The artifact check reads what a person installs, and it is the one check whose
+      # verdict - "this build carries no key" - rests entirely on its own scanner working.
+      # That scanner once read a real bundle's native libraries as "none" because it
+      # looked at the archive root only, and the run that caught it was the release run.
+      # This proves the scanner against archives it builds itself, in a second, before
+      # Gradle starts: a scanner that cannot find what it is handed must fail here, not
+      # quietly report a clean artifact ten minutes of build later.
+      - name: Check the artifact scanner can find what it is given
+        run: python3 ci/check-artifacts.py --self-test
+
+      # The release pre-flight aggregates the static release guards into one verdict and
+      # adds the fingerprint-format check nothing else does ahead of time. The full verdict
+      # is for the owner and for release.yml; here only the self-test runs, so the
+      # checker's own logic - the version reader, the fingerprint format, the credential
+      # cross-reference - is proven on every push rather than first at the moment a tag is
+      # cut. The four guards it aggregates already run as their own steps above.
+      - name: Check the release pre-flight against fixtures
+        run: python3 ci/check-release-ready.py --self-test
+
       # The migration is the one part of this project that no Android build looks
       # at: it is SQL, and the only thing that read it before was a test reading it
       # as text. Here it is applied - twice - to a real PostgreSQL, and then driven

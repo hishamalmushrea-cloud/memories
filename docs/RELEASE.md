@@ -120,9 +120,20 @@ debug-signed artifact.
 - [ ] `python3 ci/check-keystore-leaks.py` passes. It reads the Git index, not the
       working tree, so an untracked local keystore is not noise - and a file added
       with `git add -f` is still a failure. `bash ci/check-security.sh` runs it.
+- [ ] `python3 ci/check-release-ready.py` says `release-ready: PASS`. This is the
+      one command that answers "may I tag?" before the tag is pushed. It runs the
+      static release guards (`check-release-notes`, `check-store-metadata`,
+      `check-tile-provider`, `check-release-signing`) as subprocesses, adds the
+      certificate-fingerprint format check, and prints the secrets and variables to
+      create - so a missing changelog section, a malformed `ci/release-fingerprint.txt`,
+      or a credential the docs never named is caught here in seconds rather than four
+      minutes into a signed build. It cannot read secret *values* (those live in
+      GitHub); `release.yml` asks the signing and tile decisions at the moment it has
+      them. Run it with `--self-test` to prove the checker itself.
 
 Pushing a `v*` tag runs all of the above in `.github/workflows/release.yml`
-before it publishes, so the checklist is enforced and not merely written down.
+before it publishes, so the checklist is enforced and not merely written down -
+`check-release-ready.py` is its first gate.
 
 ## 3b) Rehearse the release without publishing
 

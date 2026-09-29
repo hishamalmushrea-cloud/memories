@@ -14,6 +14,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,7 +39,9 @@ import com.memorymap.ui.common.emotionLabel
 import com.memorymap.ui.common.formatDateTime
 import com.memorymap.ui.common.rememberLocale
 import com.memorymap.domain.model.LifeStats
+import com.memorymap.domain.model.LockState
 import com.memorymap.navigation.Routes
+import com.memorymap.ui.lock.LockViewModel
 
 /**
  * Account header, the life statistics, and the session actions.
@@ -50,8 +53,10 @@ import com.memorymap.navigation.Routes
 fun ProfileScreen(
     navController: NavHostController,
     viewModel: ProfileViewModel = hiltViewModel(),
+    lockViewModel: LockViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val lockState by lockViewModel.lockState.collectAsStateWithLifecycle()
     val signedIn = state.authState as? AuthState.SignedIn
 
     Column(
@@ -107,6 +112,38 @@ fun ProfileScreen(
                 ) {
                     Text(stringResource(R.string.privacy_action_open))
                 }
+            }
+        }
+
+        // The front-door lock. It sits with the other privacy controls because
+        // that is what it is: the per-record visibility decides who a synced
+        // record is shared with, while this decides whether the app opens at all
+        // on a phone that is already unlocked.
+        Card(Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.lock_setting_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.lock_setting_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = lockState != LockState.Disabled,
+                    onCheckedChange = lockViewModel::setEnabled,
+                )
             }
         }
 

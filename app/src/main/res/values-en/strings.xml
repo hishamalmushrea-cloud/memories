@@ -366,4 +366,11 @@
     <!-- Privacy policy, shown inside the app because the store requires it there too -->
     <string name="privacy_action_open">Privacy policy</string>
     <string name="privacy_unavailable">The privacy policy text could not be opened. The full text is in the PRIVACY_EN.md file in the repository.</string>
+
+    <!-- App lock: the front door, asked on open and after the app left the foreground -->
+    <string name="lock_screen_title">App locked</string>
+    <string name="lock_screen_message">Confirm your identity to continue</string>
+    <string name="lock_action_unlock">Unlock</string>
+    <string name="lock_setting_title">App lock</string>
+    <string name="lock_setting_summary">Require your fingerprint or device code on open, and after returning from the background</string>
 </resources>

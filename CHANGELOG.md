@@ -8,6 +8,46 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- **An app lock - a front door for the whole archive.** The app already kept every
+  other privacy promise (no tracking, no ads, row-level security on the server,
+  per-record visibility), and all of it was undone the moment someone else picked
+  up the phone and tapped the icon: there was no lock on the door itself. The
+  profile screen now has an "App lock" switch; once on, the app asks the person to
+  prove it is them on a cold start and again every time it comes back from the
+  background. The credential is the **platform's**, not ours - the app launches the
+  system's own confirm-it-is-you screen (`KeyguardManager`, no new dependency) and
+  is told only whether it passed, so it never sees, stores or could leak a
+  fingerprint or PIN. A device with no secure lock set has nothing to confirm
+  against, so the user is let in rather than trapped. Whether the lock is *on* is
+  persisted; whether it is *passed* lives only for the time the app is open. The
+  state machine (`AppLockRepositoryImpl`) is plain code with the persistence
+  behind a `LockSettings` port, so `AppLockRepositoryTest` (8 tests) drives every
+  transition on the JVM with no Android - including the two that matter: turning
+  the lock off never leaves it "unlocked", and turning it back on never inherits a
+  pass from before.
+
+- `ci/check-release-ready.py`: one command that answers "may I push a tag?". The release
+  path was guarded but the guards were spread across five scripts and two workflows, and
+  nothing told the owner whether the repository was ready before the tag was pushed and a
+  build failed four minutes in. It runs the static release guards as subprocesses (each
+  keeps its own verdict and self-test - it aggregates, it does not duplicate), adds the one
+  condition nothing else checked ahead of time - that `ci/release-fingerprint.txt` records a
+  well-formed `SHA256=<64 hex>` fingerprint, which `verify-apk-signature.sh` reads on the
+  release run and would otherwise fail *after* a signed build - and prints the secrets and
+  variables the owner must create, cross-referenced with `docs/RELEASE.md` so the list
+  cannot drift. `release.yml` runs it as the first gate, before anything is built;
+  `build.yml` runs its self-test on every push. The self-test is proven by mutation:
+  dropping the fingerprint format, keeping `GITHUB_TOKEN`, or truncating a digit-ending
+  secret name (`..._B64`) each makes it fail.
+
+- The artifact check now proves its own scanner before it trusts a verdict. `ci/check-artifacts.py`
+  grew a `--self-test` that builds archives in memory - a clean APK, the same libraries under
+  a bundle's `base/lib/`, a leaked key, a private key, a key split across the read window, an
+  archive with no trace of the app - and asserts the scanner answers each correctly. It exists
+  because the library finder once read a real bundle's native libraries as "none" and the run
+  that caught it was the release run; `docs/READINESS.md` had described this self-test before
+  it existed. Reverting the finder to its root-only form makes the self-test fail by name.
+
 - **The privacy policy is readable inside the app.** Google Play requires the policy to be
   reachable from the app itself as well as from the store listing, and this project had it
   only as documents in `docs/legal/`. The account screen now opens it in either language:

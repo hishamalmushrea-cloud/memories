@@ -407,4 +407,11 @@
     <string name="camera_error_too_short">التسجيل أقصر من أن يُحفظ</string>
     <string name="camera_error_capture">تعذّر التقاط الصورة</string>
 
+    <!-- قفل التطبيق: الباب الأمامي، يُطلب عند الفتح وبعد مغادرة التطبيق للخلفية -->
+    <string name="lock_screen_title">التطبيق مقفل</string>
+    <string name="lock_screen_message">أكّد هويتك للمتابعة</string>
+    <string name="lock_action_unlock">فتح</string>
+    <string name="lock_setting_title">قفل التطبيق</string>
+    <string name="lock_setting_summary">اطلب بصمة أو رمز الجهاز عند الفتح، وبعد العودة من الخلفية</string>
+
 </resources>

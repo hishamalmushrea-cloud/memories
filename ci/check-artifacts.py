@@ -16,19 +16,33 @@ application id, which is in the manifest and in every generated references file)
 control is missing, the scan is broken and the run fails, rather than reporting a clean
 artifact it never actually read.
 
+The third half is the proof that this scanner works at all, and it does not need an
+artifact to exist. `--self-test` builds archives whose contents are known - a forbidden
+key at a known offset, a key that straddles the read window, an archive with no trace of
+the app, a library at each of the two paths a build uses - and runs the same functions
+the real check runs. It exists because the library finder was written from an assumption
+about where a bundle keeps its libraries, was shipped, and reported the bundle as having
+none; the run that caught it was the release run. A finding is only as good as the
+scanner that made it, so the scanner is now given something to find before it is trusted
+to say that it found nothing.
+
 Run it after the artifacts are built:
 
     python3 ci/check-artifacts.py [path ...]
 
 With no arguments it checks the debug APK, the release APK and the release bundle where
 Gradle puts them. A path that does not exist is a failure: this check exists to look at
-what was built, and silently skipping a missing file is how a check stops checking.
+what was built, and silently skipping a missing file is how a check stops checking. The
+self-test runs first, always: a scanner that cannot find what it was handed must not be
+allowed to describe an artifact it did read.
 """
+import os
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -53,6 +67,11 @@ FORBIDDEN = {
 # is in the manifest, in the resources table and in the generated BuildConfig references,
 # so a build that does not contain it is not this app.
 CONTROL = "com.memorymap"
+
+# A native library, wherever the archive keeps it: `lib/<abi>/name.so` in an APK and
+# `base/lib/<abi>/name.so` in a bundle. Named rather than inlined so the self-test asks
+# the same question about the same pattern the check uses.
+NATIVE_LIBRARY = re.compile(r"(?:.*/)?lib/[^/]+/[^/]+\.so")
 
 TEXT_CHUNK = 8 * 1024 * 1024
 
@@ -103,8 +122,7 @@ def native_libraries(path: pathlib.Path) -> list[str]:
     # there is no such thing as an unchecked assumption about a built artifact.
     with zipfile.ZipFile(path) as archive:
         return sorted(
-            name for name in archive.namelist()
-            if re.fullmatch(r"(?:.*/)?lib/[^/]+/[^/]+\.so", name)
+            name for name in archive.namelist() if NATIVE_LIBRARY.fullmatch(name)
         )
 
 
@@ -119,7 +137,6 @@ def zipalign() -> str | None:
     found = shutil.which("zipalign")
     if found:
         return found
-    import os
 
     for root in (os.environ.get("ANDROID_HOME", ""), os.environ.get("ANDROID_SDK_ROOT", ""),
                  "/usr/local/lib/android/sdk", str(pathlib.Path.home() / "Android/Sdk")):
@@ -173,8 +190,142 @@ def alignment_report(path: pathlib.Path, libraries: list[str]) -> str | None:
     )
 
 
+def self_test() -> tuple[bool, int]:
+    """Run the scanner against archives whose contents are already known.
+
+    A finding is only as good as the scanner that made it. This builds, in memory, the
+    exact situations the check claims to catch - a clean build, a leaked key, a private
+    key, a bundle that keeps its libraries under `base/lib/`, a key that straddles the
+    read window, an archive with no trace of the app - and asserts the functions answer
+    each one the way the report says they do. It needs no Android SDK and no built APK,
+    so it can run before Gradle and it can run here.
+
+    The bundle case is the one that earned this function: the library finder was written
+    from an assumption about where a bundle keeps its `.so` files, was shipped, and read
+    a real bundle as having none. Nothing in the source could see that; only feeding the
+    finder a bundle can.
+    """
+    cases = 0
+    failures: list[str] = []
+
+    def check(condition: bool, description: str) -> None:
+        nonlocal cases
+        cases += 1
+        if not condition:
+            failures.append(description)
+
+    def write(directory: pathlib.Path, name: str, members: dict[str, bytes]) -> pathlib.Path:
+        path = directory / name
+        with zipfile.ZipFile(path, "w") as archive:
+            for entry, body in members.items():
+                archive.writestr(entry, body)
+        return path
+
+    abis = ("arm64-v8a", "armeabi-v7a", "x86_64")
+    libraries = {f"lib{index}.so": b"\x7fELF" for index in range(4)}
+
+    with tempfile.TemporaryDirectory() as temporary:
+        directory = pathlib.Path(temporary)
+
+        # 1 - a clean APK: the control is present, nothing forbidden, twelve libraries at
+        # the APK path.
+        clean = write(directory, "clean.apk", {
+            "AndroidManifest.xml": b"<manifest package=\"com.memorymap\"/>",
+            "resources.arsc": b"com.memorymap",
+            **{f"lib/{abi}/{name}": body
+               for abi in abis for name, body in libraries.items()},
+        })
+        entries, control, found = scan(clean)
+        check(control is True, "a clean APK must show its application id to the control")
+        check(not found, "a clean APK must not be reported as carrying a key")
+        found_libs = native_libraries(clean)
+        check(len(found_libs) == len(abis) * len(libraries),
+              f"the APK's {len(abis) * len(libraries)} libraries were not all found "
+              f"({len(found_libs)} were)")
+        check(all(name.startswith("lib/") for name in found_libs),
+              "an APK library was reported at a path it is not kept at")
+
+        # 2 - the same libraries under `base/lib/`, which is where a bundle keeps them.
+        # This is the case that was read as "none" before.
+        bundle = write(directory, "clean.aab", {
+            "base/manifest/AndroidManifest.xml": b"<manifest package=\"com.memorymap\"/>",
+            "base/resources.pb": b"com.memorymap",
+            **{f"base/lib/{abi}/{name}": body
+               for abi in abis for name, body in libraries.items()},
+        })
+        bundle_libs = native_libraries(bundle)
+        check(len(bundle_libs) == len(abis) * len(libraries),
+              f"the bundle's {len(abis) * len(libraries)} libraries under base/lib/ were "
+              f"not all found ({len(bundle_libs)} were) - the finder is reading the root only")
+        check(all(name.startswith("base/lib/") for name in bundle_libs),
+              "a bundle library was reported at a path it is not kept at")
+
+        # 3 - a leaked service-role key is found, and the file that carries it is named.
+        leaked = write(directory, "leaked.apk", {
+            "AndroidManifest.xml": b"<manifest package=\"com.memorymap\"/>",
+            "assets/config.json": b'{"key":"eyJ...service_role..."}',
+        })
+        _, _, found = scan(leaked)
+        check(any(pattern == "service_role" for _, pattern, _ in found),
+              "a service_role key in an asset was not found")
+        check(any(entry == "assets/config.json" for entry, _, _ in found),
+              "the file carrying the key was not named")
+
+        # 4 - a PEM private key is found. The marker is assembled from pieces so this
+        # file does not contain the literal: `ci/check-keystore-leaks.py` reads every
+        # tracked file, this one included, and fails on a private-key marker wherever it
+        # sees one - the same reason that checker builds its own markers from pieces. The
+        # archive this writes still holds the whole marker, so the scanner is still asked
+        # to find the real thing; only the source stays clean.
+        keyed = write(directory, "keyed.apk", {
+            "AndroidManifest.xml": b"<manifest package=\"com.memorymap\"/>",
+            "res/raw/signing.pem": b"-----BEGIN " + b"PRIVATE KEY" + b"-----\nMIIE...\n",
+        })
+        _, _, found = scan(keyed)
+        check(any(pattern == "BEGIN PRIVATE KEY" for _, pattern, _ in found),
+              "a PEM private key was not found")
+
+        # 5 - a key that straddles the read window is still found, because the chunks
+        # overlap. Placed so it starts 6 bytes before the boundary and ends 6 after.
+        straddling = write(directory, "straddle.apk", {
+            "AndroidManifest.xml": b"<manifest package=\"com.memorymap\"/>",
+            "assets/big.bin": (b"x" * (TEXT_CHUNK - 6) + b"service_role" + b"y" * 32),
+        })
+        _, _, found = scan(straddling)
+        check(any(pattern == "service_role" for _, pattern, _ in found),
+              "a key split across the read window was not found - the chunks do not overlap")
+
+        # 6 - an archive with no trace of the app reports a broken scan, not a clean one.
+        foreign = write(directory, "foreign.apk", {"notes.txt": b"nothing to see here"})
+        _, control, found = scan(foreign)
+        check(control is False,
+              "an archive with no application id must not satisfy the control")
+        check(not found,
+              "an archive with no key must not be reported as carrying one")
+
+    return not failures, cases
+
+
 def main(argv: list[str]) -> int:
-    paths = [pathlib.Path(argument) for argument in argv] or list(DEFAULT_ARTIFACTS)
+    # `--self-test` runs the scanner against archives it builds itself and stops there;
+    # the workflow does this before Gradle so a broken scanner fails in a second rather
+    # than after a ten-minute build. Without the flag the self-test still runs first,
+    # because a scanner that cannot find what it was handed must not be trusted to say
+    # that an artifact it did read is clean.
+    self_test_only = "--self-test" in argv
+    arguments = [argument for argument in argv if argument != "--self-test"]
+
+    proved, cases = self_test()
+    if not proved:
+        print("artifact self-test: FAIL")
+        return 1
+    if self_test_only:
+        print(f"artifact self-test: PASS ({cases} cases: a clean APK, a bundle that keeps "
+              f"its libraries under base/lib/, a leaked key, a private key, a key split "
+              f"across the read window, and an archive with no trace of the app)")
+        return 0
+
+    paths = [pathlib.Path(argument) for argument in arguments] or list(DEFAULT_ARTIFACTS)
     problems = []
     for path in paths:
         if not path.exists():
