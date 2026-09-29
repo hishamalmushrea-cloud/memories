@@ -8,6 +8,25 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- **A daily reminder - and it leads with memory, not nagging.** An app whose whole
+  purpose is to bring a moment back is worthless if it never brings one back on its
+  own; before this, the archive only ever spoke when the user opened it. The profile
+  screen now has a "Daily reminder" switch. Once on, a once-a-day local notification
+  fires - and the order it looks in is the point. It first asks whether **this day in
+  earlier years** holds anything, and if it does, that is what surfaces: "on this day
+  you have 3 memories to look back on." Only when there is nothing to resurface does
+  it fall back to a plain invitation to write today. And when the day is already
+  written and there is nothing from earlier years, it stays **silent** - a reminder
+  that fires every day regardless is noise the user learns to ignore. The decision
+  itself is one small pure function (`ReminderContent`), because the interesting part
+  of a reminder is not the plumbing but *when it should say nothing*, and that
+  deserves a test of its own (`ReminderContentTest`, 5 cases). Everything is local and
+  opt-in: the notification is computed on the device from the local database when it
+  fires and never reaches a server. Turning the switch on asks for the one notification
+  permission (Android 13+); turning it off cancels the schedule. No push service, no
+  background location - the seventh permission is `POST_NOTIFICATIONS` and nothing
+  more.
+
 - **An app lock - a front door for the whole archive.** The app already kept every
   other privacy promise (no tracking, no ads, row-level security on the server,
   per-record visibility), and all of it was undone the moment someone else picked

@@ -414,4 +414,12 @@
     <string name="lock_setting_title">قفل التطبيق</string>
     <string name="lock_setting_summary">اطلب بصمة أو رمز الجهاز عند الفتح، وبعد العودة من الخلفية</string>
 
+    <!-- تذكير يومي: إشعار محلي واحد، اختياري، يُحسب على الجهاز -->
+    <string name="reminder_setting_title">تذكير يومي</string>
+    <string name="reminder_setting_summary">إشعار محلي كل يوم: ما كتبته في مثل هذا اليوم من سنوات ماضية، أو دعوة لكتابة اليوم. لا شيء يغادر الجهاز.</string>
+    <string name="reminder_channel_name">التذكيرات</string>
+    <string name="reminder_notify_title">خريطة الذكريات</string>
+    <string name="reminder_notify_on_this_day">في مثل هذا اليوم من سنوات ماضية عندك %d ذكرى تستحق الاستعادة</string>
+    <string name="reminder_notify_write">لم تكتب اليوم بعد. سجّل هذا اليوم.</string>
+
 </resources>

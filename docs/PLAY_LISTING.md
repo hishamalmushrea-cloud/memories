@@ -25,7 +25,7 @@ Play Console, and this file does not claim otherwise — the specification is ex
 | No ads, no analytics, no trackers | none, by construction | no advertising or analytics dependency in `gradle/libs.versions.toml`; `ci/check-security.sh` |
 | Data safety: collected data is encrypted in transit | yes | one HTTPS client; no cleartext exception anywhere in the manifest |
 | Native library compatibility (64-bit, 16 KB pages) | the app **does** ship native libraries — twelve of them, `lib/arm64-v8a`, `libarmeabi-v7a` and the rest, from Compose (`libandroidx.graphics.path.so`) and CameraX (`libimage_processing_util_jni.so`, `libsurface_util_jni.so`). Reading the build file said "no NDK, so nothing to check"; reading the artifact said otherwise | `ci/check-artifacts.py` runs `zipalign -c -P 16 -v 4` on the debug APK, the release APK and the bundle, fails when a library is misaligned, and prints the tool's verdict in the run report. The first version of this check only listed what it found and failed on it, which is how the wrong assumption was found |
-| Permissions kept to the minimum | six, no background location, no storage | manifest; listed in `docs/MANUAL_QA_RESULTS.md` §1 |
+| Permissions kept to the minimum | seven, no background location, no storage | manifest; listed in `docs/MANUAL_QA_RESULTS.md` §1 |
 | Reviewer access to a gated app | the app is usable with **no account at all** ("continue without an account"), so a reviewer can reach every local screen; the cloud half needs a demo account | `docs/MANUAL_QA_RESULTS.md`; providing the credentials is item 2 below |
 
 ## 2) What only the owner can do

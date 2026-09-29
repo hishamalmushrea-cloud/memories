@@ -1,5 +1,10 @@
 package com.memorymap.ui.profile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +29,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,10 +61,22 @@ fun ProfileScreen(
     navController: NavHostController,
     viewModel: ProfileViewModel = hiltViewModel(),
     lockViewModel: LockViewModel = hiltViewModel(),
+    reminderViewModel: ReminderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lockState by lockViewModel.lockState.collectAsStateWithLifecycle()
+    val reminderEnabled by reminderViewModel.isEnabled.collectAsStateWithLifecycle()
     val signedIn = state.authState as? AuthState.SignedIn
+
+    // Asking for the notification permission is the screen's job, not the view
+    // model's: only a composable can launch the system dialog. It is requested the
+    // moment the reminder is switched on, and only on Android 13+, where it became
+    // a runtime permission. Whether it is granted does not change the setting - it
+    // only decides whether the system lets the notification through.
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* the setting stands either way; a denial only silences delivery */ }
 
     Column(
         modifier = Modifier
@@ -143,6 +162,51 @@ fun ProfileScreen(
                 Switch(
                     checked = lockState != LockState.Disabled,
                     onCheckedChange = lockViewModel::setEnabled,
+                )
+            }
+        }
+
+        // The daily reminder. Local and opt-in: it reads the device's own database
+        // when it fires and never reaches a server, so it sits with the privacy
+        // controls rather than apart from them.
+        Card(Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.reminder_setting_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.reminder_setting_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = reminderEnabled,
+                    onCheckedChange = { enabled ->
+                        reminderViewModel.setEnabled(enabled)
+                        // Android 13 made notifications a runtime permission. Asking here,
+                        // at the moment the user opts in, is the only place it can be asked;
+                        // a denial leaves the setting on but the delivery silent.
+                        if (enabled &&
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
                 )
             }
         }

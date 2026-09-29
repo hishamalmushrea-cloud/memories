@@ -19,7 +19,7 @@ Run on 2026-09-28 against `e89276c`.
 
 | Manual QA claim | How it was settled | Result |
 |---|---|---|
-| "No background location" | `grep -o 'android:name="[^"]*"' app/src/main/AndroidManifest.xml` | The manifest declares **six** permissions and no more: `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `CAMERA`, `RECORD_AUDIO`. `ACCESS_BACKGROUND_LOCATION` is absent. |
+| "No background location" | `grep -o 'android:name="[^"]*"' app/src/main/AndroidManifest.xml` | The manifest declares **seven** permissions and no more: `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `CAMERA`, `RECORD_AUDIO`, `POST_NOTIFICATIONS`. `ACCESS_BACKGROUND_LOCATION` is absent. |
 | "Nothing asks for storage access" | same command | no `READ_EXTERNAL_STORAGE`, no `WRITE_EXTERNAL_STORAGE`, no `MANAGE_EXTERNAL_STORAGE`, and no `READ_MEDIA_*` |
 | "No location request while the app is in the background" | `grep -rn "getCurrentLocation\|LocationManager\|FusedLocation" app/src/main/java/` | the only reader is `util/LocationReader.kt`, a one-shot: it registers a listener, removes it on the first fix, on cancellation and on timeout (`DEFAULT_TIMEOUT_MS = 12_000`), and keeps nothing alive. There is no `Service` in the manifest, so there is nothing that could collect a position with the app closed. |
 | "The app works with no network at all" (offline-first) | `ci/check-suspend-calls.py`, `ci/check-queries.py` plus the 537 unit tests, which run with Room on the JVM and fakes at the network boundary | no test or repository call requires a socket; the Supabase client is only reachable through the sync and auth repositories |

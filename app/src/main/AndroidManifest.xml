@@ -18,6 +18,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- One local notification, and only if the user turns the daily reminder on.
+         It carries no data off the device: the reminder is read from the local
+         database when it fires. There is no push service behind it. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />

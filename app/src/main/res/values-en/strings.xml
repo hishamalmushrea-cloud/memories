@@ -373,4 +373,12 @@
     <string name="lock_action_unlock">Unlock</string>
     <string name="lock_setting_title">App lock</string>
     <string name="lock_setting_summary">Require your fingerprint or device code on open, and after returning from the background</string>
+
+    <!-- Daily reminder: one local notification, opt-in, computed on the device -->
+    <string name="reminder_setting_title">Daily reminder</string>
+    <string name="reminder_setting_summary">A local notification each day: what this day held in earlier years, or an invitation to write today. Nothing leaves the device.</string>
+    <string name="reminder_channel_name">Reminders</string>
+    <string name="reminder_notify_title">Memory Map</string>
+    <string name="reminder_notify_on_this_day">On this day in earlier years you have %d memories to look back on</string>
+    <string name="reminder_notify_write">You have not written today yet. Record the day.</string>
 </resources>

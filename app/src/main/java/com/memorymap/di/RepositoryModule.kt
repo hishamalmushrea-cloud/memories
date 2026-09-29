@@ -16,9 +16,12 @@ import com.memorymap.data.repository.SupabaseAuthRepository
 import com.memorymap.data.local.LocalMediaFileStore
 import com.memorymap.data.local.LockSettings
 import com.memorymap.data.local.MediaFileStore
+import com.memorymap.data.local.ReminderSettings
 import com.memorymap.data.local.SharedPreferencesLockSettings
+import com.memorymap.data.local.SharedPreferencesReminderSettings
 import com.memorymap.data.repository.AppLockRepositoryImpl
 import com.memorymap.data.repository.MediaRepositoryImpl
+import com.memorymap.data.repository.ReminderRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
@@ -34,6 +37,7 @@ import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
 import com.memorymap.domain.repository.ReferenceRepository
+import com.memorymap.domain.repository.ReminderRepository
 import com.memorymap.domain.repository.SearchRepository
 import com.memorymap.domain.repository.SyncRepository
 import com.memorymap.domain.repository.UserRepository
@@ -151,6 +155,16 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindLockSettings(impl: SharedPreferencesLockSettings): LockSettings
+
+    /** The daily reminder, behind its interface so the toggle depends on the domain. */
+    @Binds
+    @Singleton
+    abstract fun bindReminderRepository(impl: ReminderRepositoryImpl): ReminderRepository
+
+    /** The reminder's one persistent fact - is it on? - behind a port, like the lock's. */
+    @Binds
+    @Singleton
+    abstract fun bindReminderSettings(impl: SharedPreferencesReminderSettings): ReminderSettings
 
     companion object {
 
