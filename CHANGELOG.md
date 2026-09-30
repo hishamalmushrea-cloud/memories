@@ -8,6 +8,25 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- **A home-screen widget - the past surfaces without opening the app.** The
+  reminder already reaches the user once a day, but it lives in the notification
+  shade, somewhere you have to pull down to see. A widget puts the same idea where
+  the phone is looked at a hundred times a day for other reasons: a small panel on
+  the home screen that answers one question at a glance - *does this day hold
+  anything from earlier years?* - and opens the archive on a tap. What it shows is
+  a **count, never a title**, and that is the whole design. The archive can be
+  locked and its records kept private, and the home screen belongs to whoever is
+  holding the phone, so a widget that named a memory would leak it past the lock
+  the app otherwise keeps. A number is useful and reveals nothing: "3 memories from
+  earlier years," or an empty state when the day holds none. The choice of what to
+  show is one pure function (`WidgetContent`) so the privacy rule - a count crosses
+  into the widget, a title never does - is something a plain JVM test can hold
+  (`WidgetContentTest`, 4 cases), not a promise buried in view code. The panel is
+  built from the platform's own `RemoteViews` and `AppWidgetProvider`, so it adds
+  **no dependency** and reads only the local database when it refreshes - no
+  network, no new permission, nothing leaves the device, and it works the moment it
+  is dropped on the home screen.
+
 - **Share-sheet quick capture - keep a thought without retyping it.** The fastest
   way to lose a memory is to read something worth keeping in another app, switch
   here, and have to type it out again - so most people never do. The app is now a

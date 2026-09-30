@@ -381,4 +381,12 @@
     <string name="reminder_notify_title">Memory Map</string>
     <string name="reminder_notify_on_this_day">On this day in earlier years you have %d memories to look back on</string>
     <string name="reminder_notify_write">You have not written today yet. Record the day.</string>
+
+    <!-- Home-screen widget: a count of what this day held in earlier years, a number with no titles -->
+    <string name="widget_title">On this day</string>
+    <string name="widget_empty">Nothing from earlier years yet</string>
+    <plurals name="widget_count">
+        <item quantity="one">%1$d memory from earlier years</item>
+        <item quantity="other">%1$d memories from earlier years</item>
+    </plurals>
 </resources>

@@ -422,4 +422,16 @@
     <string name="reminder_notify_on_this_day">في مثل هذا اليوم من سنوات ماضية عندك %d ذكرى تستحق الاستعادة</string>
     <string name="reminder_notify_write">لم تكتب اليوم بعد. سجّل هذا اليوم.</string>
 
+    <!-- أداة الشاشة الرئيسية: عدد ما يحمله هذا اليوم من سنوات ماضية، رقم بلا عناوين -->
+    <string name="widget_title">في مثل هذا اليوم</string>
+    <string name="widget_empty">لا ذكرى من سنوات ماضية بعد</string>
+    <plurals name="widget_count">
+        <item quantity="zero">لا ذكرى من سنوات ماضية</item>
+        <item quantity="one">ذكرى واحدة من سنوات ماضية</item>
+        <item quantity="two">ذكريان من سنوات ماضية</item>
+        <item quantity="few">%1$d ذكريات من سنوات ماضية</item>
+        <item quantity="many">%1$d ذكرى من سنوات ماضية</item>
+        <item quantity="other">%1$d ذكرى من سنوات ماضية</item>
+    </plurals>
+
 </resources>

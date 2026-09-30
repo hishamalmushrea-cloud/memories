@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Describes the widget to the launcher: its size, how often it may refresh,
+     and the layout shown before the first update lands. updatePeriodMillis is
+     set to the system minimum of 30 minutes; the widget also refreshes whenever
+     it is (re)added, so a day that gains a memory is not stale for long. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_memory"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

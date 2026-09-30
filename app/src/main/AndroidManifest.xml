@@ -78,6 +78,24 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- The home-screen widget. It shows only a count of what this day holds
+             in earlier years - never a title - so nothing kept behind the lock
+             can leak onto the home screen. It reads the local database on update
+             and opens the app on tap; it holds no permission of its own.
+             exported=false is correct: the system still delivers APPWIDGET_UPDATE
+             to a non-exported provider, and nothing else may drive it. -->
+        <receiver
+            android:name=".ui.widget.MemoryWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_memory_info" />
+        </receiver>
     </application>
 
 </manifest>

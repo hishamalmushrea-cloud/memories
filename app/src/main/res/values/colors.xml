@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="memorymap_background">#FBF8FF</color>
+
+    <!-- Widget colours are static on purpose. The dynamic system_accent /
+         system_neutral palettes only exist from API 31, and the widget must
+         render from minSdk 26, so it uses plain colours that resolve everywhere.
+         The app is light-only (there is no values-night), so these match it. -->
+    <color name="widget_text_primary">#1A1622</color>
+    <color name="widget_text_secondary">#4A4458</color>
 </resources>
