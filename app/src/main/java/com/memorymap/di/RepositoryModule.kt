@@ -24,6 +24,7 @@ import com.memorymap.data.repository.MediaRepositoryImpl
 import com.memorymap.data.repository.ReminderRepositoryImpl
 import com.memorymap.data.repository.MemoryRepositoryImpl
 import com.memorymap.data.repository.OnThisDayRepositoryImpl
+import com.memorymap.data.repository.ReadableExportRepositoryImpl
 import com.memorymap.data.repository.ReferenceRepositoryImpl
 import com.memorymap.data.repository.SearchRepositoryImpl
 import com.memorymap.data.repository.SyncRepositoryImpl
@@ -36,6 +37,7 @@ import com.memorymap.domain.repository.DiaryRepository
 import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.OnThisDayRepository
+import com.memorymap.domain.repository.ReadableExportRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.domain.repository.ReminderRepository
 import com.memorymap.domain.repository.SearchRepository
@@ -134,6 +136,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReadableExportRepository(
+        impl: ReadableExportRepositoryImpl,
+    ): ReadableExportRepository
 
     @Binds
     @Singleton

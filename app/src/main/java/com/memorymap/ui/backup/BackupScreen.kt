@@ -42,8 +42,12 @@ import java.time.format.FormatStyle
  * and asks before merging anything.
  */
 @Composable
-fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
+fun BackupScreen(
+    viewModel: BackupViewModel = hiltViewModel(),
+    exportViewModel: ReadableExportViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val exportState by exportViewModel.state.collectAsStateWithLifecycle()
 
     val exportPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree(),
@@ -54,6 +58,13 @@ fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
         ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         if (uri != null) viewModel.inspect(uri.toString())
+    }
+    // A readable copy is written to a single new document the user names, so it
+    // uses CreateDocument rather than the folder picker the archive uses.
+    val readablePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/markdown"),
+    ) { uri ->
+        if (uri != null) exportViewModel.export(uri.toString())
     }
 
     Column(
@@ -132,6 +143,42 @@ fun BackupScreen(viewModel: BackupViewModel = hiltViewModel()) {
                 }
             }
         }
+
+        // A readable copy: the human counterpart to the machine backup above. One
+        // document of every record, to read or print, written where the user picks.
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.export_readable_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.export_readable_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(
+                    onClick = { readablePicker.launch("memories.md") },
+                    enabled = !exportState.isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.export_readable_action))
+                }
+                if (exportState.isBusy) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                val exportMessageId = exportState.messageKey?.let { readableMessageId(it) }
+                if (exportMessageId != null) {
+                    Text(stringResource(exportMessageId), style = MaterialTheme.typography.bodySmall)
+                    TextButton(
+                        onClick = exportViewModel::dismissMessage,
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                }
+            }
+        }
     }
 
     val manifest = state.pendingManifest
@@ -200,5 +247,12 @@ private fun backupMessageId(key: String): Int? = when (key) {
     "backup_error_open" -> R.string.backup_error_open
     "backup_error_write" -> R.string.backup_error_write
     "backup_error_format" -> R.string.backup_error_format
+    else -> null
+}
+
+/** The readable copy's own two outcomes, mapped the same careful way. */
+private fun readableMessageId(key: String): Int? = when (key) {
+    "export_written" -> R.string.export_written
+    "export_error_write" -> R.string.export_error_write
     else -> null
 }

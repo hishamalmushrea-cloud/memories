@@ -303,6 +303,16 @@
     <string name="backup_error_write">تعذّر الكتابة في هذا المجلد.</string>
     <string name="backup_error_format">هذا المجلد لا يحتوي نسخة احتياطية صالحة.</string>
 
+    <!-- نسخة مقروءة: كل السجلات في ملف واحد يمكن قراءته أو طباعته أو مشاركته -->
+    <string name="export_readable_title">نسخة مقروءة</string>
+    <string name="export_readable_summary">احفظ ذكرياتك وأحداثك في ملف نصي واحد يمكن قراءته في أي مكان، أو طباعته، أو مشاركته. يُحفظ على جهازك ولا يُرفع إلى أي خادم.</string>
+    <string name="export_readable_action">تصدير نسخة مقروءة</string>
+    <string name="export_document_title">ذكرياتي</string>
+    <string name="export_kind_memory">ذكرى</string>
+    <string name="export_kind_entry">حدث</string>
+    <string name="export_written">تم حفظ النسخة المقروءة في الملف الذي اخترته.</string>
+    <string name="export_error_write">تعذّر حفظ النسخة المقروءة.</string>
+
     <!-- Phase 10: account deletion -->
     <string name="wipe_title">حذف البيانات المحلية</string>
     <string name="wipe_intro">يحذف كل ما على هذا الجهاز: الذكريات والأحداث والملاحظات والأشخاص والأماكن وملفات الوسائط. لا يمكن التراجع.</string>

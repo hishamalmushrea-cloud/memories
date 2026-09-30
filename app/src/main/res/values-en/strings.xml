@@ -275,6 +275,16 @@
     <string name="backup_error_write">That folder could not be written to.</string>
     <string name="backup_error_format">That folder does not hold a valid backup.</string>
 
+    <!-- Readable copy: every record in one file a person can read, print, or share -->
+    <string name="export_readable_title">Readable copy</string>
+    <string name="export_readable_summary">Save your memories and events to a single text file you can read anywhere, print, or share. It is written to your device and never uploaded to a server.</string>
+    <string name="export_readable_action">Export a readable copy</string>
+    <string name="export_document_title">My memories</string>
+    <string name="export_kind_memory">Memory</string>
+    <string name="export_kind_entry">Event</string>
+    <string name="export_written">The readable copy was saved to the file you chose.</string>
+    <string name="export_error_write">The readable copy could not be saved.</string>
+
     <!-- Phase 10: account deletion -->
     <string name="wipe_title">Delete local data</string>
     <string name="wipe_intro">Removes everything on this device: memories, events, notes, people, places and the media files. This cannot be undone.</string>

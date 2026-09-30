@@ -8,6 +8,31 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- **A readable copy of the archive - the memories as a document, not a backup.**
+  The backup already gets the data out, but it gets it out as JSON: a machine
+  format whose whole job is to restore a phone. It is the wrong thing to hand
+  someone who wants to *read* what they kept, to print it, to email it to a
+  relative, or to open it in ten years in whatever text editor is still around.
+  So the archive can now also be written out as one Markdown document - every
+  memory and every event, newest first, each under its date with a one-line strip
+  of what it is (a memory or an event, its feeling, its place) and then the
+  user's own words beneath. The part that is not obvious, and the reason this has
+  tests of its own: **the text belongs to the user**, and a memory that happens to
+  contain `#`, `*`, `[...]()` or `<...>` has to come out reading exactly as it was
+  written - never quietly reshaped by whatever renders the file into a heading, a
+  bullet, a link or a tag. Every field is escaped on the way in, and that escaping
+  and the shape of the document are one pure function (`MarkdownExport`) a plain
+  JVM test can drive with no Android at all (`MarkdownExportTest`, 18 cases),
+  because fidelity to the user's words is the entire point of a readable export.
+  The data layer only gathers the records, resolves each date and label in the
+  user's own language, and moves the bytes - an assembly a Robolectric test runs
+  against a real database and real resources (`ReadableExportRepositoryImplTest`),
+  proving it reads one user's records and no one else's and looks an event's place
+  and feeling up rather than dropping them. It lives on the Backup screen as a
+  second action, writes to a single file the user names through the Storage Access
+  Framework, adds **no dependency** (Markdown is plain text), needs **no new
+  permission**, and never leaves the device.
+
 - **A home-screen widget - the past surfaces without opening the app.** The
   reminder already reaches the user once a day, but it lives in the notification
   shade, somewhere you have to pull down to see. A widget puts the same idea where
