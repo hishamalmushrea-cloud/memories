@@ -21,6 +21,7 @@ import com.memorymap.domain.repository.MediaRepository
 import com.memorymap.domain.repository.ReferenceRepository
 import com.memorymap.domain.repository.MemoryRepository
 import com.memorymap.domain.repository.UploadRequest
+import com.memorymap.ui.share.PendingShare
 import com.memorymap.util.MediaImporter
 import com.memorymap.util.MmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -89,13 +90,27 @@ class MemoryEditorViewModel @Inject constructor(
     private val mediaRepository: MediaRepository,
     private val authRepository: AuthRepository,
     private val referenceRepository: ReferenceRepository,
+    private val pendingShare: PendingShare,
 ) : ViewModel() {
 
-    private val memoryId: String = savedStateHandle.get<String>("memoryId")
-        ?.takeIf { it.isNotBlank() }
-        ?: UUID.randomUUID().toString()
+    // A blank id means "create"; a supplied one means "edit". The distinction is
+    // captured before it is folded into [memoryId], because only a create may take
+    // a shared snippet.
+    private val savedMemoryId: String? =
+        savedStateHandle.get<String>("memoryId")?.takeIf { it.isNotBlank() }
 
-    private val _state = MutableStateFlow(MemoryEditorUiState(memoryId = memoryId))
+    private val memoryId: String = savedMemoryId ?: UUID.randomUUID().toString()
+
+    private val _state = MutableStateFlow(
+        MemoryEditorUiState(
+            memoryId = memoryId,
+            // A note shared in from another app prefills a brand-new record's body.
+            // An edit never takes it: the stored body is about to be loaded over the
+            // top anyway, and consuming here would silently drop a share the user
+            // has not seen. consume() clears it, so it is applied exactly once.
+            text = if (savedMemoryId == null) pendingShare.consume().orEmpty() else "",
+        ),
+    )
     val state: StateFlow<MemoryEditorUiState> = _state.asStateFlow()
 
     init {

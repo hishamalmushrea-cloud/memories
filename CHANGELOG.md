@@ -8,6 +8,23 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Added
 
+- **Share-sheet quick capture - keep a thought without retyping it.** The fastest
+  way to lose a memory is to read something worth keeping in another app, switch
+  here, and have to type it out again - so most people never do. The app is now a
+  share target for plain text: from a browser, a notes app, a chat, the user taps
+  share, picks Memory Map, and lands in a new record with the text already in the
+  body, ready to title and save. It is deliberately narrow - **plain text only**.
+  An image, a file stream or a custom type is someone else's data shape, and the
+  archive keeps words, so those are refused rather than half-imported. The whole
+  decision of what counts as a share worth keeping is one pure function
+  (`ShareCapture`), because the interesting part is not that it accepts text but
+  that it declines everything else, and that deserves a test of its own
+  (`ShareCaptureTest`, 7 cases). A share can arrive while the lock screen or the
+  sign-in form is still up, so the snippet is parked above those gates
+  (`PendingShare`) and consumed exactly once by the first **new** editor to open -
+  never by an edit, which would silently overwrite a stored body. No new
+  permission and nothing leaves the device; the text was already on the phone.
+
 - **A daily reminder - and it leads with memory, not nagging.** An app whose whole
   purpose is to bring a moment back is worthless if it never brings one back on its
   own; before this, the archive only ever spoke when the user opened it. The profile

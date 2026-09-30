@@ -21,6 +21,7 @@ import com.memorymap.domain.model.Memory
 import com.memorymap.domain.model.Visibility
 import com.memorymap.testing.FakeAuthRepository
 import com.memorymap.testing.FakeReferenceRepository
+import com.memorymap.ui.share.PendingShare
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -216,9 +217,43 @@ class MemoryEditorViewModelTest {
         assertTrue(state.memoryId.isNotBlank())
     }
 
+    @Test
+    fun `a new editor takes a shared snippet as its body and consumes it`() = runTest {
+        val pending = PendingShare().apply { set("نص مشارك من تطبيق آخر") }
+
+        val viewModel = editor(memoryId = null, pendingShare = pending)
+
+        // The body is prefilled straight away, and the snippet is gone from the
+        // holder so it cannot leak into the next editor the user opens.
+        assertEquals("نص مشارك من تطبيق آخر", viewModel.state.value.text)
+        assertNull(pending.consume())
+    }
+
+    @Test
+    fun `editing an existing memory never takes the shared snippet`() = runTest {
+        memories.save(
+            Memory(
+                id = "existing-share",
+                userId = userId,
+                title = "ذكرى محفوظة",
+                text = "النص الأصلي",
+                memoryDate = day,
+            ),
+        )
+        val pending = PendingShare().apply { set("نص مشارك") }
+
+        val viewModel = editor(memoryId = "existing-share", pendingShare = pending)
+        val state = awaitState(viewModel) { !it.isNew }
+
+        // The stored body wins; the share is left untouched for a real new record.
+        assertEquals("النص الأصلي", state.text)
+        assertEquals("نص مشارك", pending.consume())
+    }
+
     private fun editor(
         memoryId: String?,
         references: FakeReferenceRepository = FakeReferenceRepository(),
+        pendingShare: PendingShare = PendingShare(),
     ) = MemoryEditorViewModel(
         context = ApplicationProvider.getApplicationContext(),
         savedStateHandle = SavedStateHandle(mapOf("memoryId" to memoryId.orEmpty())),
@@ -226,6 +261,7 @@ class MemoryEditorViewModelTest {
         mediaRepository = media,
         authRepository = FakeAuthRepository(userId),
         referenceRepository = references,
+        pendingShare = pendingShare,
     )
 
     /** Waits on the real state stream until [predicate] holds, then returns it. */

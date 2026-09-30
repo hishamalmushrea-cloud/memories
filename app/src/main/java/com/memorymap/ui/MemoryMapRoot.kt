@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,11 +37,13 @@ import com.memorymap.R
 import com.memorymap.domain.model.AuthState
 import com.memorymap.domain.model.LockState
 import com.memorymap.navigation.MemoryMapNavHost
+import com.memorymap.navigation.Routes
 import com.memorymap.navigation.TopLevelDestination
 import com.memorymap.ui.auth.AuthScreen
 import com.memorymap.ui.auth.AuthViewModel
 import com.memorymap.ui.lock.LockScreen
 import com.memorymap.ui.lock.LockViewModel
+import com.memorymap.ui.share.ShareViewModel
 
 /**
  * The app shell.
@@ -91,11 +94,22 @@ fun MemoryMapRoot(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppShell() {
+private fun AppShell(
+    shareViewModel: ShareViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     var quickAddOpen by remember { mutableStateOf(false) }
+
+    // A share parked while a gate was up is picked up here, once the user is in.
+    // Opening a new editor is enough: the editor consumes the snippet itself, so
+    // this only has to fire the navigation, and clearing on consume is what stops
+    // it re-opening the editor on the next recomposition.
+    val pendingShare by shareViewModel.pendingText.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingShare) {
+        if (pendingShare != null) navController.navigate(Routes.memoryEditor())
+    }
 
     val isTopLevel = TopLevelDestination.entries.any { destination ->
         currentDestination?.hierarchy?.any { it.route == destination.route } == true
