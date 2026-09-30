@@ -5,6 +5,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 
 /**
  * One shared snippet, held until the editor can take it.
@@ -33,5 +34,5 @@ class PendingShare @Inject constructor() {
     }
 
     /** Returns the pending snippet and clears it, so it is applied exactly once. */
-    fun consume(): String? = _text.getAndSet(null)
+    fun consume(): String? = _text.getAndUpdate { null }
 }
